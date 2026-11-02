@@ -6,14 +6,12 @@ on:
   pull_request:
     branches: [main]
 
-# Uprawnienia tylko do odczytu kodu. CI nie potrzebuje prawa zapisu do
-# repozytorium i nie powinno go mieć.
 permissions:
   contents: read
 
 jobs:
   web:
-    name: Interfejs — typy i testy
+    name: Interfejs — typy, testy i budowanie
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,8 +30,6 @@ jobs:
       - name: Testy
         run: npm run test --workspaces --if-present
 
-      # Bramka dostępności: pary kolorów, które nie przechodzą AA, zatrzymują
-      # scalenie. To test, nie raport — dlatego jest osobnym krokiem.
       - name: Kontrast WCAG 2.2 AA
         run: node --test packages/ui/src/contrast.test.ts
         env:
@@ -44,6 +40,64 @@ jobs:
         env:
           API_INTERNAL_URL: http://127.0.0.1:8000
 
+  api:
+    name: API — testy Django
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Zależności
+        run: pip install -r services/api/requirements.txt
+
+      - name: Kontrola konfiguracji Django
+        working-directory: services/api
+        env:
+          SECRET_KEY: ci-only-not-a-real-secret
+          FIELD_ENCRYPTION_KEY: ZGh1bW15LWNpLW9ubHktbm90LWEtc2VjcmV0LWtleS0wPQ==
+        run: python manage.py check --fail-level WARNING
+
+      - name: Sprawdzenie rozjazdu migracji
+        working-directory: services/api
+        env:
+          SECRET_KEY: ci-only-not-a-real-secret
+          FIELD_ENCRYPTION_KEY: ZGh1bW15LWNpLW9ubHktbm90LWEtc2VjcmV0LWtleS0wPQ==
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Testy
+        working-directory: services/api
+        env:
+          SECRET_KEY: ci-only-not-a-real-secret
+          FIELD_ENCRYPTION_KEY: ZGh1bW15LWNpLW9ubHktbm90LWEtc2VjcmV0LWtleS0wPQ==
+        run: python manage.py test --verbosity=2
+
+  compose:
+    name: Sprawdzenie plików compose
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Walidacja compose (developerski)
+        run: docker compose -f infra/docker-compose.yml config -q
+
+      - name: Walidacja compose (produkcyjny)
+        env:
+          DOMAIN: ci.example.com
+          ACME_EMAIL: ci@example.com
+          SECRET_KEY: ci-only
+          FIELD_ENCRYPTION_KEY: ci-only
+          ALLOWED_HOSTS: ci.example.com
+          CSRF_TRUSTED_ORIGINS: https://ci.example.com
+          POSTGRES_DB: tikbengos
+          POSTGRES_USER: tikbengos
+          POSTGRES_PASSWORD: ci-only
+          REDIS_PASSWORD: ci-only
+        run: docker compose -f infra/docker-compose.prod.yml config -q
+
   secret-scan:
     name: Skanowanie sekretów
     runs-on: ubuntu-latest
@@ -51,8 +105,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      # Historia, nie tylko bieżący stan: sekret usunięty w kolejnym commicie
-      # zostaje w historii i dalej jest sekretem.
       - name: gitleaks
         uses: gitleaks/gitleaks-action@v2
         env:
