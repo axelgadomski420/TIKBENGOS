@@ -1,23 +1,3 @@
-"""Walidacja dostawców przy zapisie klucza — obrona przed SSRF.
-
-Ten plik istnieje z jednego powodu: żeby adres, na który serwer wyśle
-żądanie, nie pochodził od użytkownika.
-
-Dlaczego to jest groźne. Serwer ma dostęp do sieci wewnętrznej, do bazy
-i do metadanych instancji. Gdyby użytkownik mógł podać dowolny adres,
-mógłby kazać serwerowi wysłać żądanie na:
-
-- `http://169.254.169.254/` — punkt metadanych chmury. W wielu konfiguracjach
-  odpowiada poświadczeniami instancji, czyli kluczami do całego konta w chmurze.
-- `http://localhost:8000/` — nasze własne API. Żądanie z zewnątrz obchodzi
-  uwierzytelnianie, bo pochodzi z zaufanego adresu.
-- `http://db:5432/` — baza danych w tej samej sieci Dockera.
-- adres pod kontrolą atakującego, który odpowiada powoli i zajmuje procesy.
-
-Dlatego adres bierze się z katalogu w `packages/core/src/providers.ts`,
-po stronie Pythona powtórzonego niżej, i nigdy z formularza.
-"""
-
 import ipaddress
 import socket
 from urllib.parse import urlparse
@@ -57,6 +37,19 @@ PROVIDER_BASE_URLS: dict[str, str] = {
     # ── Kod ──────────────────────────────────────────────────────────
     "github": "https://api.github.com",
     "gitlab": "https://gitlab.com/api/v4",
+}
+
+# Schemat nagłówka autoryzacji. Powtórzone z katalogu z tego samego powodu co
+# adresy: serwer buduje żądanie, więc musi wiedzieć, jak wstawić klucz.
+# `bearer` → `Authorization: Bearer <klucz>`
+# `x-api-key` → własny nagłówek o tej nazwie
+# `token` → `Authorization: Token <klucz>` (Deepgram nie używa Bearer)
+PROVIDER_AUTH_SCHEMES: dict[str, str] = {
+    "anthropic": "x-api-key",
+    "google-ai": "x-goog-api-key",
+    "elevenlabs": "xi-api-key",
+    "deepgram": "token",
+    "gitlab": "PRIVATE-TOKEN",
 }
 
 # Dostawcy obecni w katalogu, ale bez potwierdzonego adresu. Zapis klucza jest
@@ -132,6 +125,27 @@ def base_url_for(provider_id: str) -> str:
             "zostanie potwierdzony.",
         )
     return url
+
+
+def auth_headers_for(provider_id: str, key: str) -> dict[str, str]:
+    """Buduje nagłówki autoryzacji dla dostawcy.
+
+    Zwraca nowy słownik — klucz nigdy nie trafia do nagłówka `Referer` ani
+    do logów, bo nie jest nigdzie zapisywany poza tym jednym miejscem.
+    """
+    scheme = PROVIDER_AUTH_SCHEMES.get(provider_id)
+    if scheme == "x-api-key":
+        return {"x-api-key": key}
+    if scheme == "x-goog-api-key":
+        return {"x-goog-api-key": key}
+    if scheme == "xi-api-key":
+        return {"xi-api-key": key}
+    if scheme == "token":
+        # Deepgram wymaga schematu `Token`, nie `Bearer`.
+        return {"Authorization": f"Token {key}"}
+    if scheme == "PRIVATE-TOKEN":
+        return {"PRIVATE-TOKEN": key}
+    return {"Authorization": f"Bearer {key}"}
 
 
 def ensure_public_https(url: str) -> str:
