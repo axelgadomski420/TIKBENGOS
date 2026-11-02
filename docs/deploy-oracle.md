@@ -4,6 +4,10 @@ Ten dokument opisuje drogę od pustego konta Oracle do działającej aplikacji
 z certyfikatem i własną domeną. Każdy krok ma powód, nie tylko polecenie —
 bo kroki bez powodu są pomijane, gdy wydają się zbędne.
 
+**Skrót:** na maszynie wystarczy `bash scripts/deploy.sh` — skrypt robi
+wszystko z punktów 4–8. Ten dokument jest po to, żeby wiedzieć, CO ten skrypt
+robi i co zrobić, gdy coś padnie.
+
 Czego ten dokument **nie** obiecuje: że darmowy plan Oracle wystarczy
 na wszystko. Worker muzyczny potrzebuje karty graficznej z 16 GB pamięci
 i na maszynie aplikacyjnej nie ma prawa działać. To jest osobna usługa,
@@ -43,7 +47,8 @@ To najczęstsza przyczyna „otworzyłem port i nie działa”.
 Add Ingress Rules. Z `Source CIDR = 0.0.0.0/0`, TCP, porty `80` i `443`.
 
 **Na samej maszynie:** obrazy Oracle mają własne `iptables`, które blokuje
-ruch przychodzący mimo reguły w panelu.
+ruch przychodzący mimo reguły w panelu. `scripts/deploy.sh` robi to za Ciebie,
+ale ręcznie wygląda to tak:
 
 ```bash
 sudo iptables -L INPUT --line-numbers -n   # zapisz numer reguły REJECT
@@ -69,12 +74,24 @@ exit   # i połącz się ponownie — inaczej grupa docker nie zadziała
 ```bash
 git clone https://github.com/axelgadomski420/TIKBENGOS.git
 cd TIKBENGOS
+bash scripts/deploy.sh
+```
+
+Skrypt utworzy `.env` sam — z wygenerowanym `SECRET_KEY`, kluczem Fernet
+do szyfrowania kluczy dostawców i dwoma różnymi hasłami (baza, Redis).
+Nic nie musisz wymyślać. Plik dostaje uprawnienia `600`, więc czyta go tylko
+właściciel.
+
+Gdy wolisz uzupełnić ręcznie:
+
+```bash
 cp infra/.env.prod.example .env
 nano .env
 ```
 
 Uzupełnij `SECRET_KEY`, `FIELD_ENCRYPTION_KEY`, `POSTGRES_PASSWORD`,
-`REDIS_PASSWORD`, `DOMAIN`, `ACME_EMAIL`, `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`.
+`REDIS_PASSWORD`, `DOMAIN`, `ACME_EMAIL`, `ALLOWED_HOSTS`,
+`CSRF_TRUSTED_ORIGINS` i `NEXT_PUBLIC_REALTIME_URL`.
 
 `FIELD_ENCRYPTION_KEY` generuje się **raz**. Zmiana tego klucza po zapisaniu
 jakiegokolwiek klucza dostawcy uniemożliwia jego odszyfrowanie — dane
@@ -92,7 +109,13 @@ dig +short twojadomena.pl
 Dopóki nie zwraca Twojego IP, uruchamianie nie ma sensu — Let's Encrypt
 odrzuci weryfikację i certyfikatu nie będzie.
 
+**Bez domeny też da się uruchomić**, ale wtedy nie ma HTTPS, a bez HTTPS
+ciasteczko sesji z `SESSION_COOKIE_SECURE` nie dojedzie — czyli logowanie
+nie zadziała. Aplikacja wstanie i będzie widoczna, ale kont nie założysz.
+
 ## 7. Uruchomienie
+
+Skrypt `deploy.sh` robi to sam. Ręcznie — jedna komenda:
 
 ```bash
 sudo docker compose -f infra/docker-compose.prod.yml up -d --build
@@ -101,22 +124,54 @@ sudo docker compose -f infra/docker-compose.prod.yml logs api --tail=50
 ```
 
 Migracje wykonują się same — komenda `api` zaczyna się od `migrate --noinput`.
+Pierwsze budowanie trwa kilka minut: powstaje pięć obrazów.
 
 ## 8. Sprawdzenie
 
+Jedna komenda, trzy testy i jawny wynik:
+
 ```bash
-curl -s https://twojadomena.pl/api/csrf          # powinno zwrócić {"csrfToken": "..."}
-curl -s https://twojadomena.pl/api/settings/providers | head -c 200
+python3 scripts/sprawdz.py https://twojadomena.pl
 ```
 
-Pierwsze polecenie sprawdza całą drogę: proxy → API → Django. Drugie wymaga
-zalogowania, więc zwróci `401` — i to jest poprawna odpowiedź.
+Skrypt sprawdza, czy interfejs odpowiada, czy żądanie dochodzi do Django
+(`/api/health`) i czy endpoint CSRF wydaje token. Wypisze też, czego NIE
+sprawdził — bo nie da się tego zrobić bez przeglądarki.
 
-## 9. Czego ten dokument nie zastąpi
+Ręcznie, gdy chcesz zobaczyć surową odpowiedź:
+
+```bash
+curl -s https://twojadomena.pl/api/health         # {"status": "ok"}
+curl -s https://twojadomena.pl/api/csrf           # {"csrfToken": "..."}
+curl -s https://twojadomena.pl/api/config         # ścieżki kontraktu
+curl -s -o /dev/null -w '%{http_code}\n' https://twojadomena.pl/api/settings/keys
+# ostatni zwróci 401 — i to jest POPRAWNA odpowiedź, bo wymaga zalogowania
+```
+
+## 9. Co zrobić, gdy nie działa
+
+| Objaw | Najczęstsza przyczyna | Gdzie sprawdzić |
+| --- | --- | --- |
+| Strona się nie ładuje, brak połączenia | porty nieotwarte w OBU miejscach | Security List w panelu **i** `iptables` na maszynie |
+| Certyfikatu nie ma, Caddy krzyczy o ACME | rekord A nie wskazuje IP | `dig +short DOMAIN` |
+| Interfejs działa, `/api/...` zwraca 502 | API nie wstał (błąd migracji) | `docker compose logs api --tail=50` |
+| Logowanie zwraca 403 | brak tokenu CSRF albo ciasteczko `Secure` bez HTTPS | `/api/csrf` ma zwracać token, a strona musi być na `https://` |
+| `migrate` pada | rozjazd migracji pisanych ręcznie | `docker compose exec api python manage.py makemigrations --check --dry-run` |
+| Kontener `realtime` jest „running”, a kanał nie działa | brak `NEXT_PUBLIC_REALTIME_URL` w `.env` | `docker compose logs realtime --tail=30` |
+
+Pełny audyt braków przed uruchomieniem, bez stawiania czegokolwiek:
+
+```bash
+python3 scripts/audyt.py
+```
+
+## 10. Czego ten dokument nie zastąpi
 
 - **Kopii zapasowej bazy.** `db-data` to wolumen Dockera na tej samej
-  maszynie. Utrata maszyny to utrata danych — potrzebny `pg_dump` na
-  zewnętrzny magazyn, a tego tu nie ma.
+  maszynie. Utrata maszyny to utrata danych. Ręcznie:
+  `docker compose -f infra/docker-compose.prod.yml exec -T db pg_dump -U tikbengos tikbengos > kopia.sql`,
+  a w zakładce Actions jest gotowa akcja *kopia-bazy*, która zapisze zrzut
+  jako artefakt na 7 dni.
 - **Monitoringu.** Nikt nie powiadomi Cię, że aplikacja padła.
 - **Aktualizacji.** `apt upgrade` i przebudowa obrazów pozostają ręczne.
 
