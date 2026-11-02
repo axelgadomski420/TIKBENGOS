@@ -1,0 +1,26 @@
+{
+  "name": "@bengos/core",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./identity": "./src/identity.ts",
+    "./feed": "./src/feed.ts",
+    "./music": "./src/music.ts",
+    "./chat": "./src/chat.ts",
+    "./projects": "./src/projects.ts",
+    "./access": "./src/access.ts",
+    "./jobs": "./src/jobs.ts",
+    "./api": "./src/api.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}
