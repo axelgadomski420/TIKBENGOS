@@ -13,28 +13,75 @@ Wymaga biblioteki `pillow`. Nie dodajemy jej do `requirements.txt` API,
 bo serwer jej nie potrzebuje: to narzędzie deweloperskie, nie zależność
 usługi.
 
+Gdy brakuje `pillow`, skrypt PRÓBUJE go doinstalować w środowisku
+tymczasowym (venv w /tmp). To jest potrzebne przy pierwszym uruchomieniu
+na czystej maszynie, gdzie nie ma ani biblioteki, ani czasu na szukanie,
+jak ją doinstalować bez psucia systemowego Pythona.
+
 Kolory pochodzą z `packages/ui/src/themes.ts` (motyw ciemny):
     surface  #0B0B0F
     accent   #7C5CFF
     glow     #9B7DFF
 """
 
+import base64
+import subprocess
+import sys
 from pathlib import Path
-
-from PIL import Image, ImageDraw
 
 SURFACE = (11, 11, 15, 255)  # #0B0B0F
 ACCENT = (124, 92, 255, 255)  # #7C5CFF
 GLOW = (155, 125, 255, 255)  # #9B7DFF
 
-OUT_DIR = Path(__file__).resolve().parent.parent / "apps" / "web" / "public" / "icons"
+ROOT = Path(__file__).resolve().parent.parent
+OUT_DIR = ROOT / "apps" / "web" / "public" / "icons"
 
 
-def draw_mark(size: int, *, safe_area: float) -> Image.Image:
+def _pil():
+    """Zwraca moduły Pillow albo kończy z konkretnym komunikatem.
+
+    Kolejność: użyj tego, co jest; jeżeli nie ma — przygotuj tymczasowe
+    środowisko i użyj jego Pythona, wznawiając skrypt w podprocesie.
+    """
+    try:
+        from PIL import Image, ImageDraw  # noqa: PLC0415
+
+        return Image, ImageDraw
+    except ImportError:
+        pass
+
+    venv = Path("/tmp/tikbengos-ikony")
+    python = venv / "bin" / "python"
+
+    if not python.exists():
+        print("Brak Pillow. Przygotowuję tymczasowe środowisko w /tmp …")
+        try:
+            subprocess.run([sys.executable, "-m", "venv", str(venv)], check=True)
+            subprocess.run(
+                [str(python), "-m", "pip", "install", "--quiet", "pillow"], check=True
+            )
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            print(
+                "Nie udało się przygotować Pillow.\n"
+                "Zainstaluj ręcznie: python3 -m pip install pillow\n"
+                "Aplikacja wstanie bez ikon PWA — manifest wskaże pliki, których nie ma.",
+                file=sys.stderr,
+            )
+            return None, None
+
+    # Wznów ten sam skrypt tym Pythonem, który ma Pillow.
+    result = subprocess.run([str(python), str(Path(__file__).resolve()), *_KWARGS])
+    sys.exit(result.returncode)
+
+
+_KWARGS = sys.argv[1:]
+
+
+def draw_mark(Image, ImageDraw, size: int, *, safe_area: float):
     """Rysuje znak BENGOS na kwadracie `size` x `size`.
 
     `safe_area` to margines, jaki musi zostać pusty. Dla ikony maskowalnej
-    wynosi 0,25 — Android przycina ikonę do własnego kształtu (kółko,
+    jest większy: Android przycina ikonę do własnego kształtu (kółko,
     kwadrat, łezka) i wszystko poza tą strefą może zniknąć. Trzymanie
     znaku w środkowej połowie jest tym, co odróżnia ikonę maskowalną
     od zwykłej.
@@ -48,7 +95,7 @@ def draw_mark(size: int, *, safe_area: float) -> Image.Image:
     # Pierścień — ta sama forma co `bengos-glow-ring` w arkuszu stylów.
     ring_width = max(2, int(inner * 0.06))
     draw.ellipse(
-        (margin, margin, size - margin, size - margin),
+        (margin, margin, size - margin - 1, size - margin - 1),
         outline=GLOW,
         width=ring_width,
     )
@@ -74,7 +121,11 @@ def draw_mark(size: int, *, safe_area: float) -> Image.Image:
     return image
 
 
-def main() -> None:
+def main() -> int:
+    Image, ImageDraw = _pil()
+    if Image is None:
+        return 1
+
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
     targets = [
@@ -87,9 +138,29 @@ def main() -> None:
 
     for name, size, safe_area in targets:
         path = OUT_DIR / name
-        draw_mark(size, safe_area=safe_area).save(path, format="PNG", optimize=True)
-        print(f"zapisano {path.relative_to(OUT_DIR.parent.parent.parent.parent)} ({size}x{size})")
+        draw_mark(Image, ImageDraw, size, safe_area=safe_area).save(
+            path, format="PNG", optimize=True
+        )
+        print(f"zapisano {path.relative_to(ROOT)} ({size}x{size}, "
+              f"{path.stat().st_size // 1024} KB)")
+
+    # Sprawdzenie, że manifest wskazuje dokładnie te pliki. Rozjazd nazw
+    # daje PWA, która instaluje się bez ikony i nikt nie wie dlaczego.
+    manifest = ROOT / "apps" / "web" / "public" / "manifest.webmanifest"
+    if manifest.exists():
+        tresc = manifest.read_text(encoding="utf-8")
+        brakujace = [
+            name for name, _, _ in targets if f"/icons/{name}" not in tresc
+        ]
+        if brakujace:
+            print(
+                f"UWAGA: manifest nie deklaruje: {brakujace}", file=sys.stderr
+            )
+            return 1
+        print("Manifest deklaruje wszystkie trzy ikony.")
+
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
