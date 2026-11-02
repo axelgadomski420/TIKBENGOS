@@ -23,9 +23,12 @@ ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# `API_INTERNAL_URL` jest potrzebne w czasie budowania, bo Next prerenderuje
-# część stron. Adres wskazuje usługę w sieci Dockera — sprawdzi się dopiero
-# po uruchomieniu, ale sam build go tylko czyta.
+# `API_INTERNAL_URL` jest potrzebne w czasie budowania, bo `layout.tsx`
+# czyta sesję po stronie serwera — Next musi wiedzieć, dokąd sięgnąć.
+# Adres wskazuje usługę w sieci Dockera: w czasie budowania odpowiada na
+# niego nic, ale `readSession()` traktuje nieosiągalne API jako brak
+# tożsamości, więc build tego nie wywala. Wartość przestaje być potrzebna
+# zaraz po tym, jak serwer wystartuje — wtedy `web` dostaje ją z compose.
 ENV API_INTERNAL_URL=http://api:8000
 RUN npm run build -w apps/web
 
@@ -37,11 +40,17 @@ ENV NODE_ENV=production \
 
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 
+# Kolejność kopiowania ma znaczenie przy warstwie `standalone`: Next generuje
+# `server.js` w korzeniu wyniku i własny, przycięty `node_modules` obok niego.
 COPY --from=builder /app/apps/web/public ./apps/web/public
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
 
 USER nextjs
 EXPOSE 3000
+
+# `HOSTNAME=0.0.0.0` jest konieczne: bez niego serwer standalone słucha na
+# localhost wewnątrz kontenera i Caddy nie może się do niego dostać.
+ENV HOSTNAME=0.0.0.0
 
 CMD ["node", "apps/web/server.js"]
