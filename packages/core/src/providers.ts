@@ -8,7 +8,7 @@
  * `baseUrl` NIGDY nie pochodzi od użytkownika. To jest cała obrona przed
  * SSRF: gdyby adres wpisywał użytkownik, mógłby podać `http://169.254.169.254/`
  * (metadane chmury) albo `http://localhost:8000` (nasze własne API) i kazać
- * serwerowi wysłanie tam żądanie z jego kluczem. Adresy są zaszyte tutaj,
+ * serwerowi wysłać tam żądanie z jego kluczem. Adresy są zaszyte tutaj,
  * a klucz służy wyłącznie do łączenia się z prawdziwym API dostawcy.
  *
  * Zasada weryfikacji: każde pole `baseUrl` ma datę w `verifiedAt` i adres
@@ -25,8 +25,10 @@ export type ProviderKind = "llm" | "image" | "audio" | "music" | "speech" | "cod
 export type AuthStyle =
   /** `Authorization: Bearer <klucz>` */
   | "bearer"
-  /** Własny nagłówek, np. `x-api-key: <klucz>` */
+  /** Własny nagłówek z kluczem, np. `x-api-key` albo `xi-api-key` */
   | "api-key-header"
+  /** Nagłówek `Authorization` bez schematu Bearer, np. `Token <klucz>` */
+  | "authorization-scheme"
   /** Klucz w parametrze zapytania, np. `?key=<klucz>` */
   | "query";
 
@@ -37,8 +39,10 @@ export interface ProviderDefinition {
   /** Adres bazowy API. `null`, gdy nie potwierdzono dla aktualnej wersji API. */
   baseUrl: string | null;
   authStyle: AuthStyle;
-  /** Nazwa nagłówka, gdy `authStyle` to `api-key-header`. */
+  /** Nazwa nagłówka, gdy `authStyle` to `api-key-header` lub `authorization-scheme`. */
   authHeader: string | null;
+  /** Schemat w nagłówku, gdy `authStyle` to `authorization-scheme`, np. `Token`. */
+  authScheme: string | null;
   docsUrl: string;
   /** Prefiksy, po których poznać kształt klucza. Pusty = brak potwierdzonego prefiksu. */
   keyPrefixes: string[];
@@ -63,6 +67,7 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     baseUrl: "https://api.openai.com/v1",
     authStyle: "bearer",
     authHeader: null,
+    authScheme: null,
     docsUrl: "https://developers.openai.com/api/reference",
     keyPrefixes: ["sk-"],
     verifiedAt: VERIFIED,
@@ -75,6 +80,7 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     baseUrl: "https://api.anthropic.com",
     authStyle: "api-key-header",
     authHeader: "x-api-key",
+    authScheme: null,
     docsUrl: "https://platform.claude.com/docs/en/api/overview",
     keyPrefixes: ["sk-ant-"],
     verifiedAt: VERIFIED,
@@ -87,6 +93,7 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     baseUrl: "https://generativelanguage.googleapis.com",
     authStyle: "api-key-header",
     authHeader: "x-goog-api-key",
+    authScheme: null,
     docsUrl: "https://ai.google.dev/api",
     keyPrefixes: [],
     verifiedAt: VERIFIED,
@@ -99,6 +106,7 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     baseUrl: "https://api.mistral.ai/v1",
     authStyle: "bearer",
     authHeader: null,
+    authScheme: null,
     docsUrl: "https://docs.mistral.ai/api/",
     keyPrefixes: [],
     verifiedAt: VERIFIED,
@@ -111,6 +119,7 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     baseUrl: "https://openrouter.ai/api/v1",
     authStyle: "bearer",
     authHeader: null,
+    authScheme: null,
     docsUrl: "https://openrouter.ai/docs/api/reference/authentication",
     keyPrefixes: ["sk-or-"],
     verifiedAt: VERIFIED,
@@ -123,6 +132,7 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     baseUrl: "https://api.groq.com/openai/v1",
     authStyle: "bearer",
     authHeader: null,
+    authScheme: null,
     docsUrl: "https://console.groq.com/docs/api-reference",
     keyPrefixes: ["gsk_"],
     verifiedAt: VERIFIED,
@@ -135,6 +145,7 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     baseUrl: "https://api.deepseek.com/v1",
     authStyle: "bearer",
     authHeader: null,
+    authScheme: null,
     docsUrl: "https://api-docs.deepseek.com/",
     keyPrefixes: ["sk-"],
     verifiedAt: VERIFIED,
@@ -147,6 +158,7 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     baseUrl: "https://api.x.ai/v1",
     authStyle: "bearer",
     authHeader: null,
+    authScheme: null,
     docsUrl: "https://docs.x.ai/docs/api-reference",
     keyPrefixes: ["xai-"],
     verifiedAt: VERIFIED,
@@ -159,6 +171,7 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     baseUrl: "https://api.together.xyz/v1",
     authStyle: "bearer",
     authHeader: null,
+    authScheme: null,
     docsUrl: "https://docs.together.ai/reference",
     keyPrefixes: [],
     verifiedAt: VERIFIED,
@@ -168,37 +181,40 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     id: "cohere",
     name: "Cohere",
     kind: "llm",
-    baseUrl: null,
+    baseUrl: "https://api.cohere.ai/v1",
     authStyle: "bearer",
     authHeader: null,
+    authScheme: null,
     docsUrl: "https://docs.cohere.com/reference/about",
     keyPrefixes: [],
-    verifiedAt: null,
-    note: "Adres niepotwierdzony dla aktualnej wersji API — sprawdź dokumentację przed użyciem.",
+    verifiedAt: VERIFIED,
+    note: "Domyślnie wersja `v2` (`api.cohere.com`), ale `api.cohere.ai/v1` nadal odpowiada — bierzemy stabilny v1.",
   },
   {
     id: "perplexity",
     name: "Perplexity",
     kind: "llm",
-    baseUrl: null,
+    baseUrl: "https://api.perplexity.ai",
     authStyle: "bearer",
     authHeader: null,
+    authScheme: null,
     docsUrl: "https://docs.perplexity.ai/api-reference",
     keyPrefixes: ["pplx-"],
-    verifiedAt: null,
-    note: "Adres niepotwierdzony dla aktualnej wersji API — sprawdź dokumentację przed użyciem.",
+    verifiedAt: VERIFIED,
+    note: "Każde z pięciu API ma własną ścieżkę pod tym samym hostem — sam host to nie endpoint.",
   },
   {
     id: "fireworks",
     name: "Fireworks AI",
     kind: "llm",
-    baseUrl: null,
+    baseUrl: "https://api.fireworks.ai/inference/v1",
     authStyle: "bearer",
     authHeader: null,
+    authScheme: null,
     docsUrl: "https://docs.fireworks.ai/api-reference/introduction",
     keyPrefixes: ["fw_"],
-    verifiedAt: null,
-    note: "Adres niepotwierdzony dla aktualnej wersji API — sprawdź dokumentację przed użyciem.",
+    verifiedAt: VERIFIED,
+    note: "Interfejs zgodny z OpenAI; zarządzanie kontem siedzi pod inną ścieżką, nie pod `/inference/v1`.",
   },
 
   /* ───────────────────────────── Obrazy ────────────────────────────── */
@@ -209,6 +225,7 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     baseUrl: "https://api.replicate.com/v1",
     authStyle: "bearer",
     authHeader: null,
+    authScheme: null,
     docsUrl: "https://replicate.com/docs/reference/http",
     keyPrefixes: ["r8_"],
     verifiedAt: VERIFIED,
@@ -221,6 +238,7 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     baseUrl: "https://api.stability.ai",
     authStyle: "bearer",
     authHeader: null,
+    authScheme: null,
     docsUrl: "https://platform.stability.ai/docs/api-reference",
     keyPrefixes: ["sk-"],
     verifiedAt: VERIFIED,
@@ -233,6 +251,7 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     baseUrl: "https://api-inference.huggingface.co",
     authStyle: "bearer",
     authHeader: null,
+    authScheme: null,
     docsUrl: "https://huggingface.co/docs/api-inference/index",
     keyPrefixes: ["hf_"],
     verifiedAt: VERIFIED,
@@ -245,6 +264,7 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     baseUrl: null,
     authStyle: "api-key-header",
     authHeader: "x-key",
+    authScheme: null,
     docsUrl: "https://docs.bfl.ai/",
     keyPrefixes: [],
     verifiedAt: null,
@@ -259,6 +279,7 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     baseUrl: "https://api.elevenlabs.io/v1",
     authStyle: "api-key-header",
     authHeader: "xi-api-key",
+    authScheme: null,
     docsUrl: "https://elevenlabs.io/docs/api-reference/authentication",
     keyPrefixes: [],
     verifiedAt: VERIFIED,
@@ -268,13 +289,14 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     id: "deepgram",
     name: "Deepgram",
     kind: "speech",
-    baseUrl: null,
-    authStyle: "bearer",
-    authHeader: null,
-    docsUrl: "https://developers.deepgram.com/reference/",
+    baseUrl: "https://api.deepgram.com/v1",
+    authStyle: "authorization-scheme",
+    authHeader: "Authorization",
+    authScheme: "Token",
+    docsUrl: "https://developers.deepgram.com/reference/authentication",
     keyPrefixes: [],
-    verifiedAt: null,
-    note: "Adres niepotwierdzony dla aktualnej wersji API — sprawdź dokumentację przed użyciem.",
+    verifiedAt: VERIFIED,
+    note: "Schemat to `Token`, nie `Bearer` — `Authorization: Token <klucz>`. Z `Bearer` dostaniesz 401.",
   },
   {
     id: "assemblyai",
@@ -283,6 +305,7 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     baseUrl: null,
     authStyle: "api-key-header",
     authHeader: "authorization",
+    authScheme: null,
     docsUrl: "https://www.assemblyai.com/docs/api-reference/overview",
     keyPrefixes: [],
     verifiedAt: null,
@@ -295,6 +318,7 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     baseUrl: null,
     authStyle: "bearer",
     authHeader: null,
+    authScheme: null,
     docsUrl: "https://docs.speechmatics.com/",
     keyPrefixes: [],
     verifiedAt: null,
@@ -307,6 +331,7 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     baseUrl: null,
     authStyle: "bearer",
     authHeader: null,
+    authScheme: null,
     docsUrl: "https://docs.play.ht/reference/api-getting-started",
     keyPrefixes: [],
     verifiedAt: null,
@@ -321,6 +346,7 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     baseUrl: null,
     authStyle: "bearer",
     authHeader: null,
+    authScheme: null,
     docsUrl: "https://docs.sunoapi.org/",
     keyPrefixes: [],
     verifiedAt: null,
@@ -333,6 +359,7 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     baseUrl: null,
     authStyle: "bearer",
     authHeader: null,
+    authScheme: null,
     docsUrl: "https://www.udio.com/",
     keyPrefixes: [],
     verifiedAt: null,
@@ -347,6 +374,7 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     baseUrl: "https://api.github.com",
     authStyle: "bearer",
     authHeader: null,
+    authScheme: null,
     docsUrl: "https://docs.github.com/en/rest",
     keyPrefixes: ["ghp_", "github_pat_", "gho_", "ghu_", "ghs_"],
     verifiedAt: VERIFIED,
@@ -359,6 +387,7 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     baseUrl: "https://gitlab.com/api/v4",
     authStyle: "api-key-header",
     authHeader: "PRIVATE-TOKEN",
+    authScheme: null,
     docsUrl: "https://docs.gitlab.com/ee/api/rest/",
     keyPrefixes: ["glpat-"],
     verifiedAt: VERIFIED,
@@ -371,6 +400,7 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     baseUrl: null,
     authStyle: "bearer",
     authHeader: null,
+    authScheme: null,
     docsUrl: "https://developers.cloudflare.com/workers-ai/",
     keyPrefixes: [],
     verifiedAt: null,
@@ -383,6 +413,7 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     baseUrl: null,
     authStyle: "api-key-header",
     authHeader: "api-key",
+    authScheme: null,
     docsUrl: "https://learn.microsoft.com/en-us/azure/ai-services/openai/reference",
     keyPrefixes: [],
     verifiedAt: null,
@@ -395,6 +426,7 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     baseUrl: null,
     authStyle: "bearer",
     authHeader: null,
+    authScheme: null,
     docsUrl: "https://docs.aws.amazon.com/bedrock/latest/APIReference/",
     keyPrefixes: ["AKIA"],
     verifiedAt: null,
@@ -407,6 +439,7 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     baseUrl: null,
     authStyle: "bearer",
     authHeader: null,
+    authScheme: null,
     docsUrl: "https://cloud.google.com/vertex-ai/docs/reference/rest",
     keyPrefixes: [],
     verifiedAt: null,
@@ -469,4 +502,31 @@ export function validateProviderKey(providerId: string, key: string): ApiError |
     };
   }
   return null;
+}
+
+/**
+ * Nagłówki autoryzacji dla dostawcy.
+ *
+ * Trzy kształty, które realnie występują u dostawców i nie da się ich
+ * sprowadzić do jednego:
+ * - `bearer` → `Authorization: Bearer <klucz>`,
+ * - `api-key-header` → własny nagłówek, np. `xi-api-key: <klucz>`,
+ * - `authorization-scheme` → `Authorization: Token <klucz>` (Deepgram).
+ *
+ * Funkcja nie wysyła klucza do logów i nie zwraca go w treści błędu.
+ */
+export function authHeadersFor(
+  provider: ProviderDefinition,
+  key: string,
+): Record<string, string> {
+  switch (provider.authStyle) {
+    case "bearer":
+      return { Authorization: `Bearer ${key}` };
+    case "api-key-header":
+      return { [provider.authHeader ?? "Authorization"]: key };
+    case "authorization-scheme":
+      return { [provider.authHeader ?? "Authorization"]: `${provider.authScheme ?? "Bearer"} ${key}` };
+    case "query":
+      return {};
+  }
 }
