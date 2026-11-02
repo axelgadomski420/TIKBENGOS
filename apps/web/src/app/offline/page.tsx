@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+
+import { RealtimeIndicator } from "@/components/realtime-indicator";
 
 export const metadata: Metadata = { title: "Bez połączenia" };
 
@@ -8,6 +11,10 @@ export const metadata: Metadata = { title: "Bez połączenia" };
  * Jedna zasada: nie udajemy treści. Aplikacja instalowalna offline musi
  * powiedzieć, co jest niedostępne i dlaczego, a nie pokazywać pustego ekranu
  * albo — gorzej — nieaktualne dane bez ostrzeżenia.
+ *
+ * Lista mówi, co dzieje się offline TERAZ, a co dopiero będzie. „Cały
+ * interfejs” jest tu prawdą: powłoka, motywy i nawigacja renderują się
+ * z bundla, więc offline nie jest to pusta strona.
  */
 const ITEMS = [
   "Teraz offline działa cały interfejs: motywy, ustawienia dostępności i nawigacja",
@@ -41,6 +48,28 @@ export default function OfflinePage() {
           ))}
         </ul>
       </div>
+
+      <div className="bengos-surface-card mt-6">
+        <h2 className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-medium)]">
+          Stan kanału czasu rzeczywistego
+        </h2>
+        <p className="mt-2 text-[var(--bengos-text-muted)]">
+          Kanał potrzebuje sieci, więc offline nie będzie połączony. Ten wskaźnik mówi,
+          czy aplikacja próbuje się połączyć po odzyskaniu sieci.
+        </p>
+        <div className="mt-3">
+          <RealtimeIndicator />
+        </div>
+      </div>
+
+      <p className="mt-6">
+        <Link
+          href="/"
+          className="bengos-touch-target inline-flex rounded-[var(--bengos-radius-control)] px-4 text-[var(--bengos-accent)]"
+        >
+          Wróć do BENGOS Home
+        </Link>
+      </p>
     </div>
   );
 }
