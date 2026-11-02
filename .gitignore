@@ -1,0 +1,48 @@
+# Zależności
+node_modules/
+.pnpm-store/
+
+# Buildy
+.next/
+out/
+dist/
+build/
+turbo/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+site-packages/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Sekrety — nigdy w repozytorium
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Bazy danych lokalne
+*.sqlite3
+db.sqlite3
+
+# Media wygenerowane lokalnie
+media/
+staticfiles/
+
+# Edytory i system
+.vscode/
+!.vscode/settings.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logi
+*.log
+logs/
