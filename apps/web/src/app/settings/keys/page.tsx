@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { ProviderCredentials } from "@/components/settings/provider-credentials";
 
@@ -40,19 +39,19 @@ export default function ApiKeysPage() {
         <p className="mt-2 text-[var(--bengos-text-muted)]">
           To osobna rzecz od listy powyżej. Tu wystawiasz klucze, którymi Twoje skrypty,
           bot i aplikacja mobilna logują się do TIKBENGOS. Model i zasada jednorazowego
-          pokazania są gotowe po stronie API — ten ekran dołącza do nich razem z modułem,
-          który takich kluczy potrzebuje. Do tego czasu nic tu nie zapisuje i nie udaje,
-          że zapisało.
+          pokazania są gotowe po stronie API (`/api/settings/keys`) — ten ekran
+          dołączy do nich razem z modułem, który takich kluczy potrzebuje. Do tego
+          czasu nic tu nie zapisuje i nie udaje, że zapisało.
         </p>
       </section>
 
       <p>
-        <Link
+        <a
           href="/settings"
           className="bengos-touch-target inline-flex rounded-[var(--bengos-radius-control)] px-2 text-[var(--bengos-accent)]"
         >
           Wróć do ustawień
-        </Link>
+        </a>
       </p>
     </div>
   );
