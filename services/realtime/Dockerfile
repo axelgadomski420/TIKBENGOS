@@ -11,7 +11,13 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Warstwa czasu rzeczywistego korzysta z tych samych ustawień Django co API —
-# jeden model tożsamości, jedno źródło konfiguracji.
+# jeden model tożsamości, jedno źródło konfiguracji. Dlatego instalujemy ten
+# sam plik zależności, a nie kopiujemy kodu bez jego środowiska. Wcześniejsza
+# wersja kopiowała tylko `services/api`, bez `pip install`, więc obraz nie
+# miał ani Django, ani `daphne`, ani `channels`.
+COPY services/api/requirements.txt /srv/requirements.txt
+RUN pip install --upgrade pip && pip install -r /srv/requirements.txt
+
 COPY services/api /srv
 
 EXPOSE 8001
