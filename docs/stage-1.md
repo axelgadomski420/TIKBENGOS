@@ -9,9 +9,7 @@ Dokument prawdy o stanie prac. Zasada: nie dopisuj tu niczego, czego nie ma w ko
 - `packages/core` — typy domeny i kontrakty API w TypeScript, jedno źródło prawdy
   dla całego interfejsu: tożsamość, role, feed, muzyka, czat, projekty, dostępność,
   tłumaczenia, zadania asynchroniczne.
-- `packages/i18n` — model ustawień języka jak w telefonie: katalog komunikatów,
-  osobny wybór języka interfejsu i regionu, gotowy na dołożenie kolejnych języków
-  bez zmiany kodu.
+- `packages/i18n` — w tej chwili to tylko `.gitkeep`, a nie gotowy moduł lokalizacji.
 - `infra/` — `docker-compose.yml` i `.env.example` dla PostgreSQL, Redis, API, WebSocket.
 - CI/CD — `.github/workflows/ci.yml` uruchamia lint, kontrolę typów, testy i audyt zależności.
 
@@ -69,3 +67,4 @@ Dokument prawdy o stanie prac. Zasada: nie dopisuj tu niczego, czego nie ma w ko
   ciągłego migania. Interfejs musi to mówić wprost.
 - Generacji muzyki na darmowym planie Oracle. MusicGen średni potrzebuje 16 GB
   pamięci karty graficznej. To osobny worker, nie część maszyny aplikacyjnej.
+

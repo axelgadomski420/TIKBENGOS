@@ -112,6 +112,7 @@ cd "$TARGET_DIR"
 # ── Krok 3: Sekrety ────────────────────────────────────────────────
 step "Sekrety i konfiguracja"
 ENV_FILE=".env"
+NONINTERACTIVE="${TIKBENGOS_NONINTERACTIVE:-0}"
 
 # Generowanie bez zależności: Python jest na każdej maszynie Ubuntu.
 losowy()  { python3 -c "import secrets; print(secrets.token_urlsafe(${1:-40}))"; }
@@ -122,11 +123,25 @@ print(base64.urlsafe_b64encode(os.urandom(32)).decode())
 PY
 }
 
+if [ "$NONINTERACTIVE" = "1" ]; then
+  DOMAIN="${TIKBENGOS_DOMAIN:-}"
+  ACME_EMAIL="${TIKBENGOS_ACME_EMAIL:-}"
+  if [ -z "$DOMAIN" ]; then
+    fail "TIKBENGOS_NONINTERACTIVE=1: brak TIKBENGOS_DOMAIN. Ustaw zmienną środowiskową przed uruchomieniem skryptu."
+  fi
+  if ! printf '%s' "$DOMAIN" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
+    if [ -z "$ACME_EMAIL" ]; then
+      fail "TIKBENGOS_NONINTERACTIVE=1: brak TIKBENGOS_ACME_EMAIL dla domeny $DOMAIN."
+    fi
+  fi
+fi
+
 if [ -f "$ENV_FILE" ]; then
   note ".env już istnieje — zostawiam bez zmian."
   # shellcheck disable=SC1091
   . ./.env
-  DOMAIN="${DOMAIN:-}"
+  DOMAIN="${DOMAIN:-${TIKBENGOS_DOMAIN:-}}"
+  ACME_EMAIL="${ACME_EMAIL:-${TIKBENGOS_ACME_EMAIL:-}}"
 else
   printf '\n' >&2
   printf '%sPodaj dane wdrożenia.%s Enter zostawia wartość w nawiasie.\n' "$BOLD" "$OFF" >&2
@@ -134,8 +149,12 @@ else
   # Publiczne IP wykrywamy same — to jedna rzecz mniej do przepisania.
   WYKRYTE_IP=$(curl -fsS --max-time 5 https://api.ipify.org 2>/dev/null || echo "")
 
-  DOMAIN=$(pytaj "Domena (albo publiczne IP):" "$WYKRYTE_IP")
-  [ -n "$DOMAIN" ] || fail "Nie podano domeny ani adresu."
+  if [ "$NONINTERACTIVE" = "1" ]; then
+    [ -n "$DOMAIN" ] || fail "TIKBENGOS_NONINTERACTIVE=1: brak TIKBENGOS_DOMAIN."
+  else
+    DOMAIN=$(pytaj "Domena (albo publiczne IP):" "$WYKRYTE_IP")
+    [ -n "$DOMAIN" ] || fail "Nie podano domeny ani adresu."
+  fi
 
   if printf '%s' "$DOMAIN" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
     SCHEME="http"
@@ -144,8 +163,12 @@ else
     warn "Logowanie wymaga HTTPS — bez domeny działanie kont nie jest możliwe."
   else
     SCHEME="https"
-    ACME_EMAIL=$(pytaj "E-mail do certyfikatu Let's Encrypt:" "")
-    [ -n "$ACME_EMAIL" ] || fail "Bez adresu e-mail Let's Encrypt nie wyda certyfikatu."
+    if [ "$NONINTERACTIVE" = "1" ]; then
+      [ -n "$ACME_EMAIL" ] || fail "TIKBENGOS_NONINTERACTIVE=1: brak TIKBENGOS_ACME_EMAIL dla domeny $DOMAIN."
+    else
+      ACME_EMAIL=$(pytaj "E-mail do certyfikatu Let's Encrypt:" "")
+      [ -n "$ACME_EMAIL" ] || fail "Bez adresu e-mail Let's Encrypt nie wyda certyfikatu."
+    fi
   fi
 
   DB_HASLO=$(losowy 24)
