@@ -8,7 +8,12 @@ psycopg[binary]~=3.2
 redis~=5.2
 cryptography~=44.0
 
-# Serwowanie ASGI w developmencie tym samym procesem co compose używa
-# dla usługi realtime — API samo w sobie nie potrzebuje daphne na produkcji,
-# ale import ustawień musi się zgadzać.
+# Serwery produkcyjne. `gunicorn` obsługuje WSGI (endpointy API), `uvicorn`
+# obsługuje ASGI (usługa realtime). Bez nich produkcja chodziłaby na
+# `runserver`, który jest serwerem developerskim i nie jest do tego przeznaczony.
+gunicorn~=23.0
+uvicorn[standard]~=0.34
+
+# Daphne zostaje: usługa realtime w środowisku developerskim chodzi na niej
+# (patrz `infra/docker-compose.yml`), a import ustawień musi się zgadzać.
 daphne~=4.1
