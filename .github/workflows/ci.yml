@@ -15,26 +15,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: npm
-
       - name: Zależności
         run: npm ci --no-audit --no-fund || npm install --no-audit --no-fund
-
       - name: Kontrola typów
         run: npm run typecheck --workspaces --if-present
-
       - name: Testy
         run: npm run test --workspaces --if-present
-
       - name: Kontrast WCAG 2.2 AA
         run: node --test packages/ui/src/contrast.test.ts
         env:
           NODE_OPTIONS: --experimental-strip-types
-
+      - name: Widoczny fokus nienaruszony
+        run: |
+          if grep -rn 'outline: *none\|outline:none' packages/ui/src apps/web/src; then
+            echo "::error::Znaleziono 'outline: none'. Każde użycie wymaga zamiennika — patrz docs/accessibility.md"
+            exit 1
+          fi
+          echo "Brak 'outline: none' — fokus klawiatury zostaje widoczny."
       - name: Budowanie
         run: npm run build
         env:
@@ -45,45 +46,54 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
-
       - name: Zależności
         run: pip install -r services/api/requirements.txt
-
       - name: Kontrola konfiguracji Django
         working-directory: services/api
         env:
           SECRET_KEY: ci-only-not-a-real-secret
           FIELD_ENCRYPTION_KEY: ZGh1bW15LWNpLW9ubHktbm90LWEtc2VjcmV0LWtleS0wPQ==
         run: python manage.py check --fail-level WARNING
-
       - name: Sprawdzenie rozjazdu migracji
         working-directory: services/api
         env:
           SECRET_KEY: ci-only-not-a-real-secret
           FIELD_ENCRYPTION_KEY: ZGh1bW15LWNpLW9ubHktbm90LWEtc2VjcmV0LWtleS0wPQ==
         run: python manage.py makemigrations --check --dry-run
-
+      - name: Migracje na czystej bazie
+        working-directory: services/api
+        env:
+          ENVIRONMENT: development
+          SECRET_KEY: ci-only-not-a-real-secret
+          FIELD_ENCRYPTION_KEY: ZGh1bW15LWNpLW9ubHktbm90LWEtc2VjcmV0LWtleS0wPQ==
+          DATABASE_URL: sqlite:////tmp/ci.sqlite3
+        run: python manage.py migrate --noinput
       - name: Testy
         working-directory: services/api
         env:
           SECRET_KEY: ci-only-not-a-real-secret
           FIELD_ENCRYPTION_KEY: ZGh1bW15LWNpLW9ubHktbm90LWEtc2VjcmV0LWtleS0wPQ==
         run: python manage.py test --verbosity=2
+      - name: Test dymny aplikacji
+        working-directory: services/api
+        env:
+          ENVIRONMENT: development
+          SECRET_KEY: ci-only-not-a-real-secret
+          FIELD_ENCRYPTION_KEY: ZGh1bW15LWNpLW9ubHktbm90LWEtc2VjcmV0LWtleS0wPQ==
+          DATABASE_URL: sqlite:////tmp/ci.sqlite3
+        run: python manage.py sprawdz
 
   compose:
     name: Sprawdzenie plików compose
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Walidacja compose (developerski)
         run: docker compose -f infra/docker-compose.yml config -q
-
       - name: Walidacja compose (produkcyjny)
         env:
           DOMAIN: ci.example.com
@@ -97,6 +107,14 @@ jobs:
           POSTGRES_PASSWORD: ci-only
           REDIS_PASSWORD: ci-only
         run: docker compose -f infra/docker-compose.prod.yml config -q
+
+  audyt:
+    name: Audyt braków przed uruchomieniem
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sprawdź komplet plików
+        run: python3 scripts/audyt.py
 
   secret-scan:
     name: Skanowanie sekretów
