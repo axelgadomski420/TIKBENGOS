@@ -1,4 +1,4 @@
-# TIKBENGOS
+# BENGOS
 
 Jeden społecznościowy system operacyjny. Siedem dawnych aplikacji staje się modułami,
 ale użytkownik nie widzi między nimi granicy.
