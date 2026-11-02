@@ -18,7 +18,7 @@ opisane jako niedziałające — nie ma w tym repozytorium funkcji udających,
 | BENGOS Create | TIKAL | Asystent AI | Etap 5 |
 | BENGOS Dev | TIKGIT | GitHub, repozytoria, agent kodujący | Etap 5 |
 | BENGOS Access | TIKMIG + TIKMORS | Język migowy, napisy, TTS, Morse, wibracje | Etap 4 |
-| BENGOS Profile | TIKTAK | Tożsamość, twórczość, ustawienia | Etap 2 |
+| BENGOS Profile | TIKTAK | Tożsamość, twórczość, ustawienia | Etap 2 — edycja tożsamości **działa** |
 
 ## Struktura monorepo
 
@@ -29,13 +29,13 @@ packages/core             typy, kontrakty API, walidacja, katalog dostawców
 packages/accessibility    TTS, STT, napisy, Morse, wibracje (przenoszone z TIKMORS/TIKMIG)
 packages/i18n             katalogi tłumaczeń — na razie tylko .gitkeep
 services/api              Django 5 + django-ninja — tożsamość, sesje, klucze, kanał WebSocket
-services/realtime         ta sama aplikacja ASGI, uruchamiana na daphne/uvicorn (port 8001)
+services/realtime         ta sama aplikacja ASGI na daphne/uvicorn (port 8001)
 services/ai-worker        asystent (django-ai-assistant jako zależność)
 services/sign-worker      rozpoznawanie migów (FastAPI + MediaPipe)
 services/music-worker     generacja muzyki (Audiocraft, osobny GPU)
 services/code-worker      agent kodujący (Aider w sandboxie)
 infra                     Compose, Caddy, CI/CD
-scripts                   deploy.sh, dev.sh, generate-icons.py
+scripts                   deploy.sh, dev.sh, sprawdz.py, audyt.py, generate-icons.py
 ```
 
 ## Zasady, które ten kod respektuje
@@ -48,7 +48,16 @@ scripts                   deploy.sh, dev.sh, generate-icons.py
 
 ## Jak uruchomić
 
-### Najszybciej — skryptem
+### Krok 0 — sprawdź, czy niczego nie brakuje
+
+```bash
+python3 scripts/audyt.py
+```
+
+Wypisze, czego brakuje i co to blokuje. Nie uruchamia niczego i nie
+łączy się z siecią — tylko sprawdza pliki i kilka niezmienników treści.
+
+### Najszybciej lokalnie — skryptem
 
 ```bash
 bash scripts/dev.sh
@@ -68,8 +77,11 @@ Skrypt pyta o domenę (albo publiczne IP) i e-mail do certyfikatu, a resztę —
 Docker, sekrety, zaporę, ikony, migracje, certyfikat — robi sam. Pełny opis
 z obrazkami panelu jest w [`docs/deploy-oracle.md`](docs/deploy-oracle.md).
 
-Wdrożenie da się też uruchomić z zakładki **Actions** (workflow
-*Wdrożenie na Oracle*), jeśli ustawi się sekrety repozytorium.
+Po wdrożeniu sprawdź jedną komendą:
+
+```bash
+python3 scripts/sprawdz.py https://twojadomena.pl
+```
 
 ### Ręcznie
 
