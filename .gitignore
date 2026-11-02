@@ -1,4 +1,31 @@
-# Zależności
+# ── Sekrety i pliki lokalne — nigdy do repozytorium ────────────────
+#
+# Ten plik uzupełnia to, co już jest niżej. Sekcje niżej zostały
+# nietknięte celowo — zmieniamy tylko to, czego brakowało.
+
+# Klucze prywatne SSH (Oracle daje plik `.key` do pobrania) i certyfikaty.
+*.key
+*.pem
+*.crt
+
+# Zrzuty bazy i wolumeny lokalne.
+data/
+*.dump
+*.sql
+
+# Kopie wzorców z wypełnionymi sekretami. Wzorce zostają w repozytorium,
+# wypełnione kopie już nie — a `.env.*` z sekcji niżej łapie je razem
+# z `.env.prod`, co jest tu dokładnie tym, o co chodzi.
+infra/.env
+
+# Pokrycie testów.
+coverage/
+.nyc_output/
+
+# Wynik generatora ikon trafia do repozytorium (PWA potrzebuje plików),
+# więc nie jest ignorowany. Skrypt, który go tworzy, leży w `scripts/`.
+
+# ── Zależności ────────────────────────────────────────────────────
 node_modules/
 .pnpm-store/
 
