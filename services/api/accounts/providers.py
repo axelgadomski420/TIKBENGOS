@@ -1,23 +1,3 @@
-"""Walidacja dostawców przy zapisie klucza — obrona przed SSRF.
-
-Ten plik istnieje z jednego powodu: żeby adres, na który serwer wyśle
-żądanie, nie pochodził od użytkownika.
-
-Dlaczego to jest groźne. Serwer ma dostęp do sieci wewnętrznej, do bazy
-i do metadanych instancji. Gdyby użytkownik mógł podać dowolny adres,
-mógłby kazać serwerowi wysłać żądanie na:
-
-- `http://169.254.169.254/` — punkt metadanych chmury. W wielu konfiguracjach
-  odpowiada poświadczeniami instancji, czyli kluczami do całego konta w chmurze.
-- `http://localhost:8000/` — nasze własne API. Żądanie z zewnątrz obchodzi
-  uwierzytelnianie, bo pochodzi z zaufanego adresu.
-- `http://db:5432/` — baza danych w tej samej sieci Dockera.
-- adres pod kontrolą atakującego, który odpowiada powoli i zajmuje procesy.
-
-Dlatego adres bierze się z katalogu w `packages/core/src/providers.ts`,
-po stronie Pythona powtórzonego niżej, i nigdy z formularza.
-"""
-
 import ipaddress
 import socket
 from urllib.parse import urlparse
@@ -29,8 +9,13 @@ from urllib.parse import urlparse
 # niezauważenie. Lista jest więc utrzymywana ręcznie po obu stronach.
 # Utrzymywanie tego ręcznie jest świadomym kosztem: adres musi być zaszyty
 # po stronie serwera, bo to serwer wykonuje żądanie.
+
+# UWAGA: przy każdym adresie z `verifiedAt` w katalogu TypeScript musi tu być
+# ten sam adres. Rozjazd między nimi oznacza, że interfejs pokazuje użytkownikowi
+# jeden adres, a serwer uderza pod inny — dlatego żaden wpis nie jest dodawany
+# bez sprawdzenia w dokumentacji.
 PROVIDER_BASE_URLS: dict[str, str] = {
-    # Modele językowe
+    # ── Modele językowe ────────────────────────────────────────────────
     "openai": "https://api.openai.com/v1",
     "anthropic": "https://api.anthropic.com",
     "google-ai": "https://generativelanguage.googleapis.com",
@@ -40,13 +25,17 @@ PROVIDER_BASE_URLS: dict[str, str] = {
     "deepseek": "https://api.deepseek.com/v1",
     "xai": "https://api.x.ai/v1",
     "together": "https://api.together.xyz/v1",
-    # Obrazy
+    "cohere": "https://api.cohere.ai/v1",
+    "perplexity": "https://api.perplexity.ai",
+    "fireworks": "https://api.fireworks.ai/inference/v1",
+    # ── Obrazy ────────────────────────────────────────────────────────
     "replicate": "https://api.replicate.com/v1",
     "stability": "https://api.stability.ai",
     "huggingface": "https://api-inference.huggingface.co",
-    # Mowa
+    # ── Mowa ──────────────────────────────────────────────────────────
     "elevenlabs": "https://api.elevenlabs.io/v1",
-    # Kod
+    "deepgram": "https://api.deepgram.com/v1",
+    # ── Kod ──────────────────────────────────────────────────────────
     "github": "https://api.github.com",
     "gitlab": "https://gitlab.com/api/v4",
 }
@@ -57,14 +46,10 @@ PROVIDER_BASE_URLS: dict[str, str] = {
 # się z niczym.
 PROVIDERS_WITHOUT_URL: frozenset[str] = frozenset(
     {
-        "cohere",
-        "perplexity",
-        "fireworks",
-        "black-forest-labs",
-        "deepgram",
         "assemblyai",
         "speechmatics",
         "playht",
+        "black-forest-labs",
         "suno",
         "udio",
         "cloudflare",
@@ -199,7 +184,6 @@ def validate_credential(provider_id: str, key: str) -> None:
 
     # Adres sprawdzamy też przy zapisie, choć bierzemy go z katalogu. Powód:
     # katalog jest utrzymywany ręcznie, a błąd w nim nie może stać się błędem
-    # w konfiguracji wychodzącego żądania. Sprawdzenie nazwy przy zapisie
-    # wyłapie literówkę w adresie, zanim ktoś na nią trafi w produkcji.
+    # w konfiguracji wychodzącego żądania.
     if has_base_url(provider_id):
         ensure_public_https(PROVIDER_BASE_URLS[provider_id])
