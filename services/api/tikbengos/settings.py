@@ -36,6 +36,9 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.auth",
     "django.contrib.sessions",
+    # `channels` musi być przed aplikacjami własnymi: rejestruje warstwę
+    # kanałów, z której korzysta `asgi.py`, i podmienia obsługę połączeń.
+    "channels",
     "accounts",
 ]
 
@@ -94,6 +97,25 @@ else:
     }
 
 REDIS_URL = os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/0")
+
+# ── Kanały czasu rzeczywistego ───────────────────────────────────────────
+# `asgi.py` kieruje trasy WebSocket przez `ProtocolTypeRouter`, a ten
+# potrzebuje warstwy kanałów. Redis jest tu wymagany, a nie opcjonalny —
+# tak samo jak w `SESSION_ENGINE = cached_db` powyżej: produkcyjna usługa
+# `realtime` uruchamia dwa procesy uvicorna, a warstwa trzymana w pamięci
+# jednego procesu nie dostarczyłaby wiadomości do klienta podłączonego
+# do drugiego.
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [REDIS_URL],
+            # Prefiks chroni kanały przed kolizją z innym zastosowaniem
+            # tej samej bazy Redis.
+            "prefix": "tikbengos",
+        },
+    },
+}
 
 # ── Uwierzytelnianie ─────────────────────────────────────────────────────
 # Jedno konto na cały system. Model użytkownika rozszerza AbstractUser, więc
