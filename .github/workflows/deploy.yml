@@ -1,0 +1,154 @@
+name: Wdrożenie na Oracle Cloud
+
+on:
+  workflow_dispatch:
+    inputs:
+      akcja:
+        description: "Co ma zrobić workflow?"
+        required: true
+        default: wdroz
+        type: choice
+        options:
+          - wdroz
+          - przebuduj
+          - logi
+          - kopia-bazy
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-oracle
+  cancel-in-progress: false
+
+jobs:
+  wdrozenie:
+    name: Oracle — ${{ inputs.akcja }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Sprawdź, czy wymagane sekrety są ustawione
+        shell: bash
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ${{ secrets.ORACLE_USER }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          ORACLE_DOMAIN: ${{ secrets.ORACLE_DOMAIN }}
+          ACME_EMAIL: ${{ secrets.ACME_EMAIL }}
+          AKCJA: ${{ inputs.akcja }}
+        run: |
+          set -euo pipefail
+          braki=()
+
+          [ -n "${ORACLE_HOST:-}" ] || braki+=("ORACLE_HOST")
+          [ -n "${ORACLE_USER:-}" ] || braki+=("ORACLE_USER")
+          [ -n "${ORACLE_SSH_KEY:-}" ] || braki+=("ORACLE_SSH_KEY")
+
+          if [ "$AKCJA" = "wdroz" ] || [ "$AKCJA" = "przebuduj" ]; then
+            [ -n "${ORACLE_DOMAIN:-}" ] || braki+=("ORACLE_DOMAIN")
+            [ -n "${ACME_EMAIL:-}" ] || braki+=("ACME_EMAIL")
+          fi
+
+          if [ ${#braki[@]} -gt 0 ]; then
+            echo "::error::Brakuje sekretów: ${braki[*]}. Ustaw je w Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          echo "Wszystkie wymagane sekrety są ustawione."
+
+      - name: Pobierz kod z repozytorium
+        if: inputs.akcja == 'wdroz' || inputs.akcja == 'przebuduj'
+        uses: actions/checkout@v4
+
+      - name: Przygotuj klucz SSH i znany host
+        shell: bash
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          printf '%s\n' "$ORACLE_SSH_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          ssh-keyscan -H "$ORACLE_HOST" >> "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Wyślij kod przez tar/SSH i uruchom deploy.sh
+        if: inputs.akcja == 'wdroz' || inputs.akcja == 'przebuduj'
+        shell: bash
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ${{ secrets.ORACLE_USER }}
+          ORACLE_DOMAIN: ${{ secrets.ORACLE_DOMAIN }}
+          ACME_EMAIL: ${{ secrets.ACME_EMAIL }}
+        run: |
+          set -euo pipefail
+
+          tar \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='node_modules' \
+            --exclude='.next' \
+            --exclude='dist' \
+            --exclude='build' \
+            --exclude='.venv' \
+            --exclude='__pycache__' \
+            --exclude='.env' \
+            -czf - . \
+          | ssh -i "$HOME/.ssh/id_ed25519" \
+                -o StrictHostKeyChecking=yes \
+                -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+                "$ORACLE_USER@$ORACLE_HOST" \
+                'mkdir -p "$HOME/TIKBENGOS" && tar -xzf - -C "$HOME/TIKBENGOS"'
+
+          ssh -i "$HOME/.ssh/id_ed25519" \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+              "$ORACLE_USER@$ORACLE_HOST" \
+              'bash -s' -- "$ORACLE_DOMAIN" "$ACME_EMAIL" <<'EOF'
+          set -euo pipefail
+          cd "$HOME/TIKBENGOS"
+          TIKBENGOS_NONINTERACTIVE=1 \
+          TIKBENGOS_DIR="$HOME/TIKBENGOS" \
+          TIKBENGOS_DOMAIN="$1" \
+          TIKBENGOS_ACME_EMAIL="$2" \
+          bash scripts/deploy.sh
+          EOF
+
+      - name: Pokaż logi (100 linii)
+        if: inputs.akcja == 'logi'
+        shell: bash
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ${{ secrets.ORACLE_USER }}
+        run: |
+          set -euo pipefail
+          ssh -i "$HOME/.ssh/id_ed25519" \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+              "$ORACLE_USER@$ORACLE_HOST" \
+              'cd "$HOME/TIKBENGOS" && docker compose -f infra/docker-compose.prod.yml logs --tail=100'
+
+      - name: Kopia bazy na runner
+        if: inputs.akcja == 'kopia-bazy'
+        shell: bash
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ${{ secrets.ORACLE_USER }}
+        run: |
+          set -euo pipefail
+          ssh -i "$HOME/.ssh/id_ed25519" \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+              "$ORACLE_USER@$ORACLE_HOST" \
+              'cd "$HOME/TIKBENGOS" && . ./.env && docker compose -f infra/docker-compose.prod.yml exec -T db pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' \
+            | gzip > backup.sql.gz
+
+      - name: Udostępnij kopię bazy jako artefakt
+        if: inputs.akcja == 'kopia-bazy'
+        uses: actions/upload-artifact@v4
+        with:
+          name: kopia-bazy-${{ github.run_id }}
+          path: backup.sql.gz
+          retention-days: 7
+          if-no-files-found: error
