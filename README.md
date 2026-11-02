@@ -35,7 +35,7 @@ services/sign-worker      rozpoznawanie migów (FastAPI + MediaPipe)
 services/music-worker     generacja muzyki (Audiocraft, osobny GPU)
 services/code-worker      agent kodujący (Aider w sandboxie)
 infra                     Compose, Caddy, CI/CD
-scripts                   deploy.sh, dev.sh, sprawdz.py, audyt.py, generate-icons.py
+scripts                   deploy.sh, dev.sh, napraw.sh, sprawdz.py, audyt.py, generate-icons.py
 ```
 
 ## Zasady, które ten kod respektuje
@@ -54,10 +54,10 @@ scripts                   deploy.sh, dev.sh, sprawdz.py, audyt.py, generate-icon
 python3 scripts/audyt.py
 ```
 
-Wypisze, czego brakuje i co to blokuje. Nie uruchamia niczego i nie
-łączy się z siecią — tylko sprawdza pliki i kilka niezmienników treści.
+Wypisze, czego brakuje i co to blokuje. Nie uruchamia niczego i nie łączy
+się z siecią — tylko sprawdza pliki i kilka niezmienników treści.
 
-### Najszybciej lokalnie — skryptem
+### Lokalnie, bez Dockera
 
 ```bash
 bash scripts/dev.sh
@@ -67,20 +67,31 @@ Skrypt tworzy środowisko Pythona, instaluje zależności, generuje klucze, robi
 migracje na SQLite (bez PostgreSQL), uruchamia testy i podnosi API oraz
 interfejs. Wymaga tylko Pythona 3.12 i Node 20+.
 
-### Na Oracle Cloud — jednym poleceniem
+### Produkcyjnie, na Oracle Cloud
 
 ```bash
 bash scripts/deploy.sh
 ```
 
 Skrypt pyta o domenę (albo publiczne IP) i e-mail do certyfikatu, a resztę —
-Docker, sekrety, zaporę, ikony, migracje, certyfikat — robi sam. Pełny opis
-z obrazkami panelu jest w [`docs/deploy-oracle.md`](docs/deploy-oracle.md).
+Docker, kod, sekrety, ikony, zaporę, migracje, certyfikat — robi sam.
+Przed startem uruchamia audyt, a po starcie test dymny.
 
-Po wdrożeniu sprawdź jedną komendą:
+Pełny opis: [`docs/deploy-oracle.md`](docs/deploy-oracle.md).
+
+### Weryfikacja i naprawa
 
 ```bash
-python3 scripts/sprawdz.py https://twojadomena.pl
+python3 scripts/sprawdz.py https://twojadomena.pl   # sprawdzenie z zewnątrz
+bash scripts/napraw.sh                              # stan i diagnoza
+bash scripts/napraw.sh klucz                        # poprawność klucza szyfrowania
+bash scripts/napraw.sh kopia                        # zrzut bazy do pliku
+```
+
+W kontenerze, bez sieci:
+
+```bash
+docker compose -f infra/docker-compose.prod.yml exec api python manage.py sprawdz
 ```
 
 ### Ręcznie
