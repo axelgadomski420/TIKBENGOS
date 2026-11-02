@@ -6,14 +6,13 @@ import { ProviderCredentials } from "@/components/settings/provider-credentials"
 export const metadata: Metadata = { title: "Klucze API" };
 
 /**
- * Ekran kluczy API.
+ * Ekran kluczy.
  *
  * Dwie sekcje, bo to dwie różne rzeczy i mieszanie ich było błędem:
  *
- * - klucze TIKBENGOS (sekcja niżej, na razie bez zarządzania), czyli klucze,
- *   którymi zewnętrzne narzędzia logują się do nas,
- * - klucze dostawców z przychodzącą listą, czyli klucze, którymi TIKBENGOS
- *   loguje się do OpenAI, GitHuba, ElevenLabs i reszty.
+ * 1. Klucze dostawców — którymi TIKBENGOS loguje się do OpenAI, GitHuba,
+ *    ElevenLabs i reszty. Każdy użytkownik ma własne i widzi tylko swoje.
+ * 2. Klucze TIKBENGOS — którymi Twoje narzędzia logują się do nas.
  *
  * Reguła jest jedna dla obu: klucz pokazuje się dokładnie raz, przy zapisie,
  * i nigdy potem. Serwer nie ma endpointu, który go zwraca.
