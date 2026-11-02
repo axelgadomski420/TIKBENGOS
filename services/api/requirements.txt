@@ -17,3 +17,9 @@ uvicorn[standard]~=0.34
 # Daphne zostaje: usługa realtime w środowisku developerskim chodzi na niej
 # (patrz `infra/docker-compose.yml`), a import ustawień musi się zgadzać.
 daphne~=4.1
+
+# WebSocket. `channels` jest importowane przez `asgi.py`, a `channels-redis`
+# przez `CHANNEL_LAYERS` w `settings.py`. Bez tych dwóch pozycji start ASGI
+# kończy się `ModuleNotFoundError`, mimo że konfiguracja już je zakłada.
+channels~=4.2
+channels-redis~=4.2
