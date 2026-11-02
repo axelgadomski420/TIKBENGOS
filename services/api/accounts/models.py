@@ -66,7 +66,7 @@ class User(AbstractUser):
 
 
 class ApiKey(models.Model):
-    """Klucz API użytkownika.
+    """Klucz API użytkownika wystawiony przez TIKBENGOS.
 
     Trzy rzeczy, które ten model gwarantuje:
     - pełna wartość klucza leży zaszyfrowana (`secret_encrypted`) i nie ma
@@ -106,6 +106,58 @@ class ApiKey(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover
         return f"{self.name} ({self.prefix}…{self.last_four})"
+
+
+class ProviderCredential(models.Model):
+    """Klucz do zewnętrznego dostawcy — OpenAI, GitHub, ElevenLabs i tak dalej.
+
+    Każdy użytkownik ma własne klucze i widzi wyłącznie swoje. To jest
+    osobny model od `ApiKey`, a nie ten sam z polem `kind`, z jednego powodu:
+    `ApiKey` to klucz, którym ktoś loguje się DO NAS, a `ProviderCredential`
+    to klucz, którym MY logujemy się GDZIEŚ. Odwrócenie kierunku ma
+    konsekwencje — inny sposób wyszukiwania, inne zasady uzycia, inne
+    znaczenie wycieku.
+
+    `provider_id` wskazuje wpis w katalogu `packages/core/src/providers.ts`.
+    Adres docelowy bierze się z tego katalogu, nigdy z pola formularza —
+    patrz `providers.py` i komentarz tam o ataku SSRF.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="provider_credentials")
+    provider_id = models.CharField(max_length=64, db_index=True)
+    name = models.CharField(max_length=64)
+
+    lookup_hash = models.CharField(max_length=64, unique=True, db_index=True)
+    secret_encrypted = models.TextField()
+
+    prefix = models.CharField(max_length=32)
+    last_four = models.CharField(max_length=4)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "provider_id", "name"],
+                name="unique_credential_per_user_provider_name",
+            )
+        ]
+
+    def reveal(self) -> str:
+        """Odtwarza wartość klucza dla warstwy wywołań wychodzących.
+
+        Ta metoda nie ma i nie może mieć odpowiednika w żadnym endpoincie.
+        Klucz opuszcza serwer wyłącznie jako nagłówek żądania do dostawcy,
+        nigdy jako pole odpowiedzi HTTP.
+        """
+        return decrypt_secret(self.secret_encrypted)
+
+    def __str__(self) -> str:  # pragma: no cover
+        return f"{self.provider_id}: {self.name} ({self.prefix}…{self.last_four})"
 
 
 class AuditLog(models.Model):
