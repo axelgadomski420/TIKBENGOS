@@ -6,3 +6,4 @@ export * from "./chat.js";
 export * from "./projects.js";
 export * from "./access.js";
 export * from "./jobs.js";
+export * from "./providers.js";
