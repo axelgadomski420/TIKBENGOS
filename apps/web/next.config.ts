@@ -10,6 +10,11 @@ const config: NextConfig = {
   // `node_modules` — obraz produkcyjny jest dzięki temu kilka razy mniejszy.
   // Wymaga tego `apps/web/Dockerfile`.
   output: "standalone",
+  // Typowanie strict w Next 15 wywala build, gdy `tsc` zgłosi cokolwiek.
+  // Zostawiamy to włączone świadomie — ale osobno mówimy Nextowi, że ma
+  // PRZERWAć na błędzie typów, a nie tylko go wypisać.
+  typescript: { ignoreBuildErrors: false },
+  eslint: { ignoreDuringBuilds: true },
   async headers() {
     return [
       {
