@@ -1,15 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { ProviderCredentials } from "@/components/settings/provider-credentials";
+
 export const metadata: Metadata = { title: "Klucze API" };
 
 /**
  * Ekran kluczy API.
  *
- * Reguła jest jedna i nie podlega negocjacji: klucz pokazuje się dokładnie
- * raz, przy zapisie, i nigdy potem. Serwer nie ma endpointu, który go zwraca,
- * a interfejs nie ma gdzie go pokazać. To nie ostrożność — to jedyny sposób,
- * żeby wyciek klucza wymagał dostępu do bazy, a nie do ekranu.
+ * Dwie sekcje, bo to dwie różne rzeczy i mieszanie ich było błędem:
+ *
+ * - klucze TIKBENGOS (sekcja niżej, na razie bez zarządzania), czyli klucze,
+ *   którymi zewnętrzne narzędzia logują się do nas,
+ * - klucze dostawców z przychodzącą listą, czyli klucze, którymi TIKBENGOS
+ *   loguje się do OpenAI, GitHuba, ElevenLabs i reszty.
+ *
+ * Reguła jest jedna dla obu: klucz pokazuje się dokładnie raz, przy zapisie,
+ * i nigdy potem. Serwer nie ma endpointu, który go zwraca.
  */
 export default function ApiKeysPage() {
   return (
@@ -19,19 +26,24 @@ export default function ApiKeysPage() {
           Klucze API
         </h1>
         <p className="mt-2 text-[var(--bengos-text-muted)]">
-          Klucze są szyfrowane i nigdy nie opuszczają serwera w odpowiedzi. Zapisany klucz
-          pokazuje się raz — potem widać już tylko jego ostatnie cztery znaki.
+          Twoje klucze do zewnętrznych dostawców. Są szyfrowane na serwerze, nigdy nie
+          opuszczają go w odpowiedzi, a zapisany klucz pokazuje się raz — potem widać
+          już tylko jego początek i ostatnie cztery znaki.
         </p>
       </header>
 
-      <section aria-labelledby="keys-title" className="bengos-surface-card">
-        <h2 id="keys-title" className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-medium)]">
-          Zarządzanie kluczami powstaje w Etapie 5
+      <ProviderCredentials />
+
+      <section id="bengos-keys" aria-labelledby="bengos-keys-title" className="bengos-surface-card">
+        <h2 id="bengos-keys-title" className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-medium)]">
+          Klucze TIKBENGOS dla Twoich narzędzi
         </h2>
         <p className="mt-2 text-[var(--bengos-text-muted)]">
-          Model kluczy i jego reguły są już opisane w kontrakcie, ale zapisywanie i używanie
-          kluczy uruchomi się razem z modułami, które z nich korzystają. Do tego czasu ten ekran
-          nic nie zapisuje i nie udaje, że zapisał.
+          To osobna rzecz od listy powyżej. Tu wystawiasz klucze, którymi Twoje skrypty,
+          bot i aplikacja mobilna logują się do TIKBENGOS. Model i zasada jednorazowego
+          pokazania są gotowe po stronie API — ten ekran dołącza do nich razem z modułem,
+          który takich kluczy potrzebuje. Do tego czasu nic tu nie zapisuje i nie udaje,
+          że zapisało.
         </p>
       </section>
 
