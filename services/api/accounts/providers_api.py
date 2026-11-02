@@ -10,7 +10,6 @@ Formularz wysyła wyłącznie `providerId`, nazwę klucza i sam klucz.
 """
 
 import hashlib
-from datetime import datetime
 
 from django.db import IntegrityError
 from django.utils import timezone
@@ -40,9 +39,52 @@ router = Router(tags=["settings"])
 
 MAX_CREDENTIALS_PER_USER = 30
 
+# Rodzaj dostawcy po stronie serwera. Kopia z `packages/core/src/providers.ts`
+# jest tu konieczna: interfejs potrzebuje rodzaju do pogrupowania rozwijanej
+# listy, a serwer nie czyta plików .ts. Brak wpisu oznacza „unknown”,
+# a nie błąd — nowy dostawca w katalogu nie może wywalić endpointu.
+PROVIDER_KINDS: dict[str, str] = {
+    "openai": "llm",
+    "anthropic": "llm",
+    "google-ai": "llm",
+    "mistral": "llm",
+    "openrouter": "llm",
+    "groq": "llm",
+    "deepseek": "llm",
+    "xai": "llm",
+    "together": "llm",
+    "cohere": "llm",
+    "perplexity": "llm",
+    "fireworks": "llm",
+    "cloudflare": "llm",
+    "azure-openai": "llm",
+    "aws-bedrock": "llm",
+    "vertex-ai": "llm",
+    "replicate": "image",
+    "stability": "image",
+    "huggingface": "image",
+    "black-forest-labs": "image",
+    "elevenlabs": "speech",
+    "deepgram": "speech",
+    "assemblyai": "speech",
+    "speechmatics": "speech",
+    "playht": "speech",
+    "suno": "music",
+    "udio": "music",
+    "github": "code",
+    "gitlab": "code",
+}
 
-def _lookup_hash(secret: str) -> str:
-    return hashlib.sha256(secret.encode("utf-8")).hexdigest()
+
+def _lookup_hash(provider_id: str, secret: str) -> str:
+    """Skrót do rozpoznania klucza.
+
+    Liczony z pary (dostawca, klucz), nie z samego klucza. Powód nie jest
+    teoretyczny: ten sam klucz wklejony dla dwóch różnych dostawców dawałby
+    identyczny skrót, a kolumna jest unikalna — drugi zapis padłby na błędzie
+    bazy zamiast się udać.
+    """
+    return hashlib.sha256(f"{provider_id}:{secret}".encode("utf-8")).hexdigest()
 
 
 def _serialize(credential: ProviderCredential) -> dict:
@@ -58,16 +100,6 @@ def _serialize(credential: ProviderCredential) -> dict:
     }
 
 
-def _prefix_of(provider_id: str, key: str) -> str:
-    """Fragment do pokazania po zapisie.
-
-    Klienty dostawców mają różne kształty — OpenAI daje `sk-...`, GitHub
-    `ghp_...`. Pokazujemy do 12 znaków, bo dłuższy fragment nie jest już
-    rozpoznawalny, a jest mniejszym bezpieczeństwem.
-    """
-    return key[:12]
-
-
 @router.get("/providers", response={200: list[ProviderOut], 401: ErrorOut})
 def list_providers(request):
     """Katalog dostawców z informacją, czy klucz ma już dokąd trafić.
@@ -78,7 +110,8 @@ def list_providers(request):
     """
     ids = sorted(set(PROVIDER_BASE_URLS) | set(PROVIDERS_WITHOUT_URL))
     return 200, [
-        {"id": pid, "kind": "unknown", "hasBaseUrl": has_base_url(pid)} for pid in ids
+        {"id": pid, "kind": PROVIDER_KINDS.get(pid, "unknown"), "hasBaseUrl": has_base_url(pid)}
+        for pid in ids
     ]
 
 
@@ -87,8 +120,7 @@ def list_credentials(request):
     """Zapisane klucze użytkownika. Bez wartości — tylko prefiks i końcówka."""
     user = current_user(request)
     return 200, [
-        _serialize(credential)
-        for credential in ProviderCredential.objects.filter(user=user)
+        _serialize(credential) for credential in ProviderCredential.objects.filter(user=user)
     ]
 
 
@@ -123,16 +155,17 @@ def create_credential(request, payload: CreateProviderCredentialIn):
             },
         )
 
+    provider_id = payload.providerId.strip()
     raw = payload.key.strip()
 
     try:
         credential = ProviderCredential.objects.create(
             user=user,
-            provider_id=payload.providerId.strip(),
+            provider_id=provider_id,
             name=name,
-            lookup_hash=_lookup_hash(f"{payload.providerId}:{raw}"),
+            lookup_hash=_lookup_hash(provider_id, raw),
             secret_encrypted=encrypt_secret(raw),
-            prefix=_prefix_of(payload.providerId, raw),
+            prefix=raw[:12],
             last_four=raw[-4:],
         )
     except IntegrityError:
@@ -171,7 +204,7 @@ def revoke_credential(request, credential_id: str):
     if credential is None:
         raise HttpError(404, {"code": "not_found", "message": "Nie znaleziono tego klucza."})
 
-    credential.revoked_at = datetime_now()
+    credential.revoked_at = timezone.now()
     credential.save(update_fields=["revoked_at"])
     record(
         user,
@@ -180,7 +213,3 @@ def revoke_credential(request, credential_id: str):
         metadata={"providerId": credential.provider_id},
     )
     return 204, None
-
-
-def datetime_now():
-    return timezone.now()
