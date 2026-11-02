@@ -67,8 +67,8 @@ class UpdateConsentsIn(Schema):
 class ApiKeyOut(Schema):
     """Klucz w postaci, w jakiej wolno go pokazać po zapisie.
 
-    Pola `secret`, `prefix` i `lastFour` opisują klucz — `secret` jest obecny
-    wyłącznie w odpowiedzi na utworzenie i nigdy w odczycie listy.
+    Ten schemat NIE MA i nie może mieć pola `secret` — wartość klucza pokazuje
+    się wyłącznie w `ApiKeyCreatedOut`, używanym tylko przy tworzeniu.
     """
 
     id: str
@@ -90,6 +90,46 @@ class ApiKeyCreatedOut(ApiKeyOut):
 
 class CreateApiKeyIn(Schema):
     name: str
+
+
+# ─────────────────────── Klucze dostawców zewnętrznych ──────────────────────
+
+
+class ProviderCredentialOut(Schema):
+    """Zapisany klucz dostawcy. Bez wartości sekretu — ta sama zasada co wyżej."""
+
+    id: str
+    providerId: str
+    name: str
+    prefix: str
+    lastFour: str
+    createdAt: datetime
+    lastUsedAt: datetime | None
+    revokedAt: datetime | None
+
+
+class ProviderCredentialCreatedOut(ProviderCredentialOut):
+    # Jedyny moment, w którym wartość klucza dostawcy opuszcza serwer.
+    secret: str
+
+
+class CreateProviderCredentialIn(Schema):
+    providerId: str
+    name: str
+    key: str
+
+
+class ProviderOut(Schema):
+    """Dostawca do rozwijanej listy w ustawieniach.
+
+    `hasBaseUrl` mówi interfejsowi, czy klucz ma już dokąd trafić. Wpis bez
+    adresu da się zapisać, ale wywołania z niego nie będzie — a użytkownik
+    ma to widzieć przed zapisem, nie po.
+    """
+
+    id: str
+    kind: str
+    hasBaseUrl: bool
 
 
 class ErrorOut(Schema):
