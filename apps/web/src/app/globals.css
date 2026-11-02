@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Tylko to, czego nie da się wyrazić tokenami: zachowanie przewijania na
+ * ekranie dotykowym i rytm pionowy pulpitu. Żadnych kolorów tutaj — kolory
+ * są w `@bengos/ui/styles.css` i pochodzą wyłącznie z tokenów.
+ */
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/*
+ * Bez tego pasek nawigacji dolnej zasłania treść na urządzeniach z gestem
+ * systemowym — `padding-bottom` w `main` liczy się od wysokości okna.
+ */
+body {
+  overscroll-behavior-y: none;
+}
+
+/*
+ * Poziome przewijanie list na ekranie dotykowym ma się zatrzymywać na
+ * elementach, a nie między nimi — inaczej karuzela staje w połowie karty,
+ * co wygląda jak błąd.
+ */
+.bengos-scroll-snap-x {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.bengos-scroll-snap-x > * {
+  scroll-snap-align: start;
+}
