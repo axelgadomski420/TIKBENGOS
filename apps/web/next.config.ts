@@ -6,6 +6,10 @@ const config: NextConfig = {
   // pakietów wewnętrznych, bo to jedyne miejsce, w którym mogłoby powstać
   // rozjechanie się wersji między interfejsem a kontraktem.
   transpilePackages: ["@bengos/core", "@bengos/ui"],
+  // Wynik `standalone` to sam serwer i potrzebne moduły, bez całego
+  // `node_modules` — obraz produkcyjny jest dzięki temu kilka razy mniejszy.
+  // Wymaga tego `apps/web/Dockerfile`.
+  output: "standalone",
   async headers() {
     return [
       {
