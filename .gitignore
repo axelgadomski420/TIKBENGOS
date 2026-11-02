@@ -1,22 +1,27 @@
 # ── Sekrety i pliki lokalne — nigdy do repozytorium ────────────────
 #
-# Ten plik uzupełnia to, co już jest niżej. Sekcje niżej zostały
-# nietknięte celowo — zmieniamy tylko to, czego brakowało.
+# Ten plik uzupełnia to, co poniżej. Sekcje poniżej są nietknięte celowo.
 
 # Klucze prywatne SSH (Oracle daje plik `.key` do pobrania) i certyfikaty.
 *.key
 *.pem
 *.crt
 
-# Zrzuty bazy i wolumeny lokalne.
+# Zrzuty bazy i wolumeny lokalne. `kopia-*.sql` to nazwa, której używa
+# `scripts/napraw.sh kopia` — bez tego wpisu zrzut bazy trafiłby do repo.
+kopia-*.sql
+backup*.sql.gz
 data/
 *.dump
 *.sql
 
-# Kopie wzorców z wypełnionymi sekretami. Wzorce zostają w repozytorium,
-# wypełnione kopie już nie — a `.env.*` z sekcji niżej łapie je razem
-# z `.env.prod`, co jest tu dokładnie tym, o co chodzi.
+# Kopie wzorców z wypełnionymi sekretami. Wzorce zostają w repozytorium
+# (`!.env.example` niżej), wypełnione kopie już nie.
 infra/.env
+
+# Katalog tymczasowy `dev.sh` i `generate-icons.py`. `scratch/` jest
+# ignorowany w całości — trzymamy tam klucze deweloperskie i bazę SQLite.
+scratch/
 
 # Pokrycie testów.
 coverage/
@@ -52,8 +57,8 @@ site-packages/
 .env
 .env.*
 !.env.example
-*.pem
-*.key
+!.env.prod.example
+!.env.local.example
 
 # Bazy danych lokalne
 *.sqlite3
