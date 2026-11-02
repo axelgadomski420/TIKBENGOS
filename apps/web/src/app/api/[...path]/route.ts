@@ -64,9 +64,21 @@ async function proxy(request: Request, segments: string[]): Promise<Response> {
       cache: "no-store",
     });
 
+    // Przepisz nagłówki jawnie, aby przenosić ciasteczka sesji niezawodnie
+    const responseHeaders = new Headers(upstream.headers);
+    
+    // Usuń set-cookie z nagłówków
+    responseHeaders.delete("set-cookie");
+    
+    // Dodaj ciasteczka z powrotem z upstream.headers.getSetCookie()
+    const setCookieValues = upstream.headers.getSetCookie();
+    for (const cookie of setCookieValues) {
+      responseHeaders.append("set-cookie", cookie);
+    }
+
     return new Response(upstream.body, {
       status: upstream.status,
-      headers: upstream.headers,
+      headers: responseHeaders,
     });
   } catch {
     return Response.json(

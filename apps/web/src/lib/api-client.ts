@@ -8,13 +8,67 @@ import type { ApiError } from "@bengos/core";
  * Klient API.
  *
  * Trzy rzeczy i nic więcej: składa żądanie, przekłada odpowiedź błędu na
- * wspólny kształt `ApiError` i pilnuje, żeby żądanie nie wisiało bez końca.
+ * współny kształt `ApiError` i pilnuje, żeby żądanie nie wisiało bez końca.
  * Świadomie bez automatycznych powtórzeń — cicha ponowna próba ukrywa przed
  * użytkownikiem to, że coś nie działa, a to jest dokładnie ten błąd, którego
  * ten projekt unika.
  */
 
 const TIMEOUT_MS = 20_000;
+const CSRF_COOKIE_NAME = "csrftoken";
+const CSRF_HEADER_NAME = "x-csrf-token";
+
+// Buforowany token CSRF (pobrany raz, potem używany)
+let csrfTokenPromise: Promise<string> | null = null;
+
+/**
+ * Pobiera token CSRF z ciasteczka lub z endpointa /api/auth/csrf
+ */
+async function getCsrfToken(): Promise<string> {
+  // Sprawdź ciasteczko
+  if (typeof document !== "undefined") {
+    const cookie = document.cookie
+      .split(";")
+      .find((c) => c.trim().startsWith(`${CSRF_COOKIE_NAME}=`));
+    if (cookie) {
+      return cookie.split("=")[1]?.trim() || "";
+    }
+  }
+
+  // Jeśli nie ma ciasteczka, pobierz z endpointa
+  if (!csrfTokenPromise) {
+    csrfTokenPromise = fetch("/api/auth/csrf", {
+      method: "GET",
+      credentials: "same-origin",
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch CSRF token");
+        return res.json();
+      })
+      .then((data) => {
+        // Po pobraniu token powinien być w ciasteczku
+        if (typeof document !== "undefined") {
+          const cookie = document.cookie
+            .split(";")
+            .find((c) => c.trim().startsWith(`${CSRF_COOKIE_NAME}=`));
+          if (cookie) {
+            return cookie.split("=")[1]?.trim() || "";
+          }
+        }
+        return (data as { csrfToken?: string }).csrfToken || "";
+      })
+      .catch(() => "");
+  }
+
+  return csrfTokenPromise;
+}
+
+/**
+ * Czy żądanie wymaga tokenu CSRF (POST, PATCH, PUT, DELETE)
+ */
+function needsCsrf(method?: string): boolean {
+  return method === "POST" || method === "PATCH" || method === "PUT" || method === "DELETE";
+}
 
 export class ApiRequestError extends Error {
   readonly error: ApiError;
@@ -62,11 +116,17 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   options.signal?.addEventListener("abort", () => controller.abort(), { once: true });
 
   try {
+    // Jeśli żądanie wymaga CSRF i nie podano tokenu, pobierz go
+    let csrfToken = options.csrf;
+    if (needsCsrf(options.method) && !csrfToken) {
+      csrfToken = await getCsrfToken();
+    }
+
     const res = await fetch(path, {
       method: options.method ?? "GET",
       headers: {
         ...(options.body ? { "content-type": "application/json" } : {}),
-        ...(options.csrf ? { "x-csrf-token": options.csrf } : {}),
+        ...(csrfToken ? { [CSRF_HEADER_NAME]: csrfToken } : {}),
       },
       ...(options.body ? { body: JSON.stringify(options.body) } : {}),
       signal: controller.signal,
@@ -94,7 +154,7 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   }
 }
 
-/* ─────────────────── Zasoby ze stanem: ładowanie i błąd ──────────── */
+/* ██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████ */
 
 export interface AsyncState<T> {
   data: T | null;

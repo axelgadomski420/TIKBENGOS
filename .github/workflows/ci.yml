@@ -39,6 +39,11 @@ jobs:
         env:
           NODE_OPTIONS: --experimental-strip-types
 
+      - name: Budowanie
+        run: npm run build
+        env:
+          API_INTERNAL_URL: http://127.0.0.1:8000
+
   secret-scan:
     name: Skanowanie sekretów
     runs-on: ubuntu-latest
