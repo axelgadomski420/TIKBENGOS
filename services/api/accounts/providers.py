@@ -1,3 +1,23 @@
+"""Walidacja dostawców przy zapisie klucza — obrona przed SSRF.
+
+Ten plik istnieje z jednego powodu: żeby adres, na który serwer wyśle
+żądanie, nie pochodził od użytkownika.
+
+Dlaczego to jest groźne. Serwer ma dostęp do sieci wewnętrznej, do bazy
+i do metadanych instancji. Gdyby użytkownik mógł podać dowolny adres,
+mógłby kazać serwerowi wysłać żądanie na:
+
+- `http://169.254.169.254/` — punkt metadanych chmury. W wielu konfiguracjach
+  odpowiada poświadczeniami instancji, czyli kluczami do całego konta w chmurze.
+- `http://localhost:8000/` — nasze własne API. Żądanie z zewnątrz obchodzi
+  uwierzytelnianie, bo pochodzi z zaufanego adresu.
+- `http://db:5432/` — baza danych w tej samej sieci Dockera.
+- adres pod kontrolą atakującego, który odpowiada powoli i zajmuje procesy.
+
+Dlatego adres bierze się z katalogu w `packages/core/src/providers.ts`,
+po stronie Pythona powtórzonego niżej, i nigdy z formularza.
+"""
+
 import ipaddress
 import socket
 from urllib.parse import urlparse
@@ -9,11 +29,10 @@ from urllib.parse import urlparse
 # niezauważenie. Lista jest więc utrzymywana ręcznie po obu stronach.
 # Utrzymywanie tego ręcznie jest świadomym kosztem: adres musi być zaszyty
 # po stronie serwera, bo to serwer wykonuje żądanie.
-
+#
 # UWAGA: przy każdym adresie z `verifiedAt` w katalogu TypeScript musi tu być
 # ten sam adres. Rozjazd między nimi oznacza, że interfejs pokazuje użytkownikowi
-# jeden adres, a serwer uderza pod inny — dlatego żaden wpis nie jest dodawany
-# bez sprawdzenia w dokumentacji.
+# jeden adres, a serwer uderza pod inny.
 PROVIDER_BASE_URLS: dict[str, str] = {
     # ── Modele językowe ────────────────────────────────────────────────
     "openai": "https://api.openai.com/v1",
