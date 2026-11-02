@@ -1,0 +1,46 @@
+# Caddy — jeden plik, automatyczny certyfikat.
+#
+# Caddy wybrano nad nginxem z jednego powodu: sam zamawia i odnawia
+# certyfikat Let's Encrypt. W nginxie to osobny proces (certbot) i własny
+# harmonogram odnowienia — czyli jeszcze jedna rzecz, która potrafi przestać
+# działać po cichu i zablokować logowanie, bo bez HTTPS ciasteczko sesji
+# z `SESSION_COOKIE_SECURE` nie dojedzie.
+#
+# Domena przychodzi ze zmiennej `DOMAIN` w `.env`. Caddy sam przekieruje
+# HTTP na HTTPS, gdy poda się samą nazwę domeny.
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# ── Interfejs ────────────────────────────────────────────────────────
+	# Ruch idzie tu domyślnie. Proxy w Next.js sam przekazuje dalej
+	# wszystko, co zaczyna się od `/api/`.
+	handle {
+		reverse_proxy web:3000
+	}
+
+	# ── Czas rzeczywisty ────────────────────────────────────────────────
+	# Osobna ścieżka, bo WebSocket wymaga nagłówków połączenia, których
+	# zwykły reverse_proxy nie dodaje sam.
+	handle /ws/* {
+		reverse_proxy realtime:8001 {
+			header_upgrade Upgrade connection
+			header_upgrade Connection "Upgrade"
+		}
+	}
+
+	# ── Nagłówki bezpieczeństwa ────────────────────────────────────────
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		# `frame-ancestors` jest tu zamiast X-Frame-Options, bo działa
+		# też na ramki zagnieżdżone i opisuje politykę pełniej.
+		Content-Security-Policy "frame-ancestors 'none'"
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}
