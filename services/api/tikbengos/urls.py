@@ -1,4 +1,5 @@
-"""Adresy API.
+"""
+Adresy API.
 
 Jeden router django-ninja na prefiks `/v1`, tak jak opisuje to `packages/core`.
 Proxy w `apps/web` dokłada `/v1/` do ścieżki, więc nazwy tutaj są już bez tego
@@ -49,6 +50,40 @@ def csrf_view(request):
     return JsonResponse({"csrfToken": get_token(request)})
 
 
+@require_GET
+def health_view(request):
+    """Punkt sprawdzenia, że API żyje i ma wszystko, czego potrzebuje.
+
+    Istnieje dla pierwszego uruchomienia: bez niego jedynym sposobem na
+    stwierdzenie, czy API wystartowało, było wywołanie endpointu wymagającego
+    sesji albo czytanie logów. Ten endpoint nic nie ujawnia — nie podaje
+    wersji bibliotek ani konfiguracji, tylko to, że odpowiedź dochodzi.
+
+    Nie sprawdza bazy ani Redisa. Gdyby sprawdzał, kolejność startu
+    w compose musiałaby być jeszcze bardziej skomplikowana, a i tak
+    najczęstsza awaria to zły `DATABASE_URL`, który wyjdzie przy `migrate`.
+    """
+    return JsonResponse({"status": "ok"})
+
+
+@require_GET
+def config_view(request):
+    """Kontrakt widoczny z zewnątrz — bez niczego wrażliwego.
+
+    `realtimePath` i `csrfPath` są tu po to, żeby interfejs i skrypty nie
+    musiały znać tych ścieżek na sztywno. Rozjazd między klientem a serwerem
+    w tych dwóch miejscach był już raz błędem w tym projekcie.
+    """
+    return JsonResponse(
+        {
+            "realtimePath": "/ws",
+            "csrfPath": "/v1/csrf",
+            "healthPath": "/v1/health",
+            "apiPrefix": "/v1",
+        }
+    )
+
+
 api.add_router("/auth", accounts_router)
 api.add_router("/users", accounts_router)
 api.add_router("/settings", keys_router)
@@ -56,5 +91,7 @@ api.add_router("/settings", providers_router)
 
 urlpatterns = [
     path("v1/csrf", csrf_view, name="csrf_view"),
+    path("v1/health", health_view, name="health_view"),
+    path("v1/config", config_view, name="config_view"),
     path("v1/", api.urls),
 ]
