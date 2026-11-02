@@ -1,0 +1,14 @@
+# TIKBENGOS — API
+#
+# Wersje przypięte do linii, nie do dokładnego numeru: poprawki bezpieczeństwa
+# mają wchodzić bez ręcznej zmiany pliku, ale nowa linia już nie.
+Django~=5.1
+django-ninja~=1.3
+psycopg[binary]~=3.2
+redis~=5.2
+cryptography~=44.0
+
+# Serwowanie ASGI w developmencie tym samym procesem co compose używa
+# dla usługi realtime — API samo w sobie nie potrzebuje daphne na produkcji,
+# ale import ustawień musi się zgadzać.
+daphne~=4.1
