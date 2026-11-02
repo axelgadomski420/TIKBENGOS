@@ -6,25 +6,25 @@ import "./globals.css";
 import { AppShell } from "@/components/app-shell";
 import { PreferencesProvider } from "@/providers/preferences-provider";
 import { SessionProvider } from "@/providers/session-provider";
+import { readSession } from "@/lib/session-reader";
 
 /**
  * Powłoka aplikacji.
  *
- * Ten plik jest jedynym miejscem montującym trzy rzeczy, bez których reszta
- * interfejsu nie ma nośnika: style (arkusz design systemu i Tailwind),
- * preferencje użytkownika oraz powłokę z nawigacją.
+ * Ten plik montuje trzy rzeczy, bez których reszta interfejsu nie ma nośnika:
+ * style (arkusz design systemu i Tailwind), preferencje użytkownika i powłokę
+ * z nawigacją.
  *
  * Kolejność importów nie jest dowolna. `@bengos/ui/styles.css` definiuje
  * `:root` łącznie z `color-scheme: dark` i odwołuje się do zmiennych, które
- * wypisuje dopiero `tokensToStyle` w `AppShell`. `globals.css` idzie po nim,
- * bo zawiera warstwy Tailwinda, a te muszą trafić na koniec arkusza — inaczej
- * narzędziowe klasy przegrają z regułami bazowymi.
+ * wypisuje `tokensToStyle` w `AppShell`. `globals.css` idzie po nim, bo zawiera
+ * warstwy Tailwinda, a te muszą trafić na koniec arkusza — inaczej narzędziowe
+ * klasy przegrają z regułami bazowymi.
  *
- * Sesja jest czytana po stronie klienta, nie serwera. Serwerowy `readSession()`
- * wymagałby działającego `services/api`, którego jeszcze nie ma, więc podanie
- * tu `initialIdentity` byłoby obietnicą bez pokrycia. Powłoka renderuje się
- * z sesją `null`, a rozgałęzienia chronione uprawnieniem (np. Dev) pojawiają
- * się, gdy tożsamość faktycznie dojedzie — patrz `AppShell`.
+ * Sesja jest czytana PO STRONIE SERWERA i podana jako wartość początkowa
+ * dostawcy. Robimy to, bo bez tego pierwszy render pokazywał migające
+ * „nie zalogowany” na ekranie, który już wie, że użytkownik wszedł — a przy
+ * wolnym łączu trwało to zauważalnie długo.
  */
 export const metadata: Metadata = {
   title: {
@@ -37,7 +37,6 @@ export const metadata: Metadata = {
   // Ikony PWA są zadeklarowane w manifeście i tam prowadzą, ale pliki
   // w `public/icons/` jeszcze nie istnieją. Nie wskazujemy tu ścieżek,
   // których nie ma — brak ikon jest zgłoszony osobno.
-  icons: { icon: "/favicon.ico" },
   appleWebApp: { capable: true, title: "BENGOS", statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
 };
@@ -54,7 +53,9 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const identity = await readSession();
+
   return (
     // `lang="pl"` jest tu na sztywno, bo to język interfejsu domyślny.
     // Wybór języka i format regionalny to osobne ustawienia użytkownika —
@@ -63,7 +64,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pl" dir="ltr" suppressHydrationWarning>
       <body className="min-h-dvh bg-[var(--bengos-surface)] text-[var(--bengos-text)] antialiased">
         <PreferencesProvider>
-          <SessionProvider>
+          <SessionProvider initialIdentity={identity}>
             <AppShell>{children}</AppShell>
           </SessionProvider>
         </PreferencesProvider>
