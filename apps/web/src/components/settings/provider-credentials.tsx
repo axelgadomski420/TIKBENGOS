@@ -6,11 +6,12 @@ import type { ApiError } from "@bengos/core";
 import { PROVIDERS, PROVIDER_KIND_LABELS, validateProviderKey, type ProviderKind } from "@bengos/core";
 
 import { ApiRequestError, apiFetch } from "@/lib/api-client";
+import { useSession } from "@/lib/session-context";
 
 /**
  * Klucze do zewnętrznych dostawców.
  *
- * Trzy rzeczy, które ten ekran musi robić dobrze:
+ * Cztery rzeczy, które ten ekran musi robić dobrze:
  *
  * 1. Pokazać CAŁĄ listę dostawców, także tych bez potwierdzonego adresu.
  *    Wpis bez adresu da się zapisać, ale wywołania nie będzie — użytkownik
@@ -20,6 +21,10 @@ import { ApiRequestError, apiFetch } from "@/lib/api-client";
  *    się nie pokaże, i pozwolić ją skopiować.
  * 3. Nigdy nie żądać adresu dostawcy. Adres pochodzi z katalogu, bo inaczej
  *    dałoby się kazać serwerowi wysłać żądanie na adres wewnętrzny.
+ * 4. NIE WOŁAĆ API BEZ SESJI. Lista kluczy jest per użytkownik, więc bez
+ *    zalogowania endpoint zwraca 401 — i to jest poprawne zachowanie serwera,
+ *    ale nie powód, żeby pokazywać użytkownikowi błąd. Pokazujemy stan
+ *    „nie zalogowany” z odsyłaczem, a zapytania w ogóle nie wysyłamy.
  */
 
 interface SavedCredential {
@@ -40,9 +45,10 @@ interface CreatedCredential extends SavedCredential {
 const KIND_ORDER: ProviderKind[] = ["llm", "image", "speech", "music", "code"];
 
 export function ProviderCredentials() {
+  const { isAuthenticated } = useSession();
   const [saved, setSaved] = useState<SavedCredential[]>([]);
   const [providers, setProviders] = useState<Record<string, boolean>>({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<ApiError | null>(null);
 
   const [providerId, setProviderId] = useState<string>(PROVIDERS[0]?.id ?? "");
@@ -75,8 +81,8 @@ export function ProviderCredentials() {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (isAuthenticated) void load();
+  }, [isAuthenticated, load]);
 
   const grouped = useMemo(() => {
     const needle = filter.trim().toLowerCase();
@@ -146,6 +152,32 @@ export function ProviderCredentials() {
           : { code: "internal", message: "Nie udało się usunąć klucza." },
       );
     }
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <section aria-labelledby="keys-guest" className="bengos-surface-card">
+        <h2
+          id="keys-guest"
+          className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-medium)]"
+        >
+          Klucze są przypisane do konta
+        </h2>
+        <p className="mt-2 text-[var(--bengos-text-muted)]">
+          Każdy użytkownik ma własne klucze i widzi tylko swoje — dlatego ten ekran
+          potrzebuje zalogowania. Możesz się rozejrzeć bez konta: pulpit, wygląd i ustawienia
+          dostępności działają niezależnie od sesji.
+        </p>
+        <p className="mt-4">
+          <a
+            href="/login"
+            className="bengos-touch-target inline-flex rounded-[var(--bengos-radius-control)] bg-[var(--bengos-accent)] px-4 font-[var(--bengos-weight-medium)] text-[var(--bengos-text-on-accent)]"
+          >
+            Zaloguj się
+          </a>
+        </p>
+      </section>
+    );
   }
 
   return (
