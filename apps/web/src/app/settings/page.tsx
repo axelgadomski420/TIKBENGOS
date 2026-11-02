@@ -5,6 +5,7 @@ import { LOCALES, PERMISSIONS, ROLES, ROLE_LABELS, ROLE_PERMISSIONS } from "@ben
 import { THEMES, THEME_LABELS } from "@bengos/ui";
 
 import { SettingsForm } from "@/components/settings/settings-form";
+import { ConsentSettings } from "@/components/settings/consent-settings";
 
 export const metadata: Metadata = { title: "Ustawienia" };
 
@@ -72,14 +73,20 @@ export default function SettingsPage() {
         </ul>
       </section>
 
+      <ConsentSettings />
+
       <section id="privacy" aria-labelledby="privacy-title" className="bengos-surface-card">
         <h2 id="privacy-title" className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-medium)]">
-          Prywatność i zgody
+          Prywatność
         </h2>
         <p className="mt-2 text-[var(--bengos-text-muted)]">
           Kamera, mikrofon i dostęp do GitHuba wymagają Twojej osobnej zgody, niezależnie od
           tego, jaką masz rolę. Zgodę możesz odwołać w każdej chwili — moduł, który jej
           potrzebował, po prostu przestaje działać.
+        </p>
+        <p className="mt-2 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
+          Dane sesji i preferencje wyglądu zostają na Twoim urządzeniu. Zgody powyżej zapisują
+          się na koncie.
         </p>
       </section>
     </div>
