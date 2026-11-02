@@ -14,6 +14,7 @@ from ninja import NinjaAPI
 
 from accounts.api import router as accounts_router
 from accounts.keys_api import router as keys_router
+from accounts.providers_api import router as providers_router
 
 api = NinjaAPI(
     title="TIKBENGOS API",
@@ -40,10 +41,10 @@ def csrf_view(request):
     jest kosmetyczna: `CSRF_COOKIE` pojawia się w `META` dopiero wtedy, gdy
     token już istnieje, więc odczyt dawał pusty łańcuch właśnie w tym jednym
     przypadku, dla którego ten endpoint istnieje — przy pierwszym wejściu
-    na stronę. `get_token` wytwarza token, zapisuje go w sesji i zwraca.
+    na stronę. `get_token` wytwarza token, zapisuje go i zwraca.
 
     Ścieżka to `/v1/csrf`, bo proxy w `apps/web` mapuje `/api/csrf` na
-    `/v1/csrf` i przepuszcza tylko to, co dochodzi do routera pod `/v1/`.
+    `/v1/csrf`.
     """
     return JsonResponse({"csrfToken": get_token(request)})
 
@@ -51,6 +52,7 @@ def csrf_view(request):
 api.add_router("/auth", accounts_router)
 api.add_router("/users", accounts_router)
 api.add_router("/settings", keys_router)
+api.add_router("/settings", providers_router)
 
 urlpatterns = [
     path("v1/csrf", csrf_view, name="csrf_view"),
