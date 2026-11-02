@@ -66,9 +66,24 @@ TEMPLATES = [
 # ── Baza danych ──────────────────────────────────────────────────────────
 # `DATABASE_URL` z compose ma pierwszeństwo; rozbite zmienne POSTGRES_* są
 # dla uruchomienia poza kontenerem.
+#
+# Obsługiwane są dwa schematy: `postgres://` i `sqlite:///`. SQLite nie jest
+# tu dla wygody — jest po to, żeby dało się uruchomić `manage.py test`
+# i pierwsze `migrate` bez stawiania PostgreSQL. Bez tego migracje pisane
+# ręcznie można sprawdzić dopiero na maszynie produkcyjnej.
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
-if DATABASE_URL:
+if DATABASE_URL and DATABASE_URL.startswith("sqlite"):
+    import urllib.parse as _urlparse
+
+    _sqlite = _urlparse.urlparse(DATABASE_URL)
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": _sqlite.path or ":memory:",
+        }
+    }
+elif DATABASE_URL:
     import urllib.parse as _urlparse
 
     _parsed = _urlparse.urlparse(DATABASE_URL)
@@ -105,17 +120,27 @@ REDIS_URL = os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/0")
 # `realtime` uruchamia dwa procesy uvicorna, a warstwa trzymana w pamięci
 # jednego procesu nie dostarczyłaby wiadomości do klienta podłączonego
 # do drugiego.
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [REDIS_URL],
-            # Prefiks chroni kanały przed kolizją z innym zastosowaniem
-            # tej samej bazy Redis.
-            "prefix": "tikbengos",
+#
+# Wyjątek: gdy baza jest SQLite, warstwa idzie w pamięć procesu. To jest
+# tryb wyłącznie do testów i lokalnego sprawdzenia — nie da się go użyć
+# z więcej niż jednym procesem, więc nie nadaje się na produkcję i nie
+# udajemy, że się nadaje.
+if DATABASES["default"]["ENGINE"].endswith("sqlite3"):
+    CHANNEL_LAYERS = {
+        "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}
+    }
+else:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [REDIS_URL],
+                # Prefiks chroni kanały przed kolizją z innym zastosowaniem
+                # tej samej bazy Redis.
+                "prefix": "tikbengos",
+            },
         },
-    },
-}
+    }
 
 # ── Uwierzytelnianie ─────────────────────────────────────────────────────
 # Jedno konto na cały system. Model użytkownika rozszerza AbstractUser, więc
