@@ -8,10 +8,13 @@ bo kroki bez powodu są pomijane, gdy wydają się zbędne.
 wszystko z punktów 4–8. Ten dokument jest po to, żeby wiedzieć, CO ten skrypt
 robi i co zrobić, gdy coś padnie.
 
-Czego ten dokument **nie** obiecuje: że darmowy plan Oracle wystarczy
-na wszystko. Worker muzyczny potrzebuje karty graficznej z 16 GB pamięci
-i na maszynie aplikacyjnej nie ma prawa działać. To jest osobna usługa,
-tak jak `docs/stage-1.md` już ustala.
+## 0. Sprawdź komplet plików, zanim zaczniesz
+
+```bash
+python3 scripts/audyt.py
+```
+
+Bez Dockera, bez sieci, bez bazy. Wypisze, czego brakuje i co to blokuje.
 
 ## 1. Konto Oracle Cloud
 
@@ -21,8 +24,8 @@ Rejestracja: <https://signup.cloud.oracle.com/>
 maszyny powstają wyłącznie w regionie domowym. Z Polski: Europe (Frankfurt)
 albo Europe (Amsterdam) — najbliżej, najniższe opóźnienia.
 
-Potrzebna jest karta, także w darmowym planie. Karta służy do weryfikacji
-tożsamości i nie jest obciążana, dopóki nie przejdziesz na plan płatny.
+Karta jest wymagana do weryfikacji, także w darmowym planie. Nie jest
+obciążana, dopóki nie przejdziesz na plan płatny.
 
 ## 2. Maszyna
 
@@ -128,15 +131,23 @@ Pierwsze budowanie trwa kilka minut: powstaje pięć obrazów.
 
 ## 8. Sprawdzenie
 
-Jedna komenda, trzy testy i jawny wynik:
+**Najpierw wewnątrz kontenera** — to odróżnia „nie działa Django” od
+„nie działa sieć przed nim”:
+
+```bash
+docker compose -f infra/docker-compose.prod.yml exec api python manage.py sprawdz
+```
+
+Ta komenda sprawdza klucz szyfrowania (czy jest poprawnym kluczem Fernet),
+połączenie z bazą, komplet migracji i odpowiedź Django — bez sieci.
+
+**Potem z zewnątrz:**
 
 ```bash
 python3 scripts/sprawdz.py https://twojadomena.pl
 ```
 
-Skrypt sprawdza, czy interfejs odpowiada, czy żądanie dochodzi do Django
-(`/api/health`) i czy endpoint CSRF wydaje token. Wypisze też, czego NIE
-sprawdził — bo nie da się tego zrobić bez przeglądarki.
+Trzy testy prawdziwym żądaniem HTTP. Skrypt wypisze też, czego nie sprawdził.
 
 Ręcznie, gdy chcesz zobaczyć surową odpowiedź:
 
@@ -150,29 +161,33 @@ curl -s -o /dev/null -w '%{http_code}\n' https://twojadomena.pl/api/settings/key
 
 ## 9. Co zrobić, gdy nie działa
 
+```bash
+bash scripts/napraw.sh          # stan usług, pamięć, test dymny, adres kanału
+bash scripts/napraw.sh klucz    # czy FIELD_ENCRYPTION_KEY jest poprawny
+bash scripts/napraw.sh migracje # brakujące migracje
+bash scripts/napraw.sh restart  # przebuduj i podnieś od nowa
+bash scripts/napraw.sh kopia    # zrzut bazy do pliku
+bash scripts/napraw.sh dysk     # ile miejsca zajmują obrazy i wolumeny
+```
+
 | Objaw | Najczęstsza przyczyna | Gdzie sprawdzić |
 | --- | --- | --- |
-| Strona się nie ładuje, brak połączenia | porty nieotwarte w OBU miejscach | Security List w panelu **i** `iptables` na maszynie |
+| Strona się nie ładuje | porty nieotwarte w OBU miejscach | Security List w panelu **i** `iptables` na maszynie |
 | Certyfikatu nie ma, Caddy krzyczy o ACME | rekord A nie wskazuje IP | `dig +short DOMAIN` |
 | Interfejs działa, `/api/...` zwraca 502 | API nie wstał (błąd migracji) | `docker compose logs api --tail=50` |
 | Logowanie zwraca 403 | brak tokenu CSRF albo ciasteczko `Secure` bez HTTPS | `/api/csrf` ma zwracać token, a strona musi być na `https://` |
 | `migrate` pada | rozjazd migracji pisanych ręcznie | `docker compose exec api python manage.py makemigrations --check --dry-run` |
 | Kontener `realtime` jest „running”, a kanał nie działa | brak `NEXT_PUBLIC_REALTIME_URL` w `.env` | `docker compose logs realtime --tail=30` |
-
-Pełny audyt braków przed uruchomieniem, bez stawiania czegokolwiek:
-
-```bash
-python3 scripts/audyt.py
-```
+| Klucze dostawców przestały się odszyfrowywać | zmieniono `FIELD_ENCRYPTION_KEY` | `bash scripts/napraw.sh klucz` |
 
 ## 10. Czego ten dokument nie zastąpi
 
 - **Kopii zapasowej bazy.** `db-data` to wolumen Dockera na tej samej
   maszynie. Utrata maszyny to utrata danych. Ręcznie:
-  `docker compose -f infra/docker-compose.prod.yml exec -T db pg_dump -U tikbengos tikbengos > kopia.sql`,
-  a w zakładce Actions jest gotowa akcja *kopia-bazy*, która zapisze zrzut
-  jako artefakt na 7 dni.
-- **Monitoringu.** Nikt nie powiadomi Cię, że aplikacja padła.
+  `bash scripts/napraw.sh kopia`, a w zakładce Actions jest gotowa akcja
+  *kopia-bazy*, która zapisze zrzut jako artefakt na 7 dni.
+- **Monitoringu.** Nikt nie powiadomi Cię, że aplikacja padła. `napraw.sh`
+  pokazuje stan, ale trzeba go uruchomić samemu.
 - **Aktualizacji.** `apt upgrade` i przebudowa obrazów pozostają ręczne.
 
 Każda z tych trzech rzeczy to osobne zadanie, nie „przy okazji”.
