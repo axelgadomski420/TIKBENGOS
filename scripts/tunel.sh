@@ -23,22 +23,22 @@
 # przy każdym restarcie tunelu. Stały adres wymaga konta Cloudflare.
 #
 # ── POPRAWKI PO PIERWSZYM WDROŻENIU ────────────────────────────────────
-# Ten skrypt sprawdzał `/api/health`, którego nie ma ani w Caddy'm, ani
-# w Django. Caddy zna `/api/*` (przekazuje do `api:8000` bez zmiany ścieżki),
-# a API wystawia `/v1/health` — patrz `services/api/tikbengos/urls.py`.
-# `/api/health` dochodziło więc do Django jako `/api/health`, nie pasowało
-# do żadnej trasy i wracało 404. Skrypt uznawał to za „aplikacja nie działa"
-# i zatrzymywał się PRZED podniesieniem tunelu — mimo że aplikacja działała.
-# Sprawdzamy `/v1/health`, czyli ścieżkę, która naprawdę istnieje.
-#
-# Drugi błąd: `sed` scałający listy w `.env` nie escapował ukośników
-# w adresie `https://…`. Wzorzec kończył się na pierwszym `/` i `sed`
-# przerywał pracę komunikatem `unknown command: \`/'`. Skutek był gorszy
-# niż brak efektu: skrypt dopisywał NOWĄ linię `ALLOWED_HOSTS=` na końcu
-# pliku, zamiast rozszerzyć istniejącą. Po kilku tunelach `.env` miał
-# trzy definicje tego samego klucza, a wygrywała ostatnia — przez przypadek.
-# Teraz listy są scalane w miejscu, bez `sed` na adresie: skrypt liczy
-# nową wartość i podmienia CAŁĄ linię po kluczu, poprzedzonym `^`.
+# 1. Skrypt sprawdzał `/api/health`, którego nie ma ani w Caddy'm, ani
+#    w Django — API wystawia `/v1/health` (`services/api/tikbengos/urls.py`).
+#    Uznawał więc działającą aplikację za niedziałającą i zatrzymywał się
+#    PRZED podniesieniem tunelu.
+# 2. `sed` scałający listy w `.env` nie escapował ukośników w `https://…`
+#    i padał z `unknown command: \`/'`, dopisując nową linię zamiast
+#    rozszerzyć istniejącą. Po kilku tunelach `.env` miał trzy definicje
+#    tego samego klucza.
+# 3. Nazwy tras w komunikacie diagnostycznym były bez apostrofów, więc bash
+#    rozwijał `*` jako wzorzec plików.
+# 4. BRAK CZEKANIA NA START API. Ten punkt jest najświeższy i najważniejszy
+#    w praktyce: kontener `api` startuje kilkanaście sekund (`migrate`,
+#    `collectstatic`, dopiero potem gunicorn), a skrypt testował raz, po
+#    pięciu sekundach. Każde wdrożenie z `--build` kończyło się fałszywym
+#    „aplikacja nie odpowiada", mimo że kontener był w trakcie startu.
+#    Teraz skrypt czeka do 90 sekund i mówi, na co czeka.
 
 set -uo pipefail
 
@@ -62,33 +62,47 @@ ENV_FILE=".env"
 # między testem lokalnym i testem z zewnątrz — to był dokładnie ten błąd.
 HEALTH_PATH="/v1/health"
 
+# Ile czekamy, aż API wstanie. Wartość dobrana pod produkcję: `migrate`
+# na pustej bazie bywa wolne, a `collectstatic` dochodzi kilkanaście sekund
+# na maszynie ARM. 90 sekund to górna granica cierpliwości, nie typowy czas.
+API_WAIT_SECONDS=90
+
 [ -f "$TUNNEL_FILE" ] || die "Brak $TUNNEL_FILE — zaktualizuj repozytorium: git pull"
 
 SUDO=""
 if ! docker info >/dev/null 2>&1; then SUDO="sudo"; fi
 compose() { $SUDO docker compose --env-file "$ENV_FILE" -f "$TUNNEL_FILE" "$@"; }
 
-# ── 1. Podstawowe wdrożenie musi działać ────────────────────────────────
-step "Sprawdzam aplikację"
-# Sprawdzamy `/v1/health`, bo to ścieżka wystawiona przez Django. Przy okazji
-# rozróżniamy dwie sytuacje, które wcześniej wyglądały identycznie: brak
-# aplikacji i złą ścieżkę. Jeżeli `/` odpowiada, a `/v1/health` nie, to jest
-# problem routingu, a nie brakująca aplikacja — i tunel i tak ma co wystawić.
-if curl -fsS --max-time 5 "http://127.0.0.1${HEALTH_PATH}" -o /dev/null 2>/dev/null; then
-  good "Aplikacja odpowiada pod http://127.0.0.1${HEALTH_PATH}."
+# ── 0. Czekanie, aż API wstanie ─────────────────────────────────────────
+# Osobny krok, bo to on odróżnia „jeszcze nie wstało" od „nie działa".
+# Bez niego każde `up --build` kończyło się fałszywym alarmem.
+CZEKAJ_ODPOWIEDZ() {
+  local cel="$1" budzet="$2" minelo=0 kod
+  while [ "$minelo" -lt "$budzet" ]; do
+    kod=$(curl -s -o /dev/null -w '%{http_code}' --max-time 4 "$cel" 2>/dev/null || echo 000)
+    if [ "$kod" = "200" ]; then return 0; fi
+    printf '.'
+    sleep 3
+    minelo=$((minelo + 3))
+  done
+  printf '\n'
+  return 1
+}
+
+step "Czekam, aż API wstanie"
+printf '    Sprawdzam http://127.0.0.1%s (do %ss) ' "$HEALTH_PATH" "$API_WAIT_SECONDS"
+if CZEKAJ_ODPOWIEDZ "http://127.0.0.1${HEALTH_PATH}" "$API_WAIT_SECONDS"; then
+  printf '\n'
+  good "API odpowiada pod http://127.0.0.1${HEALTH_PATH}."
 else
-  warn "Aplikacja nie odpowiada pod http://127.0.0.1${HEALTH_PATH}."
+  warn "API nie odpowiada pod http://127.0.0.1${HEALTH_PATH} w ${API_WAIT_SECONDS}s."
   if curl -fsS --max-time 5 "http://127.0.0.1/" -o /dev/null 2>/dev/null; then
     note "Interfejs odpowiada, więc aplikacja żyje — nie odpowiada samo ${HEALTH_PATH}."
-    # Nazwy tras są ujęte w apostrofy, żeby bash nie próbował rozwijać
-    # `*` jako wzorca plików. Bez tego skrypt wypisywał
-    # `line 83: /api/*: No such file or directory` — czyli komunikat
-    # diagnostyczny zamieniał się w błąd składni powłoki.
     note 'Sprawdź trasy /api/* i /v1/* w infra/Caddyfile oraz ALLOWED_HOSTS w .env.'
     note "Podnoszę tunel dalej: to problem routingu, nie brak aplikacji."
   else
-    note "Tunel przekazuje ruch do Caddy'ego, więc najpierw uruchom wdrożenie podstawowe:"
-    note "    bash scripts/uruchom.sh"
+    note "Ani API, ani interfejs nie odpowiadają. Ostatnie linie logu API:"
+    $SUDO docker compose --env-file "$ENV_FILE" -f "$PROD_FILE" logs --tail=20 api 2>/dev/null | sed 's/^/    /' || true
     die "Zatrzymuję — tunel bez działającej aplikacji nie ma czego wystawić."
   fi
 fi
@@ -205,6 +219,12 @@ step "Restart API z nową konfiguracją"
 $SUDO docker compose --env-file "$ENV_FILE" -f "$PROD_FILE" up -d api >/dev/null 2>&1 \
   && good "API zrestartowane." \
   || warn "Nie udało się zrestartować API — zrób to sam: docker compose -f ${PROD_FILE} up -d api"
+
+# API wstaje po restarcie, więc i tu trzeba poczekać — inaczej sprawdzenie
+# z zewnątrz mierzy tylko to, że gunicorn jeszcze nie zdążył się podnieść.
+printf '    Czekam, aż API wstanie po restarcie '
+CZEKAJ_ODPOWIEDZ "http://127.0.0.1${HEALTH_PATH}" 60 || true
+printf '\n'
 
 # ── 6. Sprawdzenie z zewnątrz ──────────────────────────────────────────
 step "Sprawdzam adres z zewnątrz"
