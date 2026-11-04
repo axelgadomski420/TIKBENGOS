@@ -188,6 +188,20 @@ CSRF_TRUSTED_ORIGINS = [
     o for o in os.environ.get("CSRF_TRUSTED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",") if o
 ]
 
+# ── Nazwa nagłówka CSRF ──────────────────────────────────────────────────
+# Domyślnie Django czyta `X-CSRFToken`. Interfejs wysyła `x-csrf-token`
+# (patrz `CSRF_HEADER_NAME` w `apps/web/src/lib/api-client.ts`), więc bez
+# tej linii serwer nie znajdował swojego nagłówka i odrzucał KAŻDE żądanie
+# zapisujące kodem 403 — rejestrację, logowanie, zgody i klucze dostawców.
+# Objaw był mylący: strona się otwierała (GET-y CSRF nie dotyczą), więc
+# wyglądało to na brak funkcji, a nie na niezgodność jednej nazwy.
+#
+# Zmieniamy nazwę po stronie serwera, a nie klienta, bo nazwa po stronie
+# klienta jest już opisana w kontrakcie `packages/core` i używana przez
+# formularze. Django porównuje tę wartość z `HTTP_` + nazwa nagłówka
+# zapisana wielkimi literami i myślnikami zamienionymi na podkreślenia.
+CSRF_HEADER_NAME = "HTTP_X_CSRF_TOKEN"
+
 # ── Czas trwania sesji ───────────────────────────────────────────────────
 # 30 dni dla zwykłego logowania. MFA dokłada osobną, krótszą ważność tokenu.
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 30
