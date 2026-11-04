@@ -1,4 +1,4 @@
-import type { AccessibilityPreferences } from "./preferences-context";
+import type { AccessibilityPreferences } from "@bengos/core";
 
 /**
  * Zapis preferencji między sesjami.
@@ -12,6 +12,11 @@ import type { AccessibilityPreferences } from "./preferences-context";
  * Wersja klucza jest w nazwie, bo zmiana kształtu preferencji bez zmiany
  * klucza czytałaby stary zapis i pokazywała ustawienia, których użytkownik
  * nie wybrał.
+ *
+ * Typ `AccessibilityPreferences` pochodzi z `@bengos/core`, a nie
+ * z `./preferences-context` — tamten plik go tylko importuje, więc nie ma
+ * czego eksportować. Wcześniejsza wersja wskazywała zły moduł i build
+ * produkcyjny przerywał się komunikatem o typie, którego nie ma.
  */
 
 export const STORAGE_KEY = "tikbengos.preferences.v1";
