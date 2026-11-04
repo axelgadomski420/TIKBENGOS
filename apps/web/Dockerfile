@@ -40,17 +40,18 @@ ENV NODE_ENV=production \
 
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 
-# GDZIE LEŻY `server.js` — to nie jest szczegół.
+# GDZIE LEŻY `server.js` — to nie jest szczegół i sprawdziliśmy to poleceniem.
 #
-# Next w monorepo odtwarza w wyniku `standalone` CAŁĄ strukturę od korzenia
-# repozytorium, więc plik trafia do `apps/web/.next/standalone/apps/web/server.js`,
-# a nie do korzenia wyniku. Poprzednia wersja kopiowała standalone do `/app`
-# i uruchamiała `node apps/web/server.js` — plik nie istniał pod tą ścieżką
+# `find / -name server.js -maxdepth 6` w tym obrazie zwraca JEDEN wynik:
+#     /app/server.js
+#
+# Czyli Next w tym monorepo kładzie `server.js` w KORZENIU wyniku `standalone`,
+# a nie pod `apps/web/`. Poprzednia wersja uruchamiała `node apps/web/server.js`
 # i kontener zapętlał się na `Cannot find module '/app/apps/web/server.js'`.
+# Caddy wracał w restart pośrednio — nie mógł połączyć się z `web:3000`.
 #
-# Kopiujemy więc zawartość standalone do `/app` (co odtwarza `apps/web/server.js`
-# oraz przycięty `node_modules` obok), a statyki i `public` dokładamy pod
-# ścieżki, których spodziewa się serwer: `apps/web/.next/static` i `apps/web/public`.
+# Kopiujemy standalone do `/app` i uruchamiamy plik tam, gdzie faktycznie leży.
+# Statyki i `public` dokładamy pod ścieżki, których spodziewa się serwer Next.
 COPY --from=builder /app/apps/web/public ./apps/web/public
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
@@ -62,5 +63,5 @@ EXPOSE 3000
 # localhost wewnątrz kontenera i Caddy nie może się do niego dostać.
 ENV HOSTNAME=0.0.0.0
 
-# Ścieżka jest względna do `WORKDIR /app` i odpowiada temu, co wygenerował Next.
-CMD ["node", "apps/web/server.js"]
+# Ścieżka względna do `WORKDIR /app` — potwierdzona odczytem, nie założeniem.
+CMD ["node", "server.js"]
