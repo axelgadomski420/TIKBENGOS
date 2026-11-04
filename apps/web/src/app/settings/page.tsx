@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+
+import { DeploymentChecklist } from "@/components/settings/deployment-checklist";
+import { SettingsForm } from "@/components/settings/settings-form";
+import { ConsentSettings } from "@/components/settings/consent-settings";
 
 import { LOCALES, PERMISSIONS, ROLES, ROLE_LABELS, ROLE_PERMISSIONS } from "@bengos/core";
 import { THEMES, THEME_LABELS } from "@bengos/ui";
-
-import { SettingsForm } from "@/components/settings/settings-form";
-import { ConsentSettings } from "@/components/settings/consent-settings";
 
 export const metadata: Metadata = { title: "Ustawienia" };
 
@@ -40,12 +40,12 @@ export default function SettingsPage() {
           trafiają do repozytorium. Zapisany klucz jest szyfrowany i pokazywany dokładnie raz —
           potem widać już tylko jego ostatnie znaki.
         </p>
-        <Link
+        <a
           href="/settings/keys"
           className="bengos-touch-target mt-4 inline-flex rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] px-4"
         >
           Zarządzaj kluczami
-        </Link>
+        </a>
       </section>
 
       <section id="roles" aria-labelledby="roles-title" className="bengos-surface-card">
@@ -53,21 +53,18 @@ export default function SettingsPage() {
           Role i uprawnienia
         </h2>
         <p className="mt-2 text-[var(--bengos-text-muted)]">
-          Role nadaje administrator. Uprawnienia są sprawdzane po nazwie, więc dołożenie roli nie
-          wymaga zmiany w modułach.
+          Każda rola jest kumulatywna, a uprawnienia sprawdza się po nazwie — dołożenie roli
+          nie wymaga zmiany w modułach.
         </p>
-        <ul className="mt-4 space-y-3">
+        <ul className="mt-4 space-y-2">
           {ROLES.map((role) => (
-            <li
-              key={role}
-              className="rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] px-4 py-3"
-            >
-              <p className="font-[var(--bengos-weight-medium)]">{ROLE_LABELS[role]}</p>
-              <p className="mt-1 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
+            <li key={role} className="flex flex-wrap gap-x-2">
+              <span className="font-[var(--bengos-weight-medium)]">{ROLE_LABELS[role]}</span>
+              <span className="text-[var(--bengos-text-muted)]">
                 {ROLE_PERMISSIONS[role].length === PERMISSIONS.length
                   ? "Wszystkie uprawnienia"
                   : ROLE_PERMISSIONS[role].join(" · ")}
-              </p>
+              </span>
             </li>
           ))}
         </ul>
@@ -75,18 +72,16 @@ export default function SettingsPage() {
 
       <ConsentSettings />
 
+      <DeploymentChecklist />
+
       <section id="privacy" aria-labelledby="privacy-title" className="bengos-surface-card">
         <h2 id="privacy-title" className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-medium)]">
           Prywatność
         </h2>
         <p className="mt-2 text-[var(--bengos-text-muted)]">
-          Kamera, mikrofon i dostęp do GitHuba wymagają Twojej osobnej zgody, niezależnie od
-          tego, jaką masz rolę. Zgodę możesz odwołać w każdej chwili — moduł, który jej
-          potrzebował, po prostu przestaje działać.
-        </p>
-        <p className="mt-2 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
-          Dane sesji i preferencje wyglądu zostają na Twoim urządzeniu. Zgody powyżej zapisują
-          się na koncie.
+          Ustawienia prywatności — widoczność profilu, widoczność aktywności i eksport danych —
+          należą do modułu Profile w Etapie 2. Do tego czasu nie ma tu żadnej kontrolki, bo nie
+          ma jeszcze czego ustawiać.
         </p>
       </section>
     </div>
