@@ -28,30 +28,52 @@
 # i zwracał `200` z pustym ciałem. Dlatego jest `:80`: przyjmuje KAŻDY host.
 #
 # ── `header_up Host` NIE MOŻE BYĆ PRZY INTERFEJSIE ──────────────────────
-# To był ostatni błąd i najtrudniejszy do zobaczenia, bo nie dawał ANI JEDNEGO
-# błędu w logu. Wcześniejsza wersja miała `header_up Host {$DOMAIN}`
-# w bloku interfejsu — czyli Caddy nadpisywał nagłówek `Host` na adres IP
-# przy KAŻDYM żądaniu do Next.js. Tunel przychodził z własną nazwą, Caddy ją
-# podmieniał, Next dostawał żądanie z hostem, którego nie znał, i zwracał
-# pusty dokument. Przeglądarka pokazywała białą stronę.
+# To był błąd niewidoczny w logu. Wcześniejsza wersja miała
+# `header_up Host {$DOMAIN}` w bloku interfejsu — czyli Caddy nadpisywał
+# nagłówek `Host` na adres IP przy KAŻDYM żądaniu do Next.js. Tunel
+# przychodził z własną nazwą, Caddy ją podmieniał, Next dostawał żądanie
+# z hostem, którego nie znał, i zwracał pusty dokument. Biała strona.
 #
-# Dowód był w logu dostępu Caddy'ego, w dwóch liniach obok siebie:
-#     "host": "127.0.0.1", "uri": "/", "size": 37842, "status": 200
-#     "request": {"host": "92.5.154.243"}, "error": "reading: context canceled"
-# Pierwsza pokazywała 37 KB oddanego dokumentu, druga — że pod spodem host
-# został podmieniony. Aplikacja działała; psuł ją nagłówek.
+# `header_up Host` zostaje WYŁĄCZNIE tam, gdzie wymaga go Django
+# (`ALLOWED_HOSTS`): przy `/api/*`. Interfejs musi dostać hosta prawdziwego.
 #
-# `header_up Host` zostaje WYŁĄCZNIE przy `/api/*`, bo tam Django porównuje
-# `Host` z `ALLOWED_HOSTS`. Interfejs musi dostać hosta prawdziwego.
+# ── `/v1/*` JEST OSOBNĄ TRASĄ, NIE OZDOBĄ ───────────────────────────────
+# API wystawia ścieżki pod `/v1` — `services/api/tikbengos/urls.py`. Blok
+# `/api/*` ich nie łapie: Caddy nie zmienia ścieżki, więc `/v1/health`
+# szedł do interfejsu i wracał 404. Widać to było w `caddy adapt`:
+# trasy `/v1` nie było w ogóle.
+#
+# Sam interfejs z tego nie korzysta — `apps/web` woła API przez własne
+# proxy (`API_INTERNAL_URL: http://api:8000`), więc działał. Bez tej trasy
+# nie działa jednak nic, co chce sięgnąć do API wprost z zewnątrz, łącznie
+# ze sprawdzeniem stanu w `scripts/tunel.sh`.
+#
+# `/v1/*` idzie do API BEZ zmiany ścieżki — Django zna `/v1/health`
+# i porównuje `Host` z `ALLOWED_HOSTS`, dlatego host jest tu przepisywany
+# tak samo jak przy `/api/*`.
 
 :80 {
 	encode zstd gzip
 
-	# ── API ──────────────────────────────────────────────────────
+	# ── API — prefiks `/api` ─────────────────────────────────────
 	# Django sprawdza nagłówek `Host` wobec `ALLOWED_HOSTS`. Żądanie
 	# dochodzi do `api` z hostem `api:8000`, który nie jest na tej liście,
 	# więc bez przepisania hosta każde wywołanie wracałoby z 400.
+	#
+	# Ścieżka NIE jest zmieniana: `/api/*` obsługuje ten sam router co
+	# `/v1/*` tylko dlatego, że oba trafiają do Django — różnią się tym,
+	# co Django pod danym prefiksem wystawia. `/api/health` nie istnieje
+	# w `urls.py`, więc zwraca 404 i to jest poprawne.
 	handle /api/* {
+		reverse_proxy api:8000 {
+			header_up Host {$DOMAIN}
+		}
+	}
+
+	# ── API — prefiks `/v1` ──────────────────────────────────────
+	# Właściwe ścieżki API. Bez tego bloku `/v1/health` trafia do `web`
+	# i wraca 404, co wygląda jak awaria API, a jest brakiem trasy.
+	handle /v1/* {
 		reverse_proxy api:8000 {
 			header_up Host {$DOMAIN}
 		}
@@ -95,6 +117,9 @@
 # {$DOMAIN} {
 # 	encode zstd gzip
 # 	handle /api/* {
+# 		reverse_proxy api:8000
+# 	}
+# 	handle /v1/* {
 # 		reverse_proxy api:8000
 # 	}
 # 	handle /ws/* {
