@@ -6,10 +6,22 @@ const config: NextConfig = {
   // pakietów wewnętrznych, bo to jedyne miejsce, w którym mogłoby powstać
   // rozjechanie się wersji między interfejsem a kontraktem.
   transpilePackages: ["@bengos/core", "@bengos/ui"],
-  // Wynik `standalone` to sam serwer i potrzebne moduły, bez całego
-  // `node_modules` — obraz produkcyjny jest dzięki temu kilka razy mniejszy.
-  // Wymaga tego `apps/web/Dockerfile`.
-  output: "standalone",
+  // ⚠ `output` NIE JEST tu ustawione — i to jest celowe.
+  //
+  // Wcześniej stało tu `output: "standalone"`, a `apps/web/Dockerfile`
+  // uruchamiał `npm run start`. Te dwa się wykluczają: Next wypisywał
+  // przy starcie ostrzeżenie
+  //
+  //     "next start" does not work with "output: standalone" configuration.
+  //     Use "node .next/standalone/server.js" instead.
+  //
+  // i serwer wstawał w trybie, w którym żądania z proxy nie dochodziły do
+  // aplikacji. Kontener raportował „Ready in 2.9s”, a Caddy logował każde
+  // żądanie ze `status: 0` — czyli bez odpowiedzi.
+  //
+  // Wracamy do wyniku zwykłego, bo obraz i tak uruchamia `npm run start`
+  // z workspace'u. `standalone` wróci razem z powrotem do `node server.js`
+  // w Dockerfile — jedno bez drugiego nie działa.
   // Typowanie strict w Next 15 wywala build, gdy `tsc` zgłosi cokolwiek.
   // Zostawiamy to włączone świadomie — ale osobno mówimy Nextowi, że ma
   // PRZERWAć na błędzie typów, a nie tylko go wypisać.
