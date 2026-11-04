@@ -1,22 +1,32 @@
-# Caddy — jeden plik, automatyczny certyfikat.
+# Caddy — dwa przypadki: adres IP i nazwa domeny.
 #
 # Caddy wybrano nad nginxem z jednego powodu: sam zamawia i odnawia
 # certyfikat Let's Encrypt. W nginxie to osobny proces (certbot) i własny
 # harmonogram odnowienia — czyli jeszcze jedna rzecz, która potrafi przestać
-# działać po cichu i zablokować logowanie, bo bez HTTPS ciasteczko sesji
-# z `SESSION_COOKIE_SECURE` nie dojedzie.
+# działać po cichu.
 #
-# Domena przychodzi ze zmiennej `DOMAIN` w `.env`. Caddy sam przekieruje
-# HTTP na HTTPS, gdy poda się samą nazwę domeny.
+# ── DLACZEGO ADRES IP JEST OSOBNYM PRZYPADKIEM ────────────────────────────
+# Caddy przyjmuje samą nazwę domeny (`example.com`) i wtedy SAM zamawia
+# certyfikat przez ACME. Przy adresie IP nie ma czego zamawiać — Let's Encrypt
+# NIE wydaje certyfikatów na adresy IP. Poprzednia wersja miała jedną regułę
+# `{$DOMAIN}`, więc przy `DOMAIN=92.5.154.243` Caddy próbował ACME, dostawał
+# odmowę i kończył pracę z kodem 1. Kontener `proxy` wpadał w pętlę restartów,
+# a strona nie odpowiadała — mimo że `web` i `api` działały poprawnie.
+#
+# Zostaje więc jedna reguła z portem 80 i jawnym nagłówkiem `Host`, bo Django
+# porównuje go z `ALLOWED_HOSTS`. Gdy pojawi się domena, zmień `DOMAIN` w `.env`
+# na jej nazwę i odkomentuj drugą regułę poniżej — wtedy Caddy sam wystawi TLS.
 
-{$DOMAIN} {
+http://{$DOMAIN} {
 	encode zstd gzip
 
 	# ── Interfejs ────────────────────────────────────────────────────────
 	# Ruch idzie tu domyślnie. Proxy w Next.js sam przekazuje dalej
 	# wszystko, co zaczyna się od `/api/`.
 	handle {
-		reverse_proxy web:3000
+		reverse_proxy web:3000 {
+			header_up Host {$DOMAIN}
+		}
 	}
 
 	# ── Czas rzeczywisty ────────────────────────────────────────────────
@@ -24,18 +34,18 @@
 	# zwykły reverse_proxy nie dodaje sam.
 	handle /ws/* {
 		reverse_proxy realtime:8001 {
+			header_up Host {$DOMAIN}
 			header_upgrade Upgrade connection
 			header_upgrade Connection "Upgrade"
 		}
 	}
 
 	# ── Nagłówki bezpieczeństwa ────────────────────────────────────────
+	# Bez `Strict-Transport-Security`: po HTTP ten nagłówek kazałby przeglądarce
+	# wymuszać HTTPS, którego tu nie ma — i zablokowałby dostęp do aplikacji.
 	header {
-		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "strict-origin-when-cross-origin"
-		# `frame-ancestors` jest tu zamiast X-Frame-Options, bo działa
-		# też na ramki zagnieżdżone i opisuje politykę pełniej.
 		Content-Security-Policy "frame-ancestors 'none'"
 	}
 
@@ -44,3 +54,30 @@
 		format console
 	}
 }
+
+# ── GDY BĘDZIE DOMENA ───────────────────────────────────────────────────
+# Zmień `DOMAIN` w `.env` na nazwę domeny i odkomentuj tę regułę, usuwając
+# poprzednią. Caddy zamówi certyfikat sam, a HSTS wróci.
+#
+# {$DOMAIN} {
+# 	encode zstd gzip
+# 	handle {
+# 		reverse_proxy web:3000
+# 	}
+# 	handle /ws/* {
+# 		reverse_proxy realtime:8001 {
+# 			header_upgrade Upgrade connection
+# 			header_upgrade Connection "Upgrade"
+# 		}
+# 	}
+# 	header {
+# 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+# 		X-Content-Type-Options "nosniff"
+# 		Referrer-Policy "strict-origin-when-cross-origin"
+# 		Content-Security-Policy "frame-ancestors 'none'"
+# 	}
+# 	log {
+# 		output stdout
+# 		format console
+# 	}
+# }
