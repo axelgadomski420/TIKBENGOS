@@ -1,154 +1,174 @@
-name: Wdrożenie na Oracle Cloud
+name: Deploy na Oracle Cloud
 
+# Uruchamiane wyłącznie ręcznie — wdrożenie nigdy nie startuje samo z pushu.
 on:
   workflow_dispatch:
     inputs:
       akcja:
-        description: "Co ma zrobić workflow?"
+        description: "Co ma się stać na maszynie"
         required: true
-        default: wdroz
         type: choice
+        default: wdroz
         options:
           - wdroz
           - przebuduj
           - logi
           - kopia-bazy
 
+# Wdrożenie potrzebuje tylko odczytu repozytorium. Trzymamy minimum.
 permissions:
   contents: read
 
-concurrency:
-  group: deploy-oracle
-  cancel-in-progress: false
-
 jobs:
-  wdrozenie:
-    name: Oracle — ${{ inputs.akcja }}
+  deploy:
+    name: Wdrożenie na maszynie Oracle
     runs-on: ubuntu-latest
-    timeout-minutes: 30
     steps:
-      - name: Sprawdź, czy wymagane sekrety są ustawione
-        shell: bash
+      # ── Sekrety ──────────────────────────────────────────────────────
+      # Sprawdzenie przed czymkolwiek innym: brakujący sekret ma dać
+      # czytelny komunikat, a nie „permission denied” w połowie wdrożenia.
+      - name: Sprawdzenie obecności sekretów
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
           ORACLE_USER: ${{ secrets.ORACLE_USER }}
           ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
           ORACLE_DOMAIN: ${{ secrets.ORACLE_DOMAIN }}
           ACME_EMAIL: ${{ secrets.ACME_EMAIL }}
-          AKCJA: ${{ inputs.akcja }}
         run: |
-          set -euo pipefail
-          braki=()
+          brakujace=""
+          for para in \
+            "ORACLE_HOST:$ORACLE_HOST" \
+            "ORACLE_USER:$ORACLE_USER" \
+            "ORACLE_SSH_KEY:$ORACLE_SSH_KEY" \
+            "ORACLE_DOMAIN:$ORACLE_DOMAIN" \
+            "ACME_EMAIL:$ACME_EMAIL"
+          do
+            nazwa="${para%%:*}"
+            wartosc="${para#*:}"
+            if [ -z "$wartosc" ]; then
+              brakujace="$brakujace $nazwa"
+            fi
+          done
 
-          [ -n "${ORACLE_HOST:-}" ] || braki+=("ORACLE_HOST")
-          [ -n "${ORACLE_USER:-}" ] || braki+=("ORACLE_USER")
-          [ -n "${ORACLE_SSH_KEY:-}" ] || braki+=("ORACLE_SSH_KEY")
-
-          if [ "$AKCJA" = "wdroz" ] || [ "$AKCJA" = "przebuduj" ]; then
-            [ -n "${ORACLE_DOMAIN:-}" ] || braki+=("ORACLE_DOMAIN")
-            [ -n "${ACME_EMAIL:-}" ] || braki+=("ACME_EMAIL")
-          fi
-
-          if [ ${#braki[@]} -gt 0 ]; then
-            echo "::error::Brakuje sekretów: ${braki[*]}. Ustaw je w Settings → Secrets and variables → Actions."
+          if [ -n "$brakujace" ]; then
+            echo "::error::Brakuje sekretów:$brakujace"
+            echo "Dodaj je w: Settings → Secrets and variables → Actions."
+            echo "ORACLE_SSH_KEY to klucz prywatny — cała treść, z nagłówkiem i końcem."
             exit 1
           fi
+
           echo "Wszystkie wymagane sekrety są ustawione."
 
-      - name: Pobierz kod z repozytorium
-        if: inputs.akcja == 'wdroz' || inputs.akcja == 'przebuduj'
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Przygotuj klucz SSH i znany host
-        shell: bash
+      # ── Klucz SSH ────────────────────────────────────────────────────
+      - name: Klucz SSH i odcisk maszyny
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
           ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
         run: |
-          set -euo pipefail
-          mkdir -p "$HOME/.ssh"
-          chmod 700 "$HOME/.ssh"
-          printf '%s\n' "$ORACLE_SSH_KEY" > "$HOME/.ssh/id_ed25519"
-          chmod 600 "$HOME/.ssh/id_ed25519"
-          ssh-keyscan -H "$ORACLE_HOST" >> "$HOME/.ssh/known_hosts"
-          chmod 600 "$HOME/.ssh/known_hosts"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle
+          chmod 600 ~/.ssh/oracle
 
-      - name: Wyślij kod przez tar/SSH i uruchom deploy.sh
-        if: inputs.akcja == 'wdroz' || inputs.akcja == 'przebuduj'
-        shell: bash
+          # ssh-keyscan przypina odcisk hosta przed pierwszym połączeniem,
+          # żeby StrictHostKeyChecking nie musiało być wyłączane.
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          chmod 600 ~/.ssh/known_hosts
+
+      # ── Kod na maszynę ───────────────────────────────────────────────
+      # Kod idzie przez tar przez SSH, nie przez git clone: maszyna nie
+      # potrzebuje wtedy żadnego dostępu do repozytorium ani poświadczeń.
+      - name: Przekazanie kodu przez SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ${{ secrets.ORACLE_USER }}
+        run: |
+          tar --exclude=.git --exclude=node_modules --exclude=.venv \
+              --exclude=__pycache__ --exclude=.next \
+              -czf /tmp/tikbengos.tar.gz .
+
+          scp -i ~/.ssh/oracle -o IdentitiesOnly=yes \
+              /tmp/tikbengos.tar.gz \
+              "$ORACLE_USER@$ORACLE_HOST:/tmp/tikbengos.tar.gz"
+
+          # Rozpakowanie do $HOME/TIKBENGOS — dokładnie tam, gdzie skrypt
+          # wdrożenia szuka kodu przez TARGET_DIR=${TIKBENGOS_DIR:-$HOME/TIKBENGOS}.
+          ssh -i ~/.ssh/oracle -o IdentitiesOnly=yes \
+              "$ORACLE_USER@$ORACLE_HOST" \
+              'mkdir -p "$HOME/TIKBENGOS" && tar -xzf /tmp/tikbengos.tar.gz -C "$HOME/TIKBENGOS" && rm -f /tmp/tikbengos.tar.gz'
+
+      # ── Wdrożenie ────────────────────────────────────────────────────
+      # deploy.sh ma TRYB NIEINTERAKTYWNY: czyta TIKBENGOS_NONINTERACTIVE,
+      # a pytaj() kończy się `read -r answer </dev/tty || answer=""`, więc
+      # bez terminala nie zawiesi się. Podajemy DOMAIN i ACME_EMAIL, żeby
+      # nie trzeba było pytać — brak wartości kończy się czytelnym `fail`.
+      #
+      # Skrypt czyta TARGET_DIR z TIKBENGOS_DIR i uruchamia się z katalogu
+      # repozytorium, bo sprawdza `$PWD/infra` i `$PWD/scripts/deploy.sh`.
+      #
+      # `wdroz` i `przebuduj` robią to samo, bo deploy.sh sam przebudowuje
+      # obrazy (`up -d --build`).
+      - name: Wdrożenie
+        if: ${{ inputs.akcja == 'wdroz' || inputs.akcja == 'przebuduj' }}
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
           ORACLE_USER: ${{ secrets.ORACLE_USER }}
           ORACLE_DOMAIN: ${{ secrets.ORACLE_DOMAIN }}
           ACME_EMAIL: ${{ secrets.ACME_EMAIL }}
         run: |
-          set -euo pipefail
-
-          tar \
-            --exclude='.git' \
-            --exclude='.github' \
-            --exclude='node_modules' \
-            --exclude='.next' \
-            --exclude='dist' \
-            --exclude='build' \
-            --exclude='.venv' \
-            --exclude='__pycache__' \
-            --exclude='.env' \
-            -czf - . \
-          | ssh -i "$HOME/.ssh/id_ed25519" \
-                -o StrictHostKeyChecking=yes \
-                -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
-                "$ORACLE_USER@$ORACLE_HOST" \
-                'mkdir -p "$HOME/TIKBENGOS" && tar -xzf - -C "$HOME/TIKBENGOS"'
-
-          ssh -i "$HOME/.ssh/id_ed25519" \
-              -o StrictHostKeyChecking=yes \
-              -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+          ssh -i ~/.ssh/oracle -o IdentitiesOnly=yes \
               "$ORACLE_USER@$ORACLE_HOST" \
-              'bash -s' -- "$ORACLE_DOMAIN" "$ACME_EMAIL" <<'EOF'
-          set -euo pipefail
-          cd "$HOME/TIKBENGOS"
-          TIKBENGOS_NONINTERACTIVE=1 \
-          TIKBENGOS_DIR="$HOME/TIKBENGOS" \
-          TIKBENGOS_DOMAIN="$1" \
-          TIKBENGOS_ACME_EMAIL="$2" \
-          bash scripts/deploy.sh
-          EOF
+              "cd \$HOME/TIKBENGOS && \
+               TIKBENGOS_NONINTERACTIVE=1 \
+               TIKBENGOS_DIR=\$HOME/TIKBENGOS \
+               TIKBENGOS_DOMAIN='$ORACLE_DOMAIN' \
+               TIKBENGOS_ACME_EMAIL='$ACME_EMAIL' \
+               bash scripts/deploy.sh"
 
-      - name: Pokaż logi (100 linii)
-        if: inputs.akcja == 'logi'
-        shell: bash
+      # ── Logi ─────────────────────────────────────────────────────────
+      - name: Logi (100 ostatnich linii każdej usługi)
+        if: ${{ inputs.akcja == 'logi' }}
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
           ORACLE_USER: ${{ secrets.ORACLE_USER }}
         run: |
-          set -euo pipefail
-          ssh -i "$HOME/.ssh/id_ed25519" \
-              -o StrictHostKeyChecking=yes \
-              -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+          ssh -i ~/.ssh/oracle -o IdentitiesOnly=yes \
               "$ORACLE_USER@$ORACLE_HOST" \
               'cd "$HOME/TIKBENGOS" && docker compose -f infra/docker-compose.prod.yml logs --tail=100'
 
-      - name: Kopia bazy na runner
-        if: inputs.akcja == 'kopia-bazy'
-        shell: bash
+      # ── Kopia bazy ───────────────────────────────────────────────────
+      # Nazwa usługi to `db` — potwierdzone w infra/docker-compose.prod.yml.
+      # pg_dump idzie potokiem prosto na runner, więc zrzut nie leży na tej
+      # samej maszynie co baza.
+      - name: Kopia bazy (pg_dump na runner)
+        if: ${{ inputs.akcja == 'kopia-bazy' }}
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
           ORACLE_USER: ${{ secrets.ORACLE_USER }}
         run: |
-          set -euo pipefail
-          ssh -i "$HOME/.ssh/id_ed25519" \
-              -o StrictHostKeyChecking=yes \
-              -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
-              "$ORACLE_USER@$ORACLE_HOST" \
-              'cd "$HOME/TIKBENGOS" && . ./.env && docker compose -f infra/docker-compose.prod.yml exec -T db pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' \
-            | gzip > backup.sql.gz
+          mkdir -p kopie
+          PLIK="kopie/tikbengos-$(date -u +%Y%m%dT%H%M%SZ).sql"
 
-      - name: Udostępnij kopię bazy jako artefakt
-        if: inputs.akcja == 'kopia-bazy'
-        uses: actions/upload-artifact@v4
+          ssh -i ~/.ssh/oracle -o IdentitiesOnly=yes \
+              "$ORACLE_USER@$ORACLE_HOST" \
+              'cd "$HOME/TIKBENGOS" && \
+               docker compose -f infra/docker-compose.prod.yml exec -T db \
+                 pg_dump -U tikbengos -d tikbengos' > "$PLIK"
+
+          # Pusty zrzut to zrzut, który nie działa — lepiej zawieść teraz.
+          if [ ! -s "$PLIK" ]; then
+            echo "::error::Zrzut bazy jest pusty. Sprawdź, czy usługa db wstaje i czy wdrożenie przeszło."
+            exit 1
+          fi
+
+          echo "Zrzut: $(wc -c < "$PLIK") bajtów"
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ inputs.akcja == 'kopia-bazy' }}
         with:
-          name: kopia-bazy-${{ github.run_id }}
-          path: backup.sql.gz
+          name: kopia-bazy-tikbengos
+          path: kopie/*.sql
+          # Zrzut zawiera dane osobowe — trzymamy go krótko.
           retention-days: 7
-          if-no-files-found: error
