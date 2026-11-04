@@ -7,7 +7,6 @@ import { AppShell } from "@/components/app-shell";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
 import { PreferencesProvider } from "@/providers/preferences-provider";
 import { SessionProvider } from "@/providers/session-provider";
-import { readSession } from "@/lib/session-reader";
 
 /**
  * Powłoka aplikacji.
@@ -22,10 +21,25 @@ import { readSession } from "@/lib/session-reader";
  * warstwy Tailwinda, a te muszą trafić na koniec arkusza — inaczej narzędziowe
  * klasy przegrają z regułami bazowymi.
  *
- * Sesja jest czytana PO STRONIE SERWERA i podana jako wartość początkowa
- * dostawcy. Robimy to, bo bez tego pierwszy render pokazywał migające
- * „nie zalogowany” na ekranie, który już wie, że użytkownik wszedł — a przy
- * wolnym łączu trwało to zauważalnie długo.
+ * ⚠ SESJA NIE JEST CZYTANA W TYM PLIKU — i to jest poprawka, nie brak.
+ *
+ * Wcześniej stało tu `const identity = await readSession()`, czyli żądanie do
+ * `http://api:8000/v1/users/me` wykonywane PRZED wyrenderowaniem drzewa.
+ * Skutek był cichy i bardzo kosztowny: serwer wstawał, wypisywał „Ready in 3s”,
+ * a na każde żądanie dokumentu odpowiadał `200` z `content-length: 0`.
+ * Przeglądarka dostawała pusty HTML i pokazywała białą stronę, bez żadnego
+ * błędu w logu — bo wyjątek z warstwy renderowania Next połyka.
+ *
+ * Ten sam objaw potwierdzał się w trzech miejscach naraz: przez tunel,
+ * bezpośrednio na porcie 80 i z wnętrza kontenera. Build był kompletny
+ * (`page.js` miał 29 KB, katalogi tras istniały), katalog roboczy poprawny —
+ * a dokument pusty. Żadna poprawka w Dockerfile nie mogła tego naprawić,
+ * bo przyczyną nie był obraz, a zależność renderu od niedostępnej usługi.
+ *
+ * Tożsamość dociąga teraz `SessionProvider` po stronie klienta. Cena jest
+ * jedna: na bardzo wolnym łączu widać krótkie „nie zalogowany”, zanim stan
+ * dojedzie. To jest lepsze niż biała strona, a `layout.tsx` przestaje
+ * zależeć od tego, czy API zdąży odpowiedzieć.
  */
 export const metadata: Metadata = {
   title: {
@@ -54,9 +68,7 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const identity = await readSession();
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pl" suppressHydrationWarning>
       {/*
@@ -68,7 +80,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       */}
       <body className="min-h-dvh bg-[var(--bengos-surface)] text-[var(--bengos-text)] antialiased">
         <PreferencesProvider>
-          <SessionProvider initialIdentity={identity}>
+          <SessionProvider initialIdentity={null}>
             <AppShell>{children}</AppShell>
           </SessionProvider>
         </PreferencesProvider>
