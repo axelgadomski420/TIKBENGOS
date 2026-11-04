@@ -4,6 +4,16 @@ Adresy API.
 Jeden router django-ninja na prefiks `/v1`, tak jak opisuje to `packages/core`.
 Proxy w `apps/web` dokłada `/v1/` do ścieżki, więc nazwy tutaj są już bez tego
 prefiksu.
+
+Ten sam router tożsamości obsługuje dwie ścieżki: `/auth` i `/users`. Endpointy
+mają sens pod obiema, bo rejestracja i logowanie siedzą w domenie uwierzytelniania,
+a profil i zgody w domenie użytkownika.
+
+django-ninja NIE POZWALA zamontować tego samego routera dwa razy bez podania
+`url_name_prefix` — zgłasza `ConfigError: Router is already mounted to this API`
+i Django nie potrafi wczytać adresów. To nie jest ostrzeżenie: bez tego pada
+każde polecenie `manage.py`, łącznie z `migrate`, a serwer nie wstaje.
+Prefiksy nazw są więc wymagane, nie opcjonalne.
 """
 
 from django.http import JsonResponse
@@ -85,8 +95,11 @@ def config_view(request):
     )
 
 
-api.add_router("/auth", accounts_router)
-api.add_router("/users", accounts_router)
+# Ten sam router pod dwoma prefiksami wymaga RÓŻNYCH `url_name_prefix`.
+# Bez nich django-ninja zgłasza ConfigError i Django nie wczytuje adresów —
+# co zatrzymuje `migrate` i start serwera, nie tylko routowanie.
+api.add_router("/auth", accounts_router, url_name_prefix="auth")
+api.add_router("/users", accounts_router, url_name_prefix="users")
 api.add_router("/settings", keys_router)
 api.add_router("/settings", providers_router)
 api.add_router("/feed", feed_router)
