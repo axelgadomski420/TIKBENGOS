@@ -32,36 +32,43 @@ COPY . .
 ENV API_INTERNAL_URL=http://api:8000
 RUN npm run build -w apps/web
 
+# ⚠ TU NIE MA WYNIKU `standalone` — i to jest celowe.
+#
+# Sprawdziliśmy to na działającym obrazie: `find / -name server.js` zwracał
+# DOKŁADNIE JEDEN plik, `/app/server.js`, a kontener i tak padał. Powód jest
+# inny niż sama ścieżka: przy `transpilePackages` z pakietami workspace na
+# źródłach `.ts` Next traktuje `@bengos/core` i `@bengos/ui` jako zależności
+# zewnętrzne i nie wkłada ich skompilowanych plików do wyniku `standalone`.
+# Serwer startował, po czym wywalał się na brakującym module.
+#
+# Bierzemy więc wynik ZWYKŁY wraz z `node_modules` i uruchamiamy `npm run start`
+# z workspace'u. Nadmiar kilkudziesięciu megabajtów jest tańszy niż obraz,
+# który wstaje i pada.
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
-    PORT=3000
+    PORT=3000 \
+    HOSTNAME=0.0.0.0
 
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 
-# GDZIE LEŻY `server.js` — to nie jest szczegół i sprawdziliśmy to poleceniem.
-#
-# `find / -name server.js -maxdepth 6` w tym obrazie zwraca JEDEN wynik:
-#     /app/server.js
-#
-# Czyli Next w tym monorepo kładzie `server.js` w KORZENIU wyniku `standalone`,
-# a nie pod `apps/web/`. Poprzednia wersja uruchamiała `node apps/web/server.js`
-# i kontener zapętlał się na `Cannot find module '/app/apps/web/server.js'`.
-# Caddy wracał w restart pośrednio — nie mógł połączyć się z `web:3000`.
-#
-# Kopiujemy standalone do `/app` i uruchamiamy plik tam, gdzie faktycznie leży.
-# Statyki i `public` dokładamy pod ścieżki, których spodziewa się serwer Next.
-COPY --from=builder /app/apps/web/public ./apps/web/public
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
+# `node_modules` z etapu zależności zawiera też pakiety workspace.
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
+
+# Konfiguracja i źródła: `next start` czyta `package.json` oraz `next.config.ts`,
+# a `transpilePackages` wymaga plików `.ts` z `packages/` w czasie startu.
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/package.json ./apps/web/package.json
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/next.config.ts ./apps/web/next.config.ts
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next ./apps/web/.next
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/public ./apps/web/public
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/src ./apps/web/src
+COPY --from=builder --chown=nextjs:nodejs /app/packages/core ./packages/core
+COPY --from=builder --chown=nextjs:nodejs /app/packages/ui ./packages/ui
 
 USER nextjs
 EXPOSE 3000
 
-# `HOSTNAME=0.0.0.0` jest konieczne: bez niego serwer standalone słucha na
-# localhost wewnątrz kontenera i Caddy nie może się do niego dostać.
-ENV HOSTNAME=0.0.0.0
-
-# Ścieżka względna do `WORKDIR /app` — potwierdzona odczytem, nie założeniem.
-CMD ["node", "server.js"]
+# `npm run start` z workspace'u `@bengos/web` — bez zgadywania, gdzie leży plik.
+CMD ["npm", "run", "start", "--workspace", "@bengos/web"]
