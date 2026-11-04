@@ -40,6 +40,10 @@ INSTALLED_APPS = [
     # kanałów, z której korzysta `asgi.py`, i podmienia obsługę połączeń.
     "channels",
     "accounts",
+    # Feed rejestruje się przed Etapem 2, bo jego endpointy już istnieją.
+    # Brak tej pozycji nie wywala serwera — dawałby tylko 404 na wpisach
+    # i brak tabeli w migracjach, co jest trudniejsze do zauważenia.
+    "feed",
 ]
 
 MIDDLEWARE = [
