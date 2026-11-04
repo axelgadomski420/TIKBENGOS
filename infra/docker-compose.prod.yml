@@ -54,9 +54,14 @@ services:
     restart: unless-stopped
     # Trzy procesy gunicorna. Maszyna darmowa ma dwa rdzenie Ampere,
     # więc więcej procesów nie przyspieszy niczego — będzie tylko kolejkować.
+    #
+    # `collectstatic` jest tu BEZ `|| true`. Poprzednia wersja tłumiła jego
+    # wynik, więc brak aplikacji `django.contrib.staticfiles` w ustawieniach
+    # przechodził niezauważony — komenda nie istniała, a deploy wyglądał
+    # na udany. Teraz brak `staticfiles` zatrzymuje start głośno.
     command: >
       sh -c "python manage.py migrate --noinput &&
-             python manage.py collectstatic --noinput || true &&
+             python manage.py collectstatic --noinput &&
              gunicorn tikbengos.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 60"
     environment:
       ENVIRONMENT: production
