@@ -1,4 +1,10 @@
 const ALLOWED_PREFIXES = [
+  // `/csrf` jest tu konieczne, a nie ozdobne. `csrfToken()` w
+  // `@/lib/api-client` woła `GET /api/csrf`, żeby dostać ciasteczko, gdy
+  // jeszcze go nie ma — czyli dokładnie przy pierwszym wejściu na stronę.
+  // Bez tej pozycji proxy odpowiadało 404, token nie dochodził, a każde
+  // żądanie zapisujące leciało do Django bez `X-CSRF-Token` i wracało 403.
+  "/csrf",
   "/auth",
   "/users",
   "/feed",
