@@ -21,30 +21,38 @@
 # Dla WebSocketów wystarcza samo `reverse_proxy` — Caddy sam rozpoznaje
 # nagłówki `Upgrade` i `Connection`.
 #
-# ── TU BYŁ BŁĄD, KTÓRY ZOSTAWIŁ BIAŁĄ STRONĘ ─────────────────────────────
+# ── BLOK `:80` BEZ NAZWY WITRYNY ────────────────────────────────────────
 # Blok `http://{$DOMAIN}` przyjmuje WYŁĄCZNIE żądania z hostem równym
-# `DOMAIN` z `.env` (u nas adres IP). Tunel Cloudflare i sprawdzenie
-# `curl http://127.0.0.1/` wysyłają WŁASNĄ nazwę hosta — Caddy nie znajduje
-# dla niej witryny i zwraca `200` z pustym ciałem.
+# `DOMAIN` z `.env`. Tunel Cloudflare i sprawdzenie `curl http://127.0.0.1/`
+# wysyłają WŁASNĄ nazwę hosta — Caddy nie znajdował dla niej witryny
+# i zwracał `200` z pustym ciałem. Dlatego jest `:80`: przyjmuje KAŻDY host.
 #
-# To dokładnie ten objaw, który kosztował nas kilka rund: `content-length: 0`
-# jednocześnie przez tunel i przez Caddy, przy `status 200 len 37623`, kiedy
-# to samo żądanie poszło wprost do kontenera `web`. Winowajcą był nagłówek
-# `Host`, nie aplikacja ani obraz.
+# ── `header_up Host` NIE MOŻE BYĆ PRZY INTERFEJSIE ──────────────────────
+# To był ostatni błąd i najtrudniejszy do zobaczenia, bo nie dawał ANI JEDNEGO
+# błędu w logu. Wcześniejsza wersja miała `header_up Host {$DOMAIN}`
+# w bloku interfejsu — czyli Caddy nadpisywał nagłówek `Host` na adres IP
+# przy KAŻDYM żądaniu do Next.js. Tunel przychodził z własną nazwą, Caddy ją
+# podmieniał, Next dostawał żądanie z hostem, którego nie znał, i zwracał
+# pusty dokument. Przeglądarka pokazywała białą stronę.
 #
-# Blok `:80` bez nazwy witryny przyjmuje KAŻDY host — i to jest właściwy
-# punkt wejścia dla tunelu oraz dla sprawdzeń lokalnych. Nazwa hosta jest
-# przepisywana wyłącznie tam, gdzie wymaga tego Django (`web` i `realtime`).
+# Dowód był w logu dostępu Caddy'ego, w dwóch liniach obok siebie:
+#     "host": "127.0.0.1", "uri": "/", "size": 37842, "status": 200
+#     "request": {"host": "92.5.154.243"}, "error": "reading: context canceled"
+# Pierwsza pokazywała 37 KB oddanego dokumentu, druga — że pod spodem host
+# został podmieniony. Aplikacja działała; psuł ją nagłówek.
+#
+# `header_up Host` zostaje WYŁĄCZNIE przy `/api/*`, bo tam Django porównuje
+# `Host` z `ALLOWED_HOSTS`. Interfejs musi dostać hosta prawdziwego.
 
 :80 {
 	encode zstd gzip
 
-	# ── Interfejs ────────────────────────────────────────────────
-	handle {
-		reverse_proxy web:3000 {
-			# Django porównuje `Host` z `ALLOWED_HOSTS`, a `web` widzi
-			# adres usługi w sieci Dockera — bez tego nagłówka żądanie
-			# dochodzi z hostem `web:3000` i dostaje 400.
+	# ── API ──────────────────────────────────────────────────────
+	# Django sprawdza nagłówek `Host` wobec `ALLOWED_HOSTS`. Żądanie
+	# dochodzi do `api` z hostem `api:8000`, który nie jest na tej liście,
+	# więc bez przepisania hosta każde wywołanie wracałoby z 400.
+	handle /api/* {
+		reverse_proxy api:8000 {
 			header_up Host {$DOMAIN}
 		}
 	}
@@ -54,6 +62,13 @@
 		reverse_proxy realtime:8001 {
 			header_up Host {$DOMAIN}
 		}
+	}
+
+	# ── Interfejs ────────────────────────────────────────────────
+	# Bez `header_up Host`. Next zwraca pusty dokument, kiedy dostaje
+	# żądanie z podmienionym hostem — i nie zapisuje żadnego błędu.
+	handle {
+		reverse_proxy web:3000
 	}
 
 	# ── Nagłówki bezpieczeństwa ──────────────────────────────────
@@ -79,11 +94,14 @@
 #
 # {$DOMAIN} {
 # 	encode zstd gzip
-# 	handle {
-# 		reverse_proxy web:3000
+# 	handle /api/* {
+# 		reverse_proxy api:8000
 # 	}
 # 	handle /ws/* {
 # 		reverse_proxy realtime:8001
+# 	}
+# 	handle {
+# 		reverse_proxy web:3000
 # 	}
 # 	header {
 # 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
