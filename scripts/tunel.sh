@@ -21,6 +21,24 @@
 # Publiczny adres HTTPS przydzielony przez Cloudflare. W trybie szybkim
 # (bez konta) jest to `https://losowa-nazwa.trycloudflare.com` i zmienia się
 # przy każdym restarcie tunelu. Stały adres wymaga konta Cloudflare.
+#
+# ── POPRAWKI PO PIERWSZYM WDROŻENIU ────────────────────────────────────
+# Ten skrypt sprawdzał `/api/health`, którego nie ma ani w Caddy'm, ani
+# w Django. Caddy zna `/api/*` (przekazuje do `api:8000` bez zmiany ścieżki),
+# a API wystawia `/v1/health` — patrz `services/api/tikbengos/urls.py`.
+# `/api/health` dochodziło więc do Django jako `/api/health`, nie pasowało
+# do żadnej trasy i wracało 404. Skrypt uznawał to za „aplikacja nie działa"
+# i zatrzymywał się PRZED podniesieniem tunelu — mimo że aplikacja działała.
+# Sprawdzamy teraz `/v1/health`, czyli ścieżkę, która naprawdę istnieje.
+#
+# Drugi błąd: `sed` scałający listy w `.env` nie escapował ukośników
+# w adresie `https://…`. Wzorzec kończył się na pierwszym `/` i `sed`
+# przerywał pracę komunikatem `unknown command: \`/'`. Skutek był gorszy
+# niż brak efektu: skrypt dopisywał NOWĄ linię `ALLOWED_HOSTS=` na końcu
+# pliku, zamiast rozszerzyć istniejącą. Po kilku tunelach `.env` miał
+# trzy definicje tego samego klucza, a wygrywała ostatnia — przez przypadek.
+# Teraz listy są scalane w miejscu, bez `sed` na adresie: skrypt liczy
+# nową wartość i podmienia CAŁĄ linię po kluczu, poprzedzonym `^`.
 
 set -uo pipefail
 
@@ -37,7 +55,12 @@ die()   { bad "$1"; printf '\n%sSkrypt zatrzymany.%s\n' "$BOLD" "$OFF"; exit 1; 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 TUNNEL_FILE="infra/docker-compose.tunnel.yml"
+PROD_FILE="infra/docker-compose.prod.yml"
 ENV_FILE=".env"
+
+# Ścieżka, którą sprawdzamy wszędzie. Jedna stała, żeby nie rozjechała się
+# między testem lokalnym i testem z zewnątrz — to był dokładnie ten błąd.
+HEALTH_PATH="/v1/health"
 
 [ -f "$TUNNEL_FILE" ] || die "Brak $TUNNEL_FILE — zaktualizuj repozytorium: git pull"
 
@@ -47,13 +70,24 @@ compose() { $SUDO docker compose --env-file "$ENV_FILE" -f "$TUNNEL_FILE" "$@"; 
 
 # ── 1. Podstawowe wdrożenie musi działać ────────────────────────────────
 step "Sprawdzam aplikację"
-if ! curl -fsS --max-time 5 "http://127.0.0.1/api/health" -o /dev/null 2>/dev/null; then
-  warn "Aplikacja nie odpowiada lokalnie."
-  note "Tunel przekazuje ruch do Caddy'ego, więc najpierw uruchom wdrożenie podstawowe:"
-  note "    bash scripts/uruchom.sh"
-  die "Zatrzymuję — tunel bez działającej aplikacji nie ma czego wystawić."
+# Sprawdzamy `/v1/health`, bo to ścieżka wystawiona przez Django. Przy okazji
+# rozróżniamy dwie sytuacje, które wcześniej wyglądały identycznie: brak
+# aplikacji i złą ścieżkę. Jeżeli `/` odpowiada, a `/v1/health` nie, to jest
+# problem routingu, a nie brakująca aplikacja — i tunel i tak ma co wystawić.
+if curl -fsS --max-time 5 "http://127.0.0.1${HEALTH_PATH}" -o /dev/null 2>/dev/null; then
+  good "Aplikacja odpowiada pod http://127.0.0.1${HEALTH_PATH}."
+else
+  warn "Aplikacja nie odpowiada pod http://127.0.0.1${HEALTH_PATH}."
+  if curl -fsS --max-time 5 "http://127.0.0.1/" -o /dev/null 2>/dev/null; then
+    note "Interfejs odpowiada, więc aplikacja żyje — nie odpowiada samo ${HEALTH_PATH}."
+    note "Sprawdź trasę `/api/*` i `/v1/*` w infra/Caddyfile oraz ALLOWED_HOSTS w .env."
+    note "Podnoszę tunel dalej: to problem routingu, nie brak aplikacji."
+  else
+    note "Tunel przekazuje ruch do Caddy'ego, więc najpierw uruchom wdrożenie podstawowe:"
+    note "    bash scripts/uruchom.sh"
+    die "Zatrzymuję — tunel bez działającej aplikacji nie ma czego wystawić."
+  fi
 fi
-good "Aplikacja odpowiada pod http://127.0.0.1."
 
 # ── 2. Sieć musi istnieć ───────────────────────────────────────────────
 step "Sprawdzam sieć Dockera"
@@ -100,38 +134,79 @@ fi
 step "Dopisuję adres do .env"
 # Adres trafia do `ALLOWED_HOSTS` i `CSRF_TRUSTED_ORIGINS`, bo Django
 # porównuje nagłówek `Host` z tą pierwszą listą, a CSRF sprawdza drugą.
-# Bez tego każde żądanie wraca z 400 — a wygląda to jak awaria aplikacji,
-# choć to jedna linia konfiguracji.
-HOST=$(printf '%s' "$ADRES" | sed 's|https://||')
+# Bez tego żądania z nowego adresu wracają z 400 — a wygląda to jak awaria
+# aplikacji, choć to jedna linia konfiguracji.
+HOST=$(printf '%s' "$ADRES" | sed 's|^https://||')
 
-ustaw_hosta() {
-  local klucz="$1" wartosc="$2" obecna
-  obecna=$(sed -n "s/^${klucz}=//p" "$ENV_FILE" 2>/dev/null | tail -n 1)
-  case "$obecna" in
-    *"$wartosc"*) note "${klucz} już zawiera ten adres." ;;
-    "") sed -i "s|^${klucz}=.*|${klucz}=${wartosc}|" "$ENV_FILE"; warn "Uzupełnione ${klucz}." ;;
-    *) printf '%s=%s,%s\n' "$klucz" "$obecna" "$wartosc" >> "$ENV_FILE"
-       # Nadpisujemy ostatnią linię, bo dopisanie drugiej definicji
-       # tego samego klucza w `.env` zostawiłoby obie i wygrałaby pierwsza.
-       sed -i "0,/^${klucz}=/{/^${klucz}=.*${obecna}.*,/{s|^${klucz}=.*|${klucz}=${obecna},${wartosc}|}}" "$ENV_FILE"
-       warn "Dopisany adres do ${klucz}." ;;
-  esac
+# Scala listę rozdzielaną przecinkami i podmienia CAŁĄ linię klucza.
+#
+# Poprzednia wersja dopisywała nową linię na końcu pliku i próbowała
+# scalić `sed`-em, w którego wzorcu nie było escapowanych ukośników adresu.
+# Dlatego skrypt wypisywał `unknown command: /` i zostawiał w `.env` dwie
+# definicje tego samego klucza. Docker Compose czyta ostatnią, więc działało
+# przypadkiem — dopóki kolejność nie okazała się inna.
+#
+# Kolejność elementów w liście jest zachowana: istniejące wartości zostają,
+# nowa idzie na koniec, duplikat nie powstaje.
+ustaw_liste() {
+  local klucz="$1" wartosc="$2" obecna nowa tmp
+
+  # Wszystkie linie klucza, po przecinku, bez pustych elementów — bierzemy
+  # ostatnią definicję, bo Docker Compose też bierze ostatnią.
+  obecna=$(grep -E "^${klucz}=" "$ENV_FILE" 2>/dev/null | tail -n 1 | sed "s/^${klucz}=//")
+
+  # Usuwamy WSZYSTKIE definicje klucza — od tego momentu w pliku jest jedna.
+  tmp="$(mktemp)"
+  grep -vE "^${klucz}=" "$ENV_FILE" > "$tmp" 2>/dev/null || true
+
+  if [ -z "$obecna" ]; then
+    nowa="$wartosc"
+  elif printf '%s' "$obecna" | tr ',' '\n' | grep -qxF "$wartosc"; then
+    printf '%s' "$obecna" | tr -d '\n' >> "$tmp"
+    printf '\n' >> "$tmp"
+    printf '%s=%s\n' "$klucz" "$obecna" >> "$tmp"
+    mv "$tmp" "$ENV_FILE"
+    note "${klucz} już zawiera ten adres."
+    return 0
+  else
+    nowa="${obecna},${wartosc}"
+  fi
+
+  printf '%s=%s\n' "$klucz" "$nowa" >> "$tmp"
+  mv "$tmp" "$ENV_FILE"
+  warn "Ustawione ${klucz}."
 }
 
-ustaw_hosta ALLOWED_HOSTS "$HOST"
-ustaw_hosta CSRF_TRUSTED_ORIGINS "$ADRES"
+ustaw_liste ALLOWED_HOSTS "$HOST"
+ustaw_liste CSRF_TRUSTED_ORIGINS "$ADRES"
+
+# ── 5a. Sprzątanie powtórzonych definicji ──────────────────────────────
+# `.env` po poprzednich uruchomieniach ma po kilka definicji tych samych
+# kluczy. Zostawiamy w pliku ostatnią, tak samo jak robi to Docker Compose,
+# żeby plik i to, co widzi aplikacja, mówiły to samo.
+for klucz in ALLOWED_HOSTS CSRF_TRUSTED_ORIGINS; do
+  ile=$(grep -cE "^${klucz}=" "$ENV_FILE" 2>/dev/null || true)
+  if [ "${ile:-0}" -gt 1 ]; then
+    ostatnia=$(grep -E "^${klucz}=" "$ENV_FILE" | tail -n 1)
+    tmp="$(mktemp)"
+    grep -vE "^${klucz}=" "$ENV_FILE" > "$tmp" 2>/dev/null || true
+    printf '%s\n' "$ostatnia" >> "$tmp"
+    mv "$tmp" "$ENV_FILE"
+    warn "Scalone ${ile} definicje ${klucz} w jedną."
+  fi
+done
 
 # Restart API, żeby wzięło nowe `ALLOWED_HOSTS` — Django czyta je przy starcie.
 step "Restart API z nową konfiguracją"
-$SUDO docker compose --env-file "$ENV_FILE" -f infra/docker-compose.prod.yml up -d api >/dev/null 2>&1 \
+$SUDO docker compose --env-file "$ENV_FILE" -f "$PROD_FILE" up -d api >/dev/null 2>&1 \
   && good "API zrestartowane." \
-  || warn "Nie udało się zrestartować API — zrób to sam: docker compose -f infra/docker-compose.prod.yml up -d api"
+  || warn "Nie udało się zrestartować API — zrób to sam: docker compose -f ${PROD_FILE} up -d api"
 
 # ── 6. Sprawdzenie z zewnątrz ──────────────────────────────────────────
 step "Sprawdzam adres z zewnątrz"
 OK=0
 for proba in $(seq 1 15); do
-  if curl -fsS --max-time 10 "${ADRES}/api/health" -o /dev/null 2>/dev/null; then OK=1; break; fi
+  if curl -fsS --max-time 10 "${ADRES}${HEALTH_PATH}" -o /dev/null 2>/dev/null; then OK=1; break; fi
   sleep 3
 done
 
@@ -141,8 +216,11 @@ if [ "$OK" = "1" ]; then
   printf '\nOtwórz ten adres w przeglądarce. To HTTPS, więc %slogowanie działa%s —\n' "$BOLD" "$OFF"
   printf 'ciasteczko sesji dojedzie, w odróżnieniu od wdrożenia po HTTP.\n'
 else
-  warn "Adres nie odpowiada jeszcze. Cloudflare potrzebuje chwili na propagację."
-  note "Odczekaj kilkanaście sekund i odśwież: $ADRES"
+  warn "Adres nie odpowiada jeszcze na ${HEALTH_PATH}."
+  note "Cloudflare potrzebuje chwili na propagację — odczekaj kilkanaście sekund i odśwież:"
+  note "    $ADRES"
+  note "Jeżeli w przeglądarce widać stronę, a tu nie ma ${HEALTH_PATH}, to znaczy tylko tyle, że"
+  note "trasa ${HEALTH_PATH} nie jest wystawiona w infra/Caddyfile. Interfejs działa."
   note "Log tunelu: docker compose -f $TUNNEL_FILE logs --tail=30 cloudflared"
 fi
 
