@@ -3,27 +3,31 @@
 import { useCallback, useEffect, useState } from "react";
 
 import type { ApiError } from "@bengos/core";
-import { PAGE_SIZE } from "@bengos/core";
 
 import { ApiRequestError, apiFetch } from "@/lib/api-client";
 
 /**
  * Zasób stronicowany kursorem: pobierz, wczytaj więcej, ponów.
  *
- * Osobny plik, a nie rozszerzenie `useAsync`, bo to inny problem: stronicowanie
- * dokłada strony do już pobranej listy i tylko pierwsza strona może zamienić
- * całość. Wrzucenie tego do `useAsync` wymagałoby flagi, która zmienia jego
- * znaczenie — a flaga zmieniająca znaczenie hooka to błąd w zalążku.
+ * Osobny plik, a nie rozszerzenie `useAsync`, bo to inny problem:
+ * stronicowanie dokłada strony do już pobranej listy i tylko pierwsza strona
+ * może zamienić całość. Wrzucenie tego do `useAsync` wymagałoby flagi, która
+ * zmienia jego znaczenie — a flaga zmieniająca znaczenie hooka to błąd
+ * w zalążku.
  *
- * Kasowanie po odmontowaniu komponentu jest tu konieczne: wczytanie kolejnej
- * strony to jedyna operacja w interfejsie, która startuje z akcji użytkownika
- * i trwa dłużej niż samo naciśnięcie.
+ * Rozmiar strony jest zdefiniowany TU, a nie w `@bengos/core`. Wcześniejsza
+ * wersja importowała stałą `PAGE_SIZE` z kontraktu, ale kontrakt jej nie ma —
+ * build produkcyjny przerywał się na błędzie typu. Rozmiar strony jest
+ * decyzją interfejsu, nie kontraktu danych, i to jest właściwe miejsce.
  */
 
 interface CursorPage<T> {
   items: T[];
   nextCursor: string | null;
 }
+
+/** Ile pozycji na stronę. Serwer ogranicza górną granicę osobnym limitem. */
+const PAGE_SIZE = 20;
 
 export interface CursorList<T> {
   items: T[];
@@ -42,11 +46,13 @@ export function useCursorList<T>(path: string, enabled = true): CursorList<T> {
   const [error, setError] = useState<ApiError | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
-  const [bust, setBust] = useState(false);
 
   const fetchPage = useCallback(
     async (cursor: string | null) => {
-      const query = cursor ? `?limit=${PAGE_SIZE}&cursor=${encodeURIComponent(cursor)}` : `?limit=${PAGE_SIZE}`;
+      const separator = path.includes("?") ? "&" : "?";
+      const query = cursor
+        ? `${separator}limit=${PAGE_SIZE}&cursor=${encodeURIComponent(cursor)}`
+        : `${separator}limit=${PAGE_SIZE}`;
       return apiFetch<CursorPage<T>>(`${path}${query}`);
     },
     [path],
@@ -80,12 +86,11 @@ export function useCursorList<T>(path: string, enabled = true): CursorList<T> {
     return () => {
       cancelled = true;
     };
-  }, [enabled, fetchPage, nonce, bust]);
+  }, [enabled, fetchPage, nonce]);
 
   const loadMore = useCallback(() => {
     if (!nextCursor || loadingMore || loading) return;
     setLoadingMore(true);
-    setBust(true);
     fetchPage(nextCursor)
       .then((page) => {
         setItems((prev) => [...prev, ...page.items]);
@@ -100,7 +105,6 @@ export function useCursorList<T>(path: string, enabled = true): CursorList<T> {
       })
       .finally(() => {
         setLoadingMore(false);
-        setBust(false);
       });
   }, [fetchPage, loading, loadingMore, nextCursor]);
 
