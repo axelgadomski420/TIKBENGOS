@@ -20,7 +20,7 @@ Dokument prawdy o stanie prac. Zasada: nie dopisuj tu niczego, czego nie ma w ko
   oraz tokeny trybu dostępności (większa typografia, uproszczone powierzchnie).
 - `prefers-reduced-motion` respektowane na poziomie tokenów ruchu: przy włączonym
   ograniczeniu animacje schodzą do 1 ms, bez wyłączania funkcji.
-- Progi kontrastu WCAG 2.2 AA egzekwowane testem — patrz `packages/ui/colors.test.ts`.
+- Progi kontrastu WCAG 2.2 AA egzekwowane testem — patrz `packages/ui/src/contrast.test.ts`.
 
 ### Interfejs (`apps/web`)
 - BENGOS Home: wyszukiwarka uniwersalna („zapytaj, stwórz, znajdź, zakoduj”),

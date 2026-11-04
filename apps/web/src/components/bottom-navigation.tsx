@@ -24,7 +24,7 @@ export function BottomNavigation() {
   return (
     <nav
       aria-label="Nawigacja główna"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--bengos-border)] bg-[var(--bengos-surface-raised)] pb-[env(safe-area-inset-bottom)]"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--bengos-border)] bg-[var(--bengos-surface-raised)] pb-[env(safe-area-inset-bottom)] md:hidden"
     >
       <ul className="mx-auto flex max-w-2xl items-stretch justify-between">
         {DESTINATIONS.map((destination) => {

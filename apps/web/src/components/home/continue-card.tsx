@@ -100,7 +100,7 @@ function ContinueError({ error, onRetry }: { error: ApiError; onRetry: () => voi
       <button
         type="button"
         onClick={onRetry}
-        className="mt-2 min-h-9 rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] px-3 text-[var(--bengos-size-caption)]"
+        className="mt-2 min-h-[var(--bengos-touch-target-min)] rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] px-3 text-[var(--bengos-size-caption)]"
       >
         Spróbuj ponownie
       </button>

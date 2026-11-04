@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import type { ApiError, Identity } from "@bengos/core";
 
+import { Announcement } from "@/components/announcement";
 import { ApiRequestError, apiFetch } from "@/lib/api-client";
 import { useSession } from "@/lib/session-context";
 
@@ -49,6 +50,7 @@ export function ConsentSettings() {
   );
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
+  const [announcement, setAnnouncement] = useState("");
 
   // Tożsamość może dojechać po pierwszym renderze (odczyt po stronie serwera
   // zwraca `null`, gdy nie ma sesji). Wtedy zgody trzeba wziąć z niej.
@@ -59,12 +61,15 @@ export function ConsentSettings() {
   async function toggle(key: "camera" | "microphone" | "github", value: boolean) {
     setBusy(key);
     setError(null);
+    setAnnouncement("");
     try {
       const updated = await apiFetch<Identity>("/api/users/me/consents", {
         method: "PATCH",
         body: { [key]: value },
       });
       setConsents(updated.consents);
+      const label = TOGGLES.find((item) => item.key === key)?.label ?? key;
+      setAnnouncement(`${label}: zgoda ${value ? "zapisana" : "odwołana"}.`);
     } catch (cause) {
       setError(
         cause instanceof ApiRequestError
@@ -78,6 +83,7 @@ export function ConsentSettings() {
 
   return (
     <section id="consents" aria-labelledby="consents-title" className="bengos-surface-card">
+      <Announcement message={announcement} />
       <h2 id="consents-title" className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-medium)]">
         Zgody
       </h2>

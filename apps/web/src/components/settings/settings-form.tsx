@@ -1,10 +1,11 @@
 "use client";
 
-import { useId } from "react";
+import { useId, useState } from "react";
 
 import type { LocaleDefinition } from "@bengos/core";
 import type { ThemeName } from "@bengos/ui";
 
+import { Announcement } from "@/components/announcement";
 import { usePreferences } from "@/lib/preferences-context";
 
 export function SettingsForm({
@@ -17,17 +18,23 @@ export function SettingsForm({
   locales: LocaleDefinition[];
 }) {
   const { theme, setTheme, locale, setLocale, accessibility, setAccessibility } = usePreferences();
+  const [announcement, setAnnouncement] = useState("");
   const languageId = useId();
+
+  function announcePreference(label: string, enabled: boolean) {
+    setAnnouncement(`${label}: ${enabled ? "włączone" : "wyłączone"}.`);
+  }
 
   return (
     <>
+      <Announcement message={announcement} />
       <section id="language" aria-labelledby="language-title" className="bengos-surface-card">
         <h2 id="language-title" className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-medium)]">
           Język
         </h2>
         <p className="mt-2 text-[var(--bengos-text-muted)]">
-          Język interfejsu i format regionalny są osobne — tak jak w ustawieniach telefonu.
-          Możesz mieć interfejs po polsku i datę w formacie amerykańskim albo odwrotnie.
+          Język interfejsu jest zapisywany niezależnie od wyglądu i dostępności. Osobny format
+          regionalny zostanie dodany razem z katalogiem i18n — obecnie nie ma takiej kontrolki.
         </p>
 
         <div className="mt-4">
@@ -37,7 +44,11 @@ export function SettingsForm({
           <select
             id={languageId}
             value={locale}
-            onChange={(event) => setLocale(event.target.value)}
+            onChange={(event) => {
+              setLocale(event.target.value);
+              const selected = locales.find((item) => item.tag === event.target.value);
+              setAnnouncement(`Język interfejsu: ${selected?.nativeName ?? event.target.value}.`);
+            }}
             className="mt-1 min-h-[var(--bengos-touch-target-min)] w-full max-w-sm rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] bg-[var(--bengos-surface-sunken)] px-3"
           >
             {locales.map((item) => (
@@ -71,7 +82,10 @@ export function SettingsForm({
                 key={item}
                 type="button"
                 aria-pressed={theme === item}
-                onClick={() => setTheme(item)}
+                onClick={() => {
+                  setTheme(item);
+                  setAnnouncement(`Motyw: ${themeLabels[item]}.`);
+                }}
                 className={`min-h-[var(--bengos-touch-target-min)] rounded-[var(--bengos-radius-control)] border px-4 transition-colors duration-[var(--bengos-motion-fast)] ${
                   theme === item
                     ? "border-[var(--bengos-accent)] text-[var(--bengos-accent)] font-[var(--bengos-weight-medium)]"
@@ -96,28 +110,40 @@ export function SettingsForm({
             label="Tryb dostępności"
             description="Większa typografia, większe cele dotykowe i luźniejszy układ. Włącza też większy odstęp liter i wyrazów."
             checked={accessibility.accessibilityMode}
-            onChange={(value) => setAccessibility({ accessibilityMode: value })}
+            onChange={(value) => {
+              setAccessibility({ accessibilityMode: value });
+              announcePreference("Tryb dostępności", value);
+            }}
           />
           <AccessibilityToggle
             id="high-contrast"
             label="Wysoki kontrast"
             description="Osobny motyw, nie nakładka. Podnosi kontrast wszystkich par kolorów powyżej progu AA z zapasem."
             checked={accessibility.highContrast}
-            onChange={(value) => setAccessibility({ highContrast: value })}
+            onChange={(value) => {
+              setAccessibility({ highContrast: value });
+              announcePreference("Wysoki kontrast", value);
+            }}
           />
           <AccessibilityToggle
             id="reduced-motion"
             label="Ograniczony ruch"
             description="Animacje są skracane do jednej milisekundy, a nie wyłączane. Funkcja zostaje, ruch znika."
             checked={accessibility.reducedMotion}
-            onChange={(value) => setAccessibility({ reducedMotion: value })}
+            onChange={(value) => {
+              setAccessibility({ reducedMotion: value });
+              announcePreference("Ograniczony ruch", value);
+            }}
           />
           <AccessibilityToggle
             id="perception-text"
             label="Tryb tylko tekst"
             description="Każde wideo ma napisy, transkrypcję i opis — ekran bez obrazu niesie wszystko."
             checked={accessibility.perception === "text-only"}
-            onChange={(value) => setAccessibility({ perception: value ? "text-only" : "both" })}
+            onChange={(value) => {
+              setAccessibility({ perception: value ? "text-only" : "both" });
+              announcePreference("Tryb tylko tekst", value);
+            }}
           />
         </ul>
       </section>
