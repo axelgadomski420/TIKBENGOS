@@ -72,6 +72,24 @@ export default function SettingsPage() {
 
       <ConsentSettings />
 
+      <section id="app-icons" aria-labelledby="app-icons-title" className="bengos-surface-card">
+        <h2 id="app-icons-title" className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-medium)]">
+          Ikony aplikacji
+        </h2>
+        <p className="mt-2 text-[var(--bengos-text-muted)]">
+          Manifest PWA wymienia trzy pliki ikon i instalacja ich szuka. Ten ekran pokazuje,
+          których plików brakuje w obrazie aplikacji i czym je wygenerować.
+        </p>
+        <p className="mt-3">
+          <a
+            href="/settings/icons"
+            className="bengos-touch-target inline-flex rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] px-4"
+          >
+            Sprawdź ikony
+          </a>
+        </p>
+      </section>
+
       <DeploymentChecklist />
 
       <section id="privacy" aria-labelledby="privacy-title" className="bengos-surface-card">
