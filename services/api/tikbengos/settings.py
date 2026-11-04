@@ -36,6 +36,12 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.auth",
     "django.contrib.sessions",
+    # `staticfiles` jest tu dla `collectstatic`, którego używa komenda startowa
+    # w `infra/docker-compose.prod.yml`. Bez tej pozycji wdrożenie wypisywało
+    # `Unknown command: 'collectstatic'` przy każdym starcie API — cichy błąd,
+    # bo komenda jest opakowana w `|| true`, a mimo to sygnał o rozjeździe
+    # między plikiem compose a ustawieniami.
+    "django.contrib.staticfiles",
     # `channels` musi być przed aplikacjami własnymi: rejestruje warstwę
     # kanałów, z której korzysta `asgi.py`, i podmienia obsługę połączeń.
     "channels",
@@ -66,6 +72,13 @@ TEMPLATES = [
         "OPTIONS": {"context_processors": []},
     }
 ]
+
+# ── Pliki statyczne ──────────────────────────────────────────────────────
+# Api nie serwuje statyków — robi to proxy i interfejs. `collectstatic`
+# zbiera je do jednego katalogu na wypadek, gdyby kiedyś były potrzebne
+# (panel administracyjny). Katalog istnieje, bo tworzy go `services/api/Dockerfile`.
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # ── Baza danych ──────────────────────────────────────────────────────────
 # `DATABASE_URL` z compose ma pierwszeństwo; rozbite zmienne POSTGRES_* są
