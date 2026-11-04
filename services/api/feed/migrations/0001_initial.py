@@ -3,6 +3,17 @@
 Zapisana ręcznie, bo `makemigrations` wymaga uruchomienia Django — a w tym
 zadaniu nie wolno uruchamiać niczego. Numery migracji są nadawane kolejno
 w ramach aplikacji `feed`, więc nie kolidują z migracjami `accounts`.
+
+POPRAWKA: warunek `no_self_follow` był zapisany przez `inverted=True`. Takiego
+argumentu NIE MA w `CheckConstraint` Django 5.1 — pojawia się ono dopiero
+w nowszych wersjach, a i tam znaczy co innego. Efekt był twardy: import tej
+migracji rzucał `TypeError`, więc Django nie wczytywało ŻADNEJ migracji,
+`migrate` nie przechodziło, a `/v1/health` zwracał 400, bo aplikacja nie
+wstawała do końca.
+
+Warunek idzie teraz wprost w `condition`, zanegowany `~Q(...)`. To składnia,
+która działa w Django 5.1 i mówi dokładnie to samo: obserwujący nie może być
+tym samym użytkownikiem co obserwowany.
 """
 
 import uuid
@@ -134,9 +145,10 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="follow",
             constraint=models.CheckConstraint(
-                condition=models.Q(("follower", models.F("followed"))),
+                # Zanegowany warunek bezpośrednio — bez `inverted=True`, którego
+                # Django 5.1 nie zna.
+                condition=~models.Q(follower=models.F("followed")),
                 name="no_self_follow",
-                inverted=True,
             ),
         ),
     ]
