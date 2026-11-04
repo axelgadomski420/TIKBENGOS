@@ -17,6 +17,20 @@
 
 set -Eeuo pipefail
 
+# Compose ma czytać plik konfiguracji JAWNIE.
+#
+# To nie jest ostrożność na zapas, a naprawa błędu, który zatrzymał pierwsze
+# wdrożenie: `docker compose` szuka `.env` sam, ale kiedy go nie znajdzie
+# (albo nie odczyta), zgłasza JEDENASTU brakujących zmiennych i przerywa —
+# nie mówiąc, że chodzi o plik. Jawna wskazówka usuwa to zgadywanie:
+# `--env-file .env` jest w każdym wywołaniu poniżej.
+COMPOSE_FILE="infra/docker-compose.prod.yml"
+ENV_FILE=".env"
+
+compose() {
+  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
+}
+
 if [ -t 1 ]; then
   BOLD=$(printf '\033[1m'); DIM=$(printf '\033[2m'); OFF=$(printf '\033[0m')
   GREEN=$(printf '\033[32m'); YELLOW=$(printf '\033[33m'); RED=$(printf '\033[31m')
@@ -76,7 +90,7 @@ else
   git clone --depth 1 "$REPO_URL" "$TARGET_DIR"
 fi
 cd "$TARGET_DIR"
-[ -f infra/docker-compose.prod.yml ] || fail "Brak infra/docker-compose.prod.yml — to nie repozytorium TIKBENGOS."
+[ -f "$COMPOSE_FILE" ] || fail "Brak $COMPOSE_FILE — to nie repozytorium TIKBENGOS."
 
 # Audyt przed dotknięciem czegokolwiek. Twarde braki zatrzymują wdrożenie,
 # miękkie tylko ostrzegają — inaczej brak ikon blokowałby cały deploy.
@@ -87,14 +101,13 @@ fi
 
 # ── Sekrety ────────────────────────────────────────────────────────
 step "Sekrety i konfiguracja"
-ENV_FILE=".env"
 NONINTERACTIVE="${TIKBENGOS_NONINTERACTIVE:-0}"
 
 losowy() { python3 -c "import secrets; print(secrets.token_urlsafe(${1:-40}))"; }
 klucz_fernet() { python3 -c "import base64,os; print(base64.urlsafe_b64encode(os.urandom(32)).decode())"; }
 
 if [ -f "$ENV_FILE" ]; then
-  note ".env już istnieje — zostawiam bez zmian."
+  note "$ENV_FILE już istnieje — zostawiam bez zmian."
   # shellcheck disable=SC1091
   . ./.env
   DOMAIN="${DOMAIN:-${TIKBENGOS_DOMAIN:-}}"
@@ -113,9 +126,15 @@ else
   fi
 
   if printf '%s' "$DOMAIN" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
-    SCHEME="http"; ACME_EMAIL=""
+    SCHEME="http"
     warn "Adres IP: certyfikatu nie będzie, więc HTTPS nie wstanie."
     warn "Logowanie wymaga HTTPS — bez domeny działanie kont nie jest możliwe."
+    # `ACME_EMAIL` MUSI mieć wartość NIEZALEŻNIE od tego, czy certyfikat
+    # powstanie. Plik compose wymaga go przez `${ACME_EMAIL:?...}`, a puste
+    # pole zatrzymuje interpolację — i to zatrzymało pierwsze wdrożenie.
+    # Wpisujemy więc adres mówiący wprost, że certyfikatu nie ma.
+    [ -n "$ACME_EMAIL" ] || ACME_EMAIL="certyfikat-nieaktywny@localhost"
+    note "ACME_EMAIL=$ACME_EMAIL (certyfikat nieaktywny — adres nie jest domeną)."
   else
     SCHEME="https"
     if [ -z "$ACME_EMAIL" ]; then
@@ -147,8 +166,20 @@ NEXT_PUBLIC_REALTIME_URL=$(if [ "$SCHEME" = "https" ]; then echo "wss://$DOMAIN/
 EOF
   umask "$OLD_UMASK"
   chmod 600 "$ENV_FILE"
-  note ".env utworzony (uprawnienia 600 — czyta tylko właściciel)."
+  note "$ENV_FILE utworzony (uprawnienia 600 — czyta tylko właściciel)."
 fi
+
+# Kontrola przed startem: plik konfiguracji musi być czytelny dla compose.
+# Sprawdzamy osobną komendą, żeby komunikat wskazywał przyczynę, a nie listę
+# jedenastu brakujących zmiennych.
+if ! compose config -q 2>/tmp/tikbengos-compose-check.log; then
+  warn "Plik konfiguracji nie przechodzi sprawdzenia compose:"
+  sed 's/^/    /' /tmp/tikbengos-compose-check.log
+  warn "Najczęstsza przyczyna: plik zapisany z końcami linii CRLF albo z BOM-em."
+  warn "Sprawdź: file $ENV_FILE && head -c 120 $ENV_FILE | od -c | head -3"
+  fail "Zatrzymuję przed budowaniem obrazów."
+fi
+note "Konfiguracja compose czytelna."
 
 # ── Zapora ─────────────────────────────────────────────────────────
 step "Zapora na maszynie"
@@ -191,14 +222,13 @@ fi
 # ── Start ──────────────────────────────────────────────────────────
 step "Budowanie i uruchomienie"
 note "Pierwsze uruchomienie trwa kilka minut — buduje się pięć obrazów."
-$DOCKER compose -f infra/docker-compose.prod.yml up -d --build
+compose up -d --build
 
 # ── Migracje ───────────────────────────────────────────────────────
 step "Baza danych"
 MIGRACJE_OK=0
 for i in $(seq 1 40); do
-  if $DOCKER compose -f infra/docker-compose.prod.yml exec -T api \
-       python manage.py migrate --noinput >/dev/null 2>&1; then
+  if compose exec -T api python manage.py migrate --noinput >/dev/null 2>&1; then
     note "Migracje wykonane."
     MIGRACJE_OK=1
     break
@@ -207,7 +237,7 @@ for i in $(seq 1 40); do
 done
 if [ "$MIGRACJE_OK" -eq 0 ]; then
   warn "Migracje nie przeszły po 160 sekundach."
-  warn "Sprawdź: $DOCKER compose -f infra/docker-compose.prod.yml logs api --tail=60"
+  warn "Sprawdź: docker compose --env-file $ENV_FILE -f $COMPOSE_FILE logs api --tail=60"
   warn "Pełna diagnoza: bash scripts/napraw.sh"
 fi
 
@@ -215,8 +245,7 @@ fi
 step "Test dymny (w kontenerze)"
 # Ta komenda sprawdza klucz szyfrowania, bazę, komplet migracji i odpowiedź
 # Django — bez sieci. Gorszy od niej jest tylko brak takiego sprawdzenia.
-$DOCKER compose -f infra/docker-compose.prod.yml exec -T api \
-  python manage.py sprawdz || warn "Test dymny zgłosił błędy — patrz komunikat wyżej."
+compose exec -T api python manage.py sprawdz || warn "Test dymny zgłosił błędy — patrz komunikat wyżej."
 
 # ── Sprawdzenie z zewnątrz ─────────────────────────────────────────
 step "Sprawdzenie z zewnątrz"
@@ -239,18 +268,18 @@ else
   if [ "$SCHEME" = "https" ]; then
     note "Przy domenie certyfikat powstaje do minuty — odczekaj i odśwież."
   fi
-  note "Logi: $DOCKER compose -f infra/docker-compose.prod.yml logs proxy --tail=40"
+  note "Logi: docker compose --env-file $ENV_FILE -f $COMPOSE_FILE logs proxy --tail=40"
   note "Diagnoza: bash scripts/napraw.sh"
 fi
 
 printf '\n%sKod:%s %s\n' "$BOLD" "$OFF" "$TARGET_DIR"
-printf '%sSekrety:%s %s/.env (600)\n' "$BOLD" "$OFF" "$TARGET_DIR"
+printf '%sSekrety:%s %s/%s (600)\n' "$BOLD" "$OFF" "$TARGET_DIR" "$ENV_FILE"
 printf '\n%sCo dalej:%s\n' "$BOLD" "$OFF"
 printf '  Pełne sprawdzenie:  python3 scripts/sprawdz.py %s://%s\n' "$SCHEME" "$DOMAIN"
 printf '  Stan i diagnoza:    bash scripts/napraw.sh\n'
 printf '  Kopia bazy:         bash scripts/napraw.sh kopia\n'
-printf '  Logi:               %s compose -f infra/docker-compose.prod.yml logs -f\n' "$DOCKER"
-printf '\n%sUwaga:%s nie zmieniaj FIELD_ENCRYPTION_KEY w .env. Po zmianie\n' "$YELLOW" "$OFF"
+printf '  Logi:               docker compose --env-file %s -f %s logs -f\n' "$ENV_FILE" "$COMPOSE_FILE"
+printf '\n%sUwaga:%s nie zmieniaj FIELD_ENCRYPTION_KEY w %s. Po zmianie\n' "$YELLOW" "$OFF" "$ENV_FILE"
 printf 'wszystkie zapisane klucze dostawców staną się nieczytelne.\n'
 printf '\n%sCzego ten skrypt nie zrobi:%s kopii zapasowej według harmonogramu,\n' "$YELLOW" "$OFF"
 printf 'monitoringu ani aktualizacji systemu. To osobne zadania.\n\n'
