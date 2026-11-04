@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 
+import { Announcement } from "@/components/announcement";
 import { usePreferences } from "@/lib/preferences-context";
 
 /**
@@ -14,6 +16,7 @@ import { usePreferences } from "@/lib/preferences-context";
  */
 export function AccessibilityCard() {
   const { accessibility, setAccessibility } = usePreferences();
+  const [announcement, setAnnouncement] = useState("");
 
   const toggles = [
     {
@@ -40,6 +43,7 @@ export function AccessibilityCard() {
 
   return (
     <section aria-labelledby="accessibility-card" className="bengos-surface-card">
+      <Announcement message={announcement} />
       <div className="flex flex-wrap items-center gap-3">
         <h2
           id="accessibility-card"
@@ -62,7 +66,11 @@ export function AccessibilityCard() {
               id={`toggle-${toggle.key}`}
               type="checkbox"
               checked={accessibility[toggle.key]}
-              onChange={(event) => setAccessibility({ [toggle.key]: event.target.checked })}
+              onChange={(event) => {
+                const enabled = event.target.checked;
+                setAccessibility({ [toggle.key]: enabled });
+                setAnnouncement(`${toggle.label}: ${enabled ? "włączone" : "wyłączone"}.`);
+              }}
               className="mt-1 size-5 shrink-0 accent-[var(--bengos-accent)]"
             />
             <label htmlFor={`toggle-${toggle.key}`} className="cursor-pointer">
