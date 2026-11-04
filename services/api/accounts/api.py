@@ -6,7 +6,7 @@ nie zgaduje, co dostał.
 """
 
 import re
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone as dt_timezone
 
 from django.conf import settings
 from django.contrib.auth import authenticate
@@ -43,13 +43,31 @@ def _error(code: str, message: str, status: int, field: str | None = None):
     raise HttpError(status, payload)
 
 
+# EPOCH liczymy RAZ, na poziomie modułu, i z `datetime.timezone.utc`.
+#
+# Wcześniej stało tu `timezone.datetime.fromtimestamp(0, tz=timezone.utc)`,
+# gdzie `timezone` to `django.utils.timezone`. Django NIE eksportuje tam
+# `datetime` — są `now`, `is_aware`, `utc`, ale nie ten atrybut. Błąd nie
+# wychodził przy imporcie (Python nie sprawdza atrybutów na zapas), tylko
+# w chwili wykonania: `AttributeError: module 'django.utils.timezone' has
+# no attribute 'datetime'`.
+#
+# Skutek był widoczny dopiero na produkcji i tylko na jednej ścieżce.
+# `_consents()` woła tę gałąź wyłącznie wtedy, gdy `consents_updated_at`
+# jest puste — a puste jest dokładnie u ŚWIEŻO UTWORZONEGO konta. Konto,
+# które raz zapisało zgody, ma datę ustawioną i ten kod nigdy się nie
+# wykonuje. Dlatego `POST /api/auth/register` wracał `500`, gdy `GET /api/csrf`
+# dawał `200` — i dlatego nic tego nie wykryło wcześniej.
+EPOCH = datetime(1970, 1, 1, tzinfo=dt_timezone.utc)
+
+
 def _consents(user: User) -> dict:
     return {
         "camera": user.consent_camera,
         "microphone": user.consent_microphone,
         "github": user.consent_github,
         "pushNotifications": user.consent_push_notifications,
-        "updatedAt": user.consents_updated_at or timezone.datetime.fromtimestamp(0, tz=timezone.utc),
+        "updatedAt": user.consents_updated_at or EPOCH,
     }
 
 
