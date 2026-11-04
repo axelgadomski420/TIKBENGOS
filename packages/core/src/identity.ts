@@ -1,3 +1,11 @@
+// Importy BEZ rozszerzenia `.js`.
+//
+// To nie styl, a poprawność: webpack w Next.js nie rozwiązuje importu
+// `./api.js` wskazującego na plik `api.ts` — szuka dosłownego pliku `.js`
+// i przerywa build produkcyjny komunikatem „Module not found”. Zapis bez
+// rozszerzenia działa i w webpacku, i w `tsc`.
+import type { ApiError } from "./api";
+
 /**
  * Tożsamość — jedno konto dla całego systemu.
  *
@@ -6,12 +14,6 @@
  * a nie kontem.
  */
 
-import type { ApiError } from "./api.js";
-
-/**
- * Role są kumulatywne. `user` ma każdy; pozostałe dokładają uprawnienia.
- * Kolejność na liście jest kolejnością rosnących uprawnień.
- */
 export const ROLES = ["user", "creator", "moderator", "developer", "admin"] as const;
 
 export type Role = (typeof ROLES)[number];

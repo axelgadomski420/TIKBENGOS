@@ -1,15 +1,21 @@
-"""Serwerowy odczyt sesji.
-
-Ten plik istnieje po to, żeby pierwszy render powłoki znał tożsamość.
-Bez niego interfejs renderuje się jako „nie zalogowany”, a dopiero potem
-dociąga stan — co widać jako miganie i co gorsza pokazuje użytkownikowi,
-który wszedł, że nie wszedł.
-
-Zasada: brak odpowiedzi z API nie może wywalić renderu. Gdy serwer jest
-niedostępny, zwracamy `null` i powłoka pokaże stan „nie zalogowany”,
-który jest prawdziwy przynajmniej w tym sensie, że nie twierdzimy, że ktoś
-jest zalogowany, gdy nie wiemy.
-"""
+/**
+ * Serwerowy odczyt sesji.
+ *
+ * Ten plik istnieje po to, żeby pierwszy render powłoki znał tożsamość.
+ * Bez niego interfejs renderuje się jako „nie zalogowany”, a dopiero potem
+ * dociąga stan — co widać jako miganie i co gorsza pokazuje użytkownikowi,
+ * który wszedł, że nie wszedł.
+ *
+ * Zasada: brak odpowiedzi z API nie może wywalić renderu. Gdy serwer jest
+ * niedostępny, zwracamy `null` i powłoka pokaże stan „nie zalogowany”,
+ * który jest prawdziwy przynajmniej w tym sensie, że nie twierdzimy, że ktoś
+ * jest zalogowany, gdy nie wiemy.
+ *
+ * Głowica pliku była wcześniej zapisana w konwencji Pythona (trzy cudzysłowy).
+ * To nie komentarz w TypeScripcie, a niedomknięty łańcuch znaków — build
+ * produkcyjny przerywał się na tym pliku komunikatem „Unterminated string
+ * constant”, wskazując pierwszą linię.
+ */
 
 import type { Identity } from "@bengos/core";
 

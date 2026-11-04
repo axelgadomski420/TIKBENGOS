@@ -1,3 +1,6 @@
+// Import BEZ rozszerzenia `.js` — patrz komentarz w `identity.ts`.
+import type { JobKind, JobStatus, RealtimeEvent } from "./api";
+
 /**
  * Wspólny kształt każdej długiej operacji.
  *
@@ -6,8 +9,6 @@
  * zdarzeniem. Każdy moduł używa tego samego mechanizmu — generacja muzyki,
  * transkodowanie wideo, transkrypcja, praca agenta kodującego.
  */
-
-import type { JobKind, JobStatus, RealtimeEvent } from "./api.js";
 
 /** Końcowe stany zadania — po nich nic się już nie zmieni. */
 const TERMINAL: readonly JobStatus["state"][] = ["succeeded", "failed", "cancelled"];

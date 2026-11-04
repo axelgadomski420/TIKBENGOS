@@ -1,3 +1,7 @@
+// Importy BEZ rozszerzenia `.js` — patrz komentarz w `identity.ts`.
+import type { ApiError } from "./api";
+import type { PerceptionMode } from "./identity";
+
 /**
  * Dostępność — BENGOS Access.
  *
@@ -7,10 +11,6 @@
  * wytrenowanego modelu PJM byłoby nieprawdą i ten typ tego pilnuje.
  */
 
-import type { ApiError } from "./api.js";
-import type { PerceptionMode } from "./identity.js";
-
-/** Preferencje percepcyjne użytkownika — wspólne dla całej aplikacji. */
 export interface AccessibilityPreferences {
   perception: PerceptionMode;
   captionsEnabled: boolean;

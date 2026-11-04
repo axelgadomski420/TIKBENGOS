@@ -1,3 +1,4 @@
+// Import BEZ rozszerzenia `.js` — patrz komentarz w `packages/core/src/identity.ts`.
 import {
   BASE_GEOMETRY,
   BASE_MOTION,
@@ -5,7 +6,7 @@ import {
   type DesignTokens,
   type Palette,
   type ThemeName,
-} from "./tokens.js";
+} from "./tokens";
 
 /**
  * Ciemny motyw jest domyślny — brief tak stanowi i tak zostaje.
