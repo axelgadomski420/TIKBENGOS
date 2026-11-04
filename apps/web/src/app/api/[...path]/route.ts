@@ -27,6 +27,24 @@ const ALLOWED_PREFIXES = [
  *
  * Lista dozwolonych prefiksów nie jest ozdobą: bez niej to proxy byłoby
  * otwartym przekierowaniem na dowolny adres podany w ścieżce.
+ *
+ * ── NAGŁÓWEK `Host` MUSI ZOSTAĆ ZACHOWANY ───────────────────────────────
+ * Poprzednia wersja robiła `headers.delete("host")`. Skutek: `fetch` do
+ * `http://api:8000` ustawiał własny nagłówek `Host: api:8000`, a Django
+ * porównuje go z `ALLOWED_HOSTS`. Na tej liście są tylko adres publiczny
+ * i nazwy `trycloudflare.com` — `api:8000` tam nie ma, więc Django zwracał
+ * `400 Bad Request` na KAŻDE wywołanie API z interfejsu: rejestrację,
+ * logowanie, zgody, klucze dostawców.
+ *
+ * Objaw był mylący, bo `api-client` zamienia każdy nieoczekiwany kształt
+ * odpowiedzi na jeden komunikat: „Nie można połączyć się z serwerem”.
+ * Wyglądało to na brak sieci, a było odrzuceniem przez `ALLOWED_HOSTS`.
+ *
+ * Teraz nagłówek `Host` jest PRZEPISYWANY na host, pod którym przyszło
+ * żądanie z przeglądarki. Django widzi więc `poetry-thumbs-fitness-did.
+ * trycloudflare.com` albo `92.5.154.243` — czyli wartość, która naprawdę
+ * jest na `ALLOWED_HOSTS`. To ten sam mechanizm, którego używa `header_up
+ * Host {$DOMAIN}` w `infra/Caddyfile` przy trasach API.
  */
 async function proxy(request: Request, segments: string[]): Promise<Response> {
   const base = process.env.API_INTERNAL_URL;
@@ -52,11 +70,29 @@ async function proxy(request: Request, segments: string[]): Promise<Response> {
   const target = `${base}/v1/${segments.join("/")}${url.search}`;
 
   const headers = new Headers(request.headers);
+
+  // ── Host: zachowujemy tożsamość przeglądarki ────────────────────────
+  // `request.headers.get("host")` to host, pod którym żądanie przyszło
+  // (np. nazwa `trycloudflare.com` albo adres IP). Wysyłamy go dalej, żeby
+  // Django mógł go porównać z `ALLOWED_HOSTS`.
+  //
+  // Jeżeli z jakiegoś powodu hosta nie ma w nagłówkach żądania, bierzemy go
+  // z adresu URL — to ten sam host, tylko zapisany inaczej. Bez tego
+  // `fetch` ustawiłby `api:8000` i wrócilibyśmy do `400`.
+  const publicHost = request.headers.get("host") ?? url.host;
+  headers.set("host", publicHost);
+
   // Nagłówki opisujące połączenie z proxy, a nie z API. Przekazane dalej
   // wprowadzają serwer w błąd co do prawdziwego pochodzenia żądania.
-  headers.delete("host");
+  // `host` NIE jest tu usuwany — patrz komentarz wyżej.
   headers.delete("connection");
   headers.delete("content-length");
+
+  // `X-Forwarded-*` mówią API, że żądanie przyszło przez proxy. Django
+  // z nich nie korzysta przy sprawdzaniu `ALLOWED_HOSTS`, ale są potrzebne,
+  // gdy zażądamy kiedyś poprawnego adresu zwrotnego albo wykrywania HTTPS.
+  headers.set("x-forwarded-proto", url.protocol.replace(":", ""));
+  headers.set("x-forwarded-host", publicHost);
 
   try {
     const upstream = await fetch(target, {
@@ -70,15 +106,15 @@ async function proxy(request: Request, segments: string[]): Promise<Response> {
       cache: "no-store",
     });
 
-    // Przepisz nagłówki jawnie, aby przenosić ciasteczka sesji niezawodnie
+    // Przepisz nagłówki jawnie, aby przenosić ciasteczka sesji niezawodnie.
+    //
+    // `Headers` gubi `Set-Cookie` przy zwykłym kopiowaniu — dlatego
+    // usuwamy i dodajemy pojedyncze ciasteczka osobno, przez `getSetCookie()`.
+    // Bez tego Django ustawiał `csrftoken` oraz `sessionid`, a przeglądarka
+    // nie dostawała żadnego z nich.
     const responseHeaders = new Headers(upstream.headers);
-    
-    // Usuń set-cookie z nagłówków
     responseHeaders.delete("set-cookie");
-    
-    // Dodaj ciasteczka z powrotem z upstream.headers.getSetCookie()
-    const setCookieValues = upstream.headers.getSetCookie();
-    for (const cookie of setCookieValues) {
+    for (const cookie of upstream.headers.getSetCookie()) {
       responseHeaders.append("set-cookie", cookie);
     }
 
