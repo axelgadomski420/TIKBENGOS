@@ -29,7 +29,7 @@
 # `/api/health` dochodziło więc do Django jako `/api/health`, nie pasowało
 # do żadnej trasy i wracało 404. Skrypt uznawał to za „aplikacja nie działa"
 # i zatrzymywał się PRZED podniesieniem tunelu — mimo że aplikacja działała.
-# Sprawdzamy teraz `/v1/health`, czyli ścieżkę, która naprawdę istnieje.
+# Sprawdzamy `/v1/health`, czyli ścieżkę, która naprawdę istnieje.
 #
 # Drugi błąd: `sed` scałający listy w `.env` nie escapował ukośników
 # w adresie `https://…`. Wzorzec kończył się na pierwszym `/` i `sed`
@@ -80,7 +80,11 @@ else
   warn "Aplikacja nie odpowiada pod http://127.0.0.1${HEALTH_PATH}."
   if curl -fsS --max-time 5 "http://127.0.0.1/" -o /dev/null 2>/dev/null; then
     note "Interfejs odpowiada, więc aplikacja żyje — nie odpowiada samo ${HEALTH_PATH}."
-    note "Sprawdź trasę `/api/*` i `/v1/*` w infra/Caddyfile oraz ALLOWED_HOSTS w .env."
+    # Nazwy tras są ujęte w apostrofy, żeby bash nie próbował rozwijać
+    # `*` jako wzorca plików. Bez tego skrypt wypisywał
+    # `line 83: /api/*: No such file or directory` — czyli komunikat
+    # diagnostyczny zamieniał się w błąd składni powłoki.
+    note 'Sprawdź trasy /api/* i /v1/* w infra/Caddyfile oraz ALLOWED_HOSTS w .env.'
     note "Podnoszę tunel dalej: to problem routingu, nie brak aplikacji."
   else
     note "Tunel przekazuje ruch do Caddy'ego, więc najpierw uruchom wdrożenie podstawowe:"
@@ -220,7 +224,7 @@ else
   note "Cloudflare potrzebuje chwili na propagację — odczekaj kilkanaście sekund i odśwież:"
   note "    $ADRES"
   note "Jeżeli w przeglądarce widać stronę, a tu nie ma ${HEALTH_PATH}, to znaczy tylko tyle, że"
-  note "trasa ${HEALTH_PATH} nie jest wystawiona w infra/Caddyfile. Interfejs działa."
+  note 'trasa /v1/* nie jest wystawiona w infra/Caddyfile. Interfejs działa.'
   note "Log tunelu: docker compose -f $TUNNEL_FILE logs --tail=30 cloudflared"
 fi
 
