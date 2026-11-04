@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { ApiError } from "@bengos/core";
 import { PROVIDERS, PROVIDER_KIND_LABELS, validateProviderKey, type ProviderKind } from "@bengos/core";
 
+import { Announcement } from "@/components/announcement";
 import { ApiRequestError, apiFetch } from "@/lib/api-client";
 import { useSession } from "@/lib/session-context";
 
@@ -25,6 +27,9 @@ import { useSession } from "@/lib/session-context";
  *    zalogowania endpoint zwraca 401 — i to jest poprawne zachowanie serwera,
  *    ale nie powód, żeby pokazywać użytkownikowi błąd. Pokazujemy stan
  *    „nie zalogowany” z odsyłaczem, a zapytania w ogóle nie wysyłamy.
+ *
+ * Lista zapisanych kluczy jest sortowana po dacie utworzenia, a nie po
+ * kolejności odpowiedzi serwera — kolejność z API nie jest kontraktem.
  */
 
 interface SavedCredential {
@@ -44,6 +49,10 @@ interface CreatedCredential extends SavedCredential {
 
 const KIND_ORDER: ProviderKind[] = ["llm", "image", "speech", "music", "code"];
 
+function byNewestFirst(a: SavedCredential, b: SavedCredential): number {
+  return b.createdAt.localeCompare(a.createdAt);
+}
+
 export function ProviderCredentials() {
   const { isAuthenticated } = useSession();
   const [saved, setSaved] = useState<SavedCredential[]>([]);
@@ -58,6 +67,7 @@ export function ProviderCredentials() {
   const [formError, setFormError] = useState<ApiError | null>(null);
   const [busy, setBusy] = useState(false);
   const [justCreated, setJustCreated] = useState<CreatedCredential | null>(null);
+  const [announcement, setAnnouncement] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -101,7 +111,17 @@ export function ProviderCredentials() {
     })).filter((group) => group.items.length > 0);
   }, [filter]);
 
-  const selected = PROVIDERS.find((item) => item.id === providerId) ?? null;
+  const visibleProviders = useMemo(() => grouped.flatMap((group) => group.items), [grouped]);
+
+  /**
+   * Filtr może ukryć dostawcę, którego identyfikator siedzi w stanie. Pole
+   * `<select>` z wartością spoza listy zachowuje się w przeglądarkach różnie,
+   * więc zamiast zgadywać, pokazujemy wtedy pozycję zastępczą i mówimy wprost,
+   * że lista jest pusta.
+   */
+  const selectedVisible = visibleProviders.some((item) => item.id === providerId);
+  const selected =
+    selectedVisible ? (PROVIDERS.find((item) => item.id === providerId) ?? null) : null;
   const selectedHasUrl = selected ? (providers[selected.id] ?? selected.baseUrl !== null) : false;
 
   async function submit(event: React.FormEvent) {
@@ -127,9 +147,12 @@ export function ProviderCredentials() {
 
       // Klucz pokazujemy raz. Zapisany do listy trafia bez wartości.
       setJustCreated(created);
-      setSaved((prev) => [created, ...prev]);
+      setSaved((prev) => [created, ...prev].sort(byNewestFirst));
       setName("");
       setKey("");
+      setAnnouncement(
+        `${created.name}: klucz zapisany. Wartość jest widoczna tylko teraz — skopiuj ją przed ukryciem.`,
+      );
     } catch (cause) {
       setFormError(
         cause instanceof ApiRequestError
@@ -145,6 +168,7 @@ export function ProviderCredentials() {
     try {
       await apiFetch<void>(`/api/settings/providers/credentials/${id}`, { method: "DELETE" });
       setSaved((prev) => prev.filter((item) => item.id !== id));
+      setAnnouncement("Klucz został usunięty z konta.");
     } catch (cause) {
       setLoadError(
         cause instanceof ApiRequestError
@@ -169,12 +193,12 @@ export function ProviderCredentials() {
           dostępności działają niezależnie od sesji.
         </p>
         <p className="mt-4">
-          <a
+          <Link
             href="/login"
             className="bengos-touch-target inline-flex rounded-[var(--bengos-radius-control)] bg-[var(--bengos-accent)] px-4 font-[var(--bengos-weight-medium)] text-[var(--bengos-text-on-accent)]"
           >
             Zaloguj się
-          </a>
+          </Link>
         </p>
       </section>
     );
@@ -182,11 +206,10 @@ export function ProviderCredentials() {
 
   return (
     <>
+      <Announcement message={announcement} />
+
       {justCreated ? (
-        <section
-          aria-labelledby="revealed-title"
-          className="bengos-surface-card bengos-glow-ring"
-        >
+        <section aria-labelledby="revealed-title" className="bengos-surface-card bengos-glow-ring">
           <h2 id="revealed-title" className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-medium)]">
             Skopiuj teraz — ten klucz pokazuje się ostatni raz
           </h2>
@@ -225,6 +248,9 @@ export function ProviderCredentials() {
             <label htmlFor="provider-filter" className="block font-[var(--bengos-weight-medium)]">
               Filtruj listę
             </label>
+            <p className="mt-1 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
+              Zawęża listę dostawców po nazwie, identyfikatorze albo rodzaju.
+            </p>
             <input
               id="provider-filter"
               type="text"
@@ -241,10 +267,11 @@ export function ProviderCredentials() {
             </label>
             <select
               id="provider-id"
-              value={providerId}
+              value={selectedVisible ? providerId : ""}
               onChange={(event) => setProviderId(event.target.value)}
               className="mt-1 min-h-[var(--bengos-touch-target-min)] w-full rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] bg-[var(--bengos-surface-sunken)] px-3"
             >
+              {selectedVisible ? null : <option value="">Wybierz dostawcę z listy</option>}
               {grouped.map((group) => (
                 <optgroup key={group.kind} label={PROVIDER_KIND_LABELS[group.kind]}>
                   {group.items.map((item) => (
@@ -256,6 +283,11 @@ export function ProviderCredentials() {
                 </optgroup>
               ))}
             </select>
+            <p className="mt-1 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
+              {visibleProviders.length === 0
+                ? "Żaden dostawca nie pasuje do filtra. Wyczyść filtr, żeby zobaczyć pełną listę."
+                : `Dostawców na liście: ${visibleProviders.length}.`}
+            </p>
           </div>
 
           {selected ? (
@@ -293,7 +325,12 @@ export function ProviderCredentials() {
               value={name}
               onChange={(event) => setName(event.target.value)}
               maxLength={64}
-              className="mt-1 min-h-[var(--bengos-touch-target-min)] w-full rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] bg-[var(--bengos-surface-sunken)] px-3"
+              aria-invalid={formError?.field === "name" ? true : undefined}
+              className={`mt-1 min-h-[var(--bengos-touch-target-min)] w-full rounded-[var(--bengos-radius-control)] border bg-[var(--bengos-surface-sunken)] px-3 ${
+                formError?.field === "name"
+                  ? "border-[var(--bengos-danger)]"
+                  : "border-[var(--bengos-border)]"
+              }`}
             />
           </div>
 
@@ -311,7 +348,11 @@ export function ProviderCredentials() {
               onChange={(event) => setKey(event.target.value)}
               autoComplete="off"
               aria-invalid={formError?.field === "key" ? true : undefined}
-              className="mt-1 min-h-[var(--bengos-touch-target-min)] w-full rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] bg-[var(--bengos-surface-sunken)] px-3"
+              className={`mt-1 min-h-[var(--bengos-touch-target-min)] w-full rounded-[var(--bengos-radius-control)] border bg-[var(--bengos-surface-sunken)] px-3 ${
+                formError?.field === "key"
+                  ? "border-[var(--bengos-danger)]"
+                  : "border-[var(--bengos-border)]"
+              }`}
             />
           </div>
 
@@ -355,7 +396,8 @@ export function ProviderCredentials() {
                 <div className="flex-1">
                   <p className="font-[var(--bengos-weight-medium)]">{credential.name}</p>
                   <p className="text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
-                    {PROVIDERS.find((item) => item.id === credential.providerId)?.name ?? credential.providerId}
+                    {PROVIDERS.find((item) => item.id === credential.providerId)?.name ??
+                      credential.providerId}
                     {" · "}
                     <span className="font-[var(--bengos-font-mono)]">
                       {credential.prefix}…{credential.lastFour}
