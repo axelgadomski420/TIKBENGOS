@@ -13,14 +13,18 @@ import { useSession } from "@/lib/session-context";
 /**
  * Lista wpisów feedu.
  *
+ * Nazwy pól pochodzą DOKŁADNIE z kontraktu `Post` w `packages/core/src/feed.ts`:
+ * treść to `body` (nie `text`), a liczniki siedzą w zagnieżdżonym `counters`
+ * (`counters.likes`, `counters.comments`). Wcześniejsza wersja używała nazw
+ * zmyślonych i build produkcyjny przerywał się na błędzie typu.
+ *
  * Trzy rzeczy, które ten komponent robi celowo:
  *
  * 1. Wczytuje po stronie klienta, bo lista zależy od sesji — bez tego pierwszy
  *    render serwerowy pokazywałby stan gościa, a potem przeskakiwał do stanu
  *    zalogowanego użytkownika.
  * 2. NIE pokazuje niczego, gdy serwer nie ma jeszcze feedu. Puste pole zamiast
- *    zmyślonych treści. Wpis pojawia się tylko wtedy, gdy naprawdę przyjechał
- *    z serwera — nie ma tu żadnej listy zastępczej z przykładami.
+ *    zmyślonych treści.
  * 3. Filtry powodu są opisem zamiarów, nie przyciskami. Rekomendacji jeszcze
  *    nie ma, więc przycisk zmieniający wyłącznie własną etykietę byłby atrapą.
  */
@@ -29,32 +33,43 @@ const FILTERS = ["wszystko", "obserwowani", "odkrywaj"] as const;
 
 type Filter = (typeof FILTERS)[number];
 
+/** Zapytanie do API. `wszystko` nie dokłada filtra — to brak zawężenia. */
+function pathFor(filter: Filter): string {
+  if (filter === "wszystko") return "/api/feed/posts";
+  if (filter === "obserwowani") return "/api/feed/posts?filter=following";
+  return "/api/feed/posts?filter=explore";
+}
+
 export function FeedList() {
   const { isAuthenticated } = useSession();
   const [filter, setFilter] = useState<Filter>("wszystko");
   const [announcement, setAnnouncement] = useState("");
   const [liked, setLiked] = useState<Record<string, boolean>>({});
 
-  const path = filter === "wszystko" ? "/api/feed/posts" : `/api/feed/posts?filter=${filter}`;
-  const list = useCursorList<Post>(path, true);
+  const list = useCursorList<Post>(pathFor(filter), true);
 
-  const toggleLike = useCallback(async (post: Post) => {
-    const next = !liked[post.id];
-    setLiked((prev) => ({ ...prev, [post.id]: next }));
-    try {
-      await apiFetch<void>(`/api/feed/posts/${post.id}/like`, {
-        method: next ? "POST" : "DELETE",
-      });
-      setAnnouncement(next ? "Polubiono wpis." : "Cofnięto polubienie.");
-    } catch (cause) {
-      setLiked((prev) => ({ ...prev, [post.id]: !next }));
-      const error: ApiError =
-        cause instanceof ApiRequestError
-          ? cause.error
-          : { code: "internal", message: "Nie udało się zapisać polubienia." };
-      setAnnouncement(error.message);
-    }
-  }, [liked]);
+  const toggleLike = useCallback(
+    async (post: Post) => {
+      const next = !liked[post.id];
+      setLiked((prev) => ({ ...prev, [post.id]: next }));
+      try {
+        await apiFetch<void>(`/api/feed/posts/${post.id}/like`, {
+          method: next ? "POST" : "DELETE",
+        });
+        setAnnouncement(next ? "Polubiono wpis." : "Cofnięto polubienie.");
+      } catch (cause) {
+        // Cichy powrót do poprzedniego stanu: optymistyczna zmiana, która się
+        // nie udała, musi zniknąć — inaczej licznik kłamie.
+        setLiked((prev) => ({ ...prev, [post.id]: !next }));
+        const error: ApiError =
+          cause instanceof ApiRequestError
+            ? cause.error
+            : { code: "internal", message: "Nie udało się zapisać polubienia." };
+        setAnnouncement(error.message);
+      }
+    },
+    [liked],
+  );
 
   // Reakcja na zmianę filtra jest akcją użytkownika, więc jest ogłaszana.
   useEffect(() => {
@@ -138,9 +153,14 @@ export function FeedList() {
                   {post.authorId}
                   {post.createdAt ? ` · ${post.createdAt}` : ""}
                 </p>
-                <p className="mt-2 whitespace-pre-line">{post.text}</p>
+                {post.body ? <p className="mt-2 whitespace-pre-line">{post.body}</p> : null}
+                {post.tags.length > 0 ? (
+                  <p className="mt-1 text-[var(--bengos-size-caption)] text-[var(--bengos-accent)]">
+                    {post.tags.map((tag) => `#${tag}`).join(" ")}
+                  </p>
+                ) : null}
                 <p className="mt-3 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
-                  Polubienia: {post.likeCount} · Komentarze: {post.commentCount}
+                  Polubienia: {post.counters.likes} · Komentarze: {post.counters.comments}
                 </p>
                 {isAuthenticated ? (
                   <button
