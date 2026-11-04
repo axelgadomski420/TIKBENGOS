@@ -14,7 +14,6 @@ Czego NIE robi: nie sprawdza, czy kod działa. To robi `scripts/dev.sh`
 """
 
 import json
-import re
 import sys
 from pathlib import Path
 
@@ -42,6 +41,10 @@ WYMAGANE = [
     ("services/api/tikbengos/asgi.py", True, "uvicorn ładuje ten moduł"),
     ("services/api/accounts/models.py", True, "modele tożsamości"),
     ("services/api/accounts/migrations/0001_initial.py", True, "bez migracji nie ma tabel"),
+    # Feed
+    ("services/api/feed/models.py", True, "modele wpisów i polubień"),
+    ("services/api/feed/migrations/0001_initial.py", True, "bez migracji nie ma tabeli wpisów"),
+    ("services/api/feed/management/commands/sprawdz.py", True, "CI i deploy.sh uruchamiają tę komendę"),
     # Czas rzeczywisty
     ("services/realtime/Dockerfile", True, "compose buduje obraz realtime z tego pliku"),
     # Infrastruktura
@@ -58,6 +61,7 @@ WYMAGANE = [
     ("scripts/dev.sh", False, "lokalny start bez Dockera"),
     ("scripts/sprawdz.py", False, "weryfikacja po wdrożeniu"),
     ("scripts/generate-icons.py", False, "generator ikon PWA"),
+    ("scripts/preflight.sh", False, "sprawdzenie gotowości instalacji"),
     # CI
     (".github/workflows/ci.yml", False, "testy na push"),
     (".github/workflows/deploy.yml", False, "wdrożenie z Actions"),
@@ -69,6 +73,7 @@ WYMAGANE = [
     ("docs/accessibility.md", False, "wymagania dostępności"),
     ("docs/licensing.md", False, "stan licencji"),
     ("docs/deploy-oracle.md", False, "instrukcja wdrożenia"),
+    ("docs/deployment.md", False, "lista kontrolna przed uruchomieniem"),
 ]
 
 # ── Ikony PWA są osobno: manifest je wymienia, a Dockerfile je kopiuje ─
@@ -79,9 +84,29 @@ IKONY = [
 ]
 
 
-def wczytaj_json(scierzka: Path):
+def bez_komentarzy(tresc: str) -> str:
+    """Usuwa komentarze z treści YAML.
+
+    To nie jest kosmetyka, a naprawa błędu, który zatrzymał pierwsze wdrożenie.
+    Plik `docker-compose.prod.yml` WYJAŚNIA w komentarzu, że domyślnki
+    `change-me` celowo nie ma — i ten komentarz sprawiał, że test szukający
+    słowa `change-me` znajdował je i blokował start. Zabezpieczenie działało;
+    psuł się tylko test, który miał je sprawdzać.
+
+    Sprawdzamy więc WYŁĄCZNIE linie konfiguracji. Wzorzec w komentarzu to
+    wyjaśnienie, nie wartość domyślna.
+    """
+    linie = []
+    for linia in tresc.splitlines():
+        if linia.lstrip().startswith("#"):
+            continue
+        linie.append(linia)
+    return "\n".join(linie)
+
+
+def wczytaj_json(sciezka: Path):
     try:
-        return json.loads(scierzka.read_text(encoding="utf-8"))
+        return json.loads(sciezka.read_text(encoding="utf-8"))
     except Exception:
         return None
 
@@ -147,15 +172,18 @@ def sprawdz_brak_domyslek(bledy: list, ostrzezenia: list) -> None:
 
     Domyślka na publicznej maszynie to baza otwarta dla każdego, kto zgadnie
     port. Wzorzec `${VAR:?komunikat}` przerywa start, gdy brak wartości.
+
+    Sprawdzamy tylko linie konfiguracji — patrz `bez_komentarzy`. Wzorzec
+    w komentarzu jest wyjaśnieniem i nie może blokować wdrożenia.
     """
     compose = ROOT / "infra/docker-compose.prod.yml"
     if not compose.exists():
         return
-    tresc = compose.read_text(encoding="utf-8")
+    tresc = bez_komentarzy(compose.read_text(encoding="utf-8"))
     for wzorzec in ["change-me", "POSTGRES_PASSWORD:-", "SECRET_KEY:-"]:
         if wzorzec in tresc:
             bledy.append(
-                f"infra/docker-compose.prod.yml zawiera domyślkę „{wzorzec}” — "
+                f"infra/docker-compose.prod.yml zawiera domyślnkę „{wzorzec}” — "
                 "brak zmiennej musi zatrzymywać start"
             )
 
