@@ -27,8 +27,7 @@ COPY . .
 # czyta sesję po stronie serwera — Next musi wiedzieć, dokąd sięgnąć.
 # Adres wskazuje usługę w sieci Dockera: w czasie budowania odpowiada na
 # niego nic, ale `readSession()` traktuje nieosiągalne API jako brak
-# tożsamości, więc build tego nie wywala. Wartość przestaje być potrzebna
-# zaraz po tym, jak serwer wystartuje — wtedy `web` dostaje ją z compose.
+# tożsamości, więc build tego nie wywala.
 ENV API_INTERNAL_URL=http://api:8000
 RUN npm run build -w apps/web
 
@@ -41,11 +40,25 @@ RUN npm run build -w apps/web
 # zewnętrzne i nie wkłada ich skompilowanych plików do wyniku `standalone`.
 # Serwer startował, po czym wywalał się na brakującym module.
 #
-# Bierzemy więc wynik ZWYKŁY wraz z `node_modules` i uruchamiamy `npm run start`
-# z workspace'u. Nadmiar kilkudziesięciu megabajtów jest tańszy niż obraz,
-# który wstaje i pada.
+# Bierzemy więc wynik ZWYKŁY wraz z `node_modules` i uruchamiamy `next start`.
 FROM node:20-alpine AS runner
-WORKDIR /app
+
+# ⚠ KATALOG ROBOCZY TO `apps/web`, NIE `/app` — i to jest cała poprawka.
+#
+# `next start` szuka katalogu `.next` WZGLĘDEM katalogu, z którego startuje.
+# Przy `WORKDIR /app` szukał `/app/.next`, a ten katalog leży
+# w `/app/apps/web/.next`. Skutek był cichy i trudny do rozpoznania:
+# serwer wstawał, wypisywał „Ready in 3s”, a na każde żądanie dokumentu
+# odpowiadał `200` z `content-length: 0`. Przeglądarka dostawała pusty
+# HTML i pokazywała białą stronę. Żadnego błędu w logu — bo dla Nexta
+# to nie był błąd, tylko pusty wynik.
+#
+# Ten sam objaw potwierdzał się przez tunel i bezpośrednio na porcie 80:
+#     < content-length: 0
+#     200 0
+# A `ls apps/web/.next/` pokazywał BUILD_ID i katalogi `server`, `static`
+# na miejscu. Wynik był gotowy — serwer go nie widział.
+WORKDIR /app/apps/web
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \
@@ -53,22 +66,27 @@ ENV NODE_ENV=production \
 
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 
-# `node_modules` z etapu zależności zawiera też pakiety workspace.
-COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
+# `node_modules` trafia do korzenia repo, bo tam leży drzewo workspace'ów.
+# Katalog roboczy jest niżej, ale Node szuka modułów w górę drzewa —
+# `/app/node_modules` jest widoczny z `/app/apps/web`.
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules /app/node_modules
 
-# Konfiguracja i źródła: `next start` czyta `package.json` oraz `next.config.ts`,
-# a `transpilePackages` wymaga plików `.ts` z `packages/` w czasie startu.
-COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web/package.json ./apps/web/package.json
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web/next.config.ts ./apps/web/next.config.ts
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next ./apps/web/.next
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web/public ./apps/web/public
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web/src ./apps/web/src
-COPY --from=builder --chown=nextjs:nodejs /app/packages/core ./packages/core
-COPY --from=builder --chown=nextjs:nodejs /app/packages/ui ./packages/ui
+# Konfiguracja workspace'ów: `next start` czyta `package.json` z katalogu
+# roboczego i z korzenia, a `transpilePackages` wymaga plików `.ts`
+# z `packages/` w czasie startu.
+COPY --from=builder --chown=nextjs:nodejs /app/package.json /app/package.json
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/package.json ./package.json
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/next.config.ts ./next.config.ts
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next ./.next
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/src ./src
+COPY --from=builder --chown=nextjs:nodejs /app/packages/core /app/packages/core
+COPY --from=builder --chown=nextjs:nodejs /app/packages/ui /app/packages/ui
 
 USER nextjs
 EXPOSE 3000
 
-# `npm run start` z workspace'u `@bengos/web` — bez zgadywania, gdzie leży plik.
-CMD ["npm", "run", "start", "--workspace", "@bengos/web"]
+# `next start` bezpośrednio, bez `npm run`, bo npm przeszedłby do katalogu
+# korzenia workspace'u i znowu zgubił `.next`. Start z katalogu, w którym
+# leży wynik, jest jedynym wariantem, który nie zależy od interpretacji npm.
+CMD ["npx", "next", "start"]
