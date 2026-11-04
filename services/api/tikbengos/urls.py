@@ -16,6 +16,7 @@ from ninja import NinjaAPI
 from accounts.api import router as accounts_router
 from accounts.keys_api import router as keys_router
 from accounts.providers_api import router as providers_router
+from feed.api import router as feed_router
 
 api = NinjaAPI(
     title="TIKBENGOS API",
@@ -88,6 +89,7 @@ api.add_router("/auth", accounts_router)
 api.add_router("/users", accounts_router)
 api.add_router("/settings", keys_router)
 api.add_router("/settings", providers_router)
+api.add_router("/feed", feed_router)
 
 urlpatterns = [
     path("v1/csrf", csrf_view, name="csrf_view"),
