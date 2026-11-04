@@ -5,42 +5,53 @@
 # harmonogram odnowienia — czyli jeszcze jedna rzecz, która potrafi przestać
 # działać po cichu.
 #
-# ── DLACZEGO ADRES IP JEST OSOBNYM PRZYPADKIEM ────────────────────────────
+# DLACZEGO ADRES IP JEST OSOBNYM PRZYPADKIEM
 # Caddy przyjmuje samą nazwę domeny (`example.com`) i wtedy SAM zamawia
 # certyfikat przez ACME. Przy adresie IP nie ma czego zamawiać — Let's Encrypt
 # NIE wydaje certyfikatów na adresy IP. Poprzednia wersja miała jedną regułę
-# `{$DOMAIN}`, więc przy `DOMAIN=92.5.154.243` Caddy próbował ACME, dostawał
-# odmowę i kończył pracę z kodem 1. Kontener `proxy` wpadał w pętlę restartów,
-# a strona nie odpowiadała — mimo że `web` i `api` działały poprawnie.
+# `{$DOMAIN}`, więc przy adresie Caddy próbował ACME, dostawał odmowę i kończył
+# pracę z kodem 1. Kontener `proxy` wpadał w pętlę restartów, a strona nie
+# odpowiadała — mimo że `web` i `api` działały poprawnie.
 #
-# Zostaje więc jedna reguła z portem 80 i jawnym nagłówkiem `Host`, bo Django
-# porównuje go z `ALLOWED_HOSTS`. Gdy pojawi się domena, zmień `DOMAIN` w `.env`
-# na jej nazwę i odkomentuj drugą regułę poniżej — wtedy Caddy sam wystawi TLS.
+# NAPRAWIONY BŁĄD SKŁADNI — `header_upgrade` NIE ISTNIEJE
+# Wcześniejsza wersja używała `header_upgrade Upgrade connection` i
+# `header_upgrade Connection "Upgrade"`. Taka dyrektywa nie istnieje w Caddy;
+# jest `header_up`. Caddy przerywał adaptację pliku komunikatem
+#     unrecognized subdirective header_upgrade
+# i kończył pracę PRZED wypisaniem czegokolwiek o błędzie — dlatego log
+# kończył się na „using config from file” i wyglądało to na cichy restart.
+# `validate --config` pokazało prawdziwy powód.
+#
+# Dla WebSocketów wystarcza samo `reverse_proxy` — Caddy sam rozpoznaje
+# nagłówki `Upgrade` i `Connection` i przekazuje je dalej. Dopisywanie ich
+# ręcznie jest zbędne, a zrobione błędnie psuje cały plik.
 
 http://{$DOMAIN} {
 	encode zstd gzip
 
-	# ── Interfejs ────────────────────────────────────────────────────────
+	# ── Interfejs ────────────────────────────────────────────────
 	# Ruch idzie tu domyślnie. Proxy w Next.js sam przekazuje dalej
 	# wszystko, co zaczyna się od `/api/`.
 	handle {
 		reverse_proxy web:3000 {
+			# Django porównuje `Host` z `ALLOWED_HOSTS`, a `web` widzi
+			# adres usługi w sieci Dockera — bez tego nagłówka żądanie
+			# dochodzi z hostem `web:3000` i dostaje 400.
 			header_up Host {$DOMAIN}
 		}
 	}
 
-	# ── Czas rzeczywisty ────────────────────────────────────────────────
-	# Osobna ścieżka, bo WebSocket wymaga nagłówków połączenia, których
-	# zwykły reverse_proxy nie dodaje sam.
+	# ── Czas rzeczywisty ────────────────────────────────────────
+	# Osobna ścieżka dla kanału WebSocket. Osobny blok, bo idzie do
+	# innej usługi (port 8001), ale bez żadnych dodatkowych dyrektyw:
+	# `reverse_proxy` obsługuje `Upgrade` sam.
 	handle /ws/* {
 		reverse_proxy realtime:8001 {
 			header_up Host {$DOMAIN}
-			header_upgrade Upgrade connection
-			header_upgrade Connection "Upgrade"
 		}
 	}
 
-	# ── Nagłówki bezpieczeństwa ────────────────────────────────────────
+	# ── Nagłówki bezpieczeństwa ──────────────────────────────────
 	# Bez `Strict-Transport-Security`: po HTTP ten nagłówek kazałby przeglądarce
 	# wymuszać HTTPS, którego tu nie ma — i zablokowałby dostęp do aplikacji.
 	header {
@@ -55,7 +66,7 @@ http://{$DOMAIN} {
 	}
 }
 
-# ── GDY BĘDZIE DOMENA ───────────────────────────────────────────────────
+# ── GDY BĘDZIE DOMENA ───────────────────────────────────────────
 # Zmień `DOMAIN` w `.env` na nazwę domeny i odkomentuj tę regułę, usuwając
 # poprzednią. Caddy zamówi certyfikat sam, a HSTS wróci.
 #
@@ -65,10 +76,7 @@ http://{$DOMAIN} {
 # 		reverse_proxy web:3000
 # 	}
 # 	handle /ws/* {
-# 		reverse_proxy realtime:8001 {
-# 			header_upgrade Upgrade connection
-# 			header_upgrade Connection "Upgrade"
-# 		}
+# 		reverse_proxy realtime:8001
 # 	}
 # 	header {
 # 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
