@@ -1,37 +1,45 @@
-# Caddy — dwa przypadki: adres IP i nazwa domeny.
+# Caddy — trzy przypadki obsługi: adres IP, nazwa domeny i tunel.
 #
 # Caddy wybrano nad nginxem z jednego powodu: sam zamawia i odnawia
 # certyfikat Let's Encrypt. W nginxie to osobny proces (certbot) i własny
 # harmonogram odnowienia — czyli jeszcze jedna rzecz, która potrafi przestać
 # działać po cichu.
 #
-# DLACZEGO ADRES IP JEST OSOBNYM PRZYPADKIEM
+# ── ADRES IP JEST OSOBNYM PRZYPADKIEM ───────────────────────────────────
 # Caddy przyjmuje samą nazwę domeny (`example.com`) i wtedy SAM zamawia
 # certyfikat przez ACME. Przy adresie IP nie ma czego zamawiać — Let's Encrypt
 # NIE wydaje certyfikatów na adresy IP. Poprzednia wersja miała jedną regułę
 # `{$DOMAIN}`, więc przy adresie Caddy próbował ACME, dostawał odmowę i kończył
-# pracę z kodem 1. Kontener `proxy` wpadał w pętlę restartów, a strona nie
-# odpowiadała — mimo że `web` i `api` działały poprawnie.
+# pracę z kodem 1. Kontener `proxy` wpadał w pętlę restartów.
 #
-# NAPRAWIONY BŁĄD SKŁADNI — `header_upgrade` NIE ISTNIEJE
-# Wcześniejsza wersja używała `header_upgrade Upgrade connection` i
-# `header_upgrade Connection "Upgrade"`. Taka dyrektywa nie istnieje w Caddy;
-# jest `header_up`. Caddy przerywał adaptację pliku komunikatem
-#     unrecognized subdirective header_upgrade
-# i kończył pracę PRZED wypisaniem czegokolwiek o błędzie — dlatego log
-# kończył się na „using config from file” i wyglądało to na cichy restart.
-# `validate --config` pokazało prawdziwy powód.
-#
+# ── `header_upgrade` NIE ISTNIEJE ───────────────────────────────────────
+# Wcześniejsza wersja używała `header_upgrade Upgrade connection`. Taka
+# dyrektywa nie istnieje w Caddy; jest `header_up`. Caddy przerywał adaptację
+# pliku komunikatem `unrecognized subdirective header_upgrade` i kończył pracę
+# PRZED wypisaniem czegokolwiek o błędzie — w logu widać było tylko
+# „using config from file”. `validate --config` pokazało prawdziwy powód.
 # Dla WebSocketów wystarcza samo `reverse_proxy` — Caddy sam rozpoznaje
-# nagłówki `Upgrade` i `Connection` i przekazuje je dalej. Dopisywanie ich
-# ręcznie jest zbędne, a zrobione błędnie psuje cały plik.
+# nagłówki `Upgrade` i `Connection`.
+#
+# ── TU BYŁ BŁĄD, KTÓRY ZOSTAWIŁ BIAŁĄ STRONĘ ─────────────────────────────
+# Blok `http://{$DOMAIN}` przyjmuje WYŁĄCZNIE żądania z hostem równym
+# `DOMAIN` z `.env` (u nas adres IP). Tunel Cloudflare i sprawdzenie
+# `curl http://127.0.0.1/` wysyłają WŁASNĄ nazwę hosta — Caddy nie znajduje
+# dla niej witryny i zwraca `200` z pustym ciałem.
+#
+# To dokładnie ten objaw, który kosztował nas kilka rund: `content-length: 0`
+# jednocześnie przez tunel i przez Caddy, przy `status 200 len 37623`, kiedy
+# to samo żądanie poszło wprost do kontenera `web`. Winowajcą był nagłówek
+# `Host`, nie aplikacja ani obraz.
+#
+# Blok `:80` bez nazwy witryny przyjmuje KAŻDY host — i to jest właściwy
+# punkt wejścia dla tunelu oraz dla sprawdzeń lokalnych. Nazwa hosta jest
+# przepisywana wyłącznie tam, gdzie wymaga tego Django (`web` i `realtime`).
 
-http://{$DOMAIN} {
+:80 {
 	encode zstd gzip
 
 	# ── Interfejs ────────────────────────────────────────────────
-	# Ruch idzie tu domyślnie. Proxy w Next.js sam przekazuje dalej
-	# wszystko, co zaczyna się od `/api/`.
 	handle {
 		reverse_proxy web:3000 {
 			# Django porównuje `Host` z `ALLOWED_HOSTS`, a `web` widzi
@@ -42,9 +50,6 @@ http://{$DOMAIN} {
 	}
 
 	# ── Czas rzeczywisty ────────────────────────────────────────
-	# Osobna ścieżka dla kanału WebSocket. Osobny blok, bo idzie do
-	# innej usługi (port 8001), ale bez żadnych dodatkowych dyrektyw:
-	# `reverse_proxy` obsługuje `Upgrade` sam.
 	handle /ws/* {
 		reverse_proxy realtime:8001 {
 			header_up Host {$DOMAIN}
@@ -54,6 +59,7 @@ http://{$DOMAIN} {
 	# ── Nagłówki bezpieczeństwa ──────────────────────────────────
 	# Bez `Strict-Transport-Security`: po HTTP ten nagłówek kazałby przeglądarce
 	# wymuszać HTTPS, którego tu nie ma — i zablokowałby dostęp do aplikacji.
+	# Tunel daje HTTPS po swojej stronie, więc HSTS nie jest tu potrzebny.
 	header {
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "strict-origin-when-cross-origin"
@@ -66,9 +72,10 @@ http://{$DOMAIN} {
 	}
 }
 
-# ── GDY BĘDZIE DOMENA ───────────────────────────────────────────
-# Zmień `DOMAIN` w `.env` na nazwę domeny i odkomentuj tę regułę, usuwając
-# poprzednią. Caddy zamówi certyfikat sam, a HSTS wróci.
+# ── GDY BĘDZIE DOMENA ───────────────────────────────────────────────────
+# Zamiana adresu IP na nazwę domeny w `.env` i odkomentowanie tej reguły
+# włącza TLS po stronie Caddy'ego. Tunel robi to samo, więc nie ma potrzeby
+# mieć obu naraz — wybierz jedno.
 #
 # {$DOMAIN} {
 # 	encode zstd gzip
