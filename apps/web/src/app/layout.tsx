@@ -4,6 +4,7 @@ import "@bengos/ui/styles.css";
 import "./globals.css";
 
 import { AppShell } from "@/components/app-shell";
+import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
 import { PreferencesProvider } from "@/providers/preferences-provider";
 import { SessionProvider } from "@/providers/session-provider";
 import { readSession } from "@/lib/session-reader";
@@ -11,9 +12,9 @@ import { readSession } from "@/lib/session-reader";
 /**
  * Powłoka aplikacji.
  *
- * Ten plik montuje trzy rzeczy, bez których reszta interfejsu nie ma nośnika:
- * style (arkusz design systemu i Tailwind), preferencje użytkownika i powłokę
- * z nawigacją.
+ * Ten plik montuje cztery rzeczy, bez których reszta interfejsu nie ma nośnika:
+ * style (arkusz design systemu i Tailwind), preferencje użytkownika, powłokę
+ * z nawigacją i rejestrację service workera.
  *
  * Kolejność importów nie jest dowolna. `@bengos/ui/styles.css` definiuje
  * `:root` łącznie z `color-scheme: dark` i odwołuje się do zmiennych, które
@@ -57,17 +58,21 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const identity = await readSession();
 
   return (
-    // `lang="pl"` jest tu na sztywno, bo to język interfejsu domyślny.
-    // Wybór języka i format regionalny to osobne ustawienia użytkownika —
-    // te trafiają do `PreferencesProvider` i nie zmieniają tego atrybutu,
-    // który opisuje język dokumentu, a nie preferencję.
-    <html lang="pl" dir="ltr" suppressHydrationWarning>
+    <html lang="pl" suppressHydrationWarning>
+      {/*
+        `suppressHydrationWarning` jest na `html` z jednego powodu i tylko z tego:
+        motyw ustawia przeglądarka (zapis użytkownika albo ustawienie systemu),
+        a serwer o nim nie wie. Bez tego React zgłaszałby rozjazd hydracji przy
+        każdym wejściu — a to nie jest błąd, tylko różnica, której serwer nie
+        może rozstrzygnąć. Wnętrze drzewa zostaje bez tego wyjątku.
+      */}
       <body className="min-h-dvh bg-[var(--bengos-surface)] text-[var(--bengos-text)] antialiased">
         <PreferencesProvider>
           <SessionProvider initialIdentity={identity}>
             <AppShell>{children}</AppShell>
           </SessionProvider>
         </PreferencesProvider>
+        <ServiceWorkerRegistration />
       </body>
     </html>
   );
