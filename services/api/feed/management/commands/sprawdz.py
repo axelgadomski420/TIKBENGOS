@@ -2,20 +2,30 @@
 
 CI uruchamia właśnie tę komendę. Bez niej zadanie „Test dymny aplikacji”
 kończyłoby się na komendzie, której Django nie zna, a błąd wyglądałby jak
-awaria CI, nie jak brakujący plik.
+awaria maszyny, nie jak brakujący plik.
 
 Komenda używa klienta testowego Django, więc nie wymaga działającego serwera
-i nie dotyka sieci. Sprawdza cztery rzeczy, które muszą działać po każdym
-wdrożeniu: zdrowie, wydanie tokenu CSRF, rejestrację oraz odczyt i zapis
-wpisu feedu.
+i nie dotyka sieci.
+
+POPRAWKA: klient testowy domyślnie uderza pod host `testserver`, którego nie ma
+w `ALLOWED_HOSTS` wdrożenia produkcyjnego — Django odpowiadał 400 i wyglądało
+to na awarię API, choć API działało. Ustawiamy nagłówek `Host` na pierwszy wpis
+z `ALLOWED_HOSTS`, żeby test sprawdzał aplikację, a nie konfigurację hosta.
 
 Czego NIE sprawdza: kanału WebSocket (wymaga klienta ASGI, nie zrobi tego
 klient HTTP) i wyglądu interfejsu.
 """
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 
 from accounts.models import User
+
+
+def allowed_host() -> str:
+    """Pierwszy host z `ALLOWED_HOSTS` albo `testserver` w środowisku lokalnym."""
+    hosts = [h for h in settings.ALLOWED_HOSTS if h and h != "*"]
+    return hosts[0] if hosts else "testserver"
 
 
 class Command(BaseCommand):
@@ -24,8 +34,11 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         from django.test import Client
 
-        client = Client()
+        host = allowed_host()
+        client = Client(headers={"host": host})
         bledy = []
+
+        self.stdout.write(f"Host testu: {host}")
 
         odpowiedz = client.get("/v1/health")
         if odpowiedz.status_code != 200 or odpowiedz.json().get("status") != "ok":
