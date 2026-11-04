@@ -34,45 +34,46 @@
 # przychodził z własną nazwą, Caddy ją podmieniał, Next dostawał żądanie
 # z hostem, którego nie znał, i zwracał pusty dokument. Biała strona.
 #
-# `header_up Host` zostaje WYŁĄCZNIE tam, gdzie wymaga go Django
-# (`ALLOWED_HOSTS`): przy `/api/*`. Interfejs musi dostać hosta prawdziwego.
+# `header_up Host` zostaje WYŁĄCZNIE przy `/ws/*`, gdzie wymaga go usługa
+# czasu rzeczywistego. Interfejs musi dostać hosta prawdziwego.
 #
-# ── `/v1/*` JEST OSOBNĄ TRASĄ, NIE OZDOBĄ ───────────────────────────────
-# API wystawia ścieżki pod `/v1` — `services/api/tikbengos/urls.py`. Blok
-# `/api/*` ich nie łapie: Caddy nie zmienia ścieżki, więc `/v1/health`
-# szedł do interfejsu i wracał 404. Widać to było w `caddy adapt`:
-# trasy `/v1` nie było w ogóle.
+# ── `/api/*` IDZIE DO INTERFEJSU, NIE DO API ────────────────────────────
+# To był ostatni i najkosztowniejszy błąd. Wcześniejsza wersja miała
+# `handle /api/*` → `api:8000`, co wyglądało na poprawne, a psuło całą
+# aplikację: `/api/*` to NIE jest adres Django. To adres własnego proxy
+# w `apps/web` (`src/app/api/[...path]/route.ts`), które dopiero mapuje
+# `/api/auth/register` na `/v1/auth/register`. Caddy przekazuje ścieżkę
+# BEZ zmiany, więc `/api/auth/register` docierało do Django dosłownie
+# i wracało `404` — Django zna `/v1/auth/register`, nie `/api/auth/register`.
 #
-# Sam interfejs z tego nie korzysta — `apps/web` woła API przez własne
-# proxy (`API_INTERNAL_URL: http://api:8000`), więc działał. Bez tej trasy
-# nie działa jednak nic, co chce sięgnąć do API wprost z zewnątrz, łącznie
-# ze sprawdzeniem stanu w `scripts/tunel.sh`.
+# Dowód z logu dostępu Caddy'ego, dwie linie obok siebie:
+#     "uri": "/login",          "status": 200
+#     "uri": "/api/csrf",       "status": 404, "Server": ["gunicorn"]
+#     "uri": "/api/auth/register","status": 404, "Server": ["gunicorn"]
+# `Server: gunicorn` znaczy, że żądanie DOTARŁO do Django — a mimo to
+# wracało 404, bo Django takiej trasy nie ma. Kody 403 i 400, których
+# szukaliśmy, nie występowały wcale.
 #
-# `/v1/*` idzie do API BEZ zmiany ścieżki — Django zna `/v1/health`
-# i porównuje `Host` z `ALLOWED_HOSTS`, dlatego host jest tu przepisywany
-# tak samo jak przy `/api/*`.
+# Skutek był tym mylący, że rejestracja w interfejsie zgłaszała
+# „Nie można połączyć się z serwerem” — `api-client` zamienia każdy
+# nieoczekiwany kształt odpowiedzi na ten jeden komunikat.
+#
+# ── `/v1/*` ZOSTAJE PRZY API ────────────────────────────────────────────
+# Ścieżki `/v1` to prawdziwe adresy Django, używane między innymi przez
+# `scripts/tunel.sh` do sprawdzenia stanu. Interfejs z nich nie korzysta
+# (woła własne `/api/*`), ale trasa jest potrzebna, żeby dało się sprawdzić
+# API z zewnątrz.
 
 :80 {
 	encode zstd gzip
 
-	# ── API — prefiks `/api` ─────────────────────────────────────
-	# Django sprawdza nagłówek `Host` wobec `ALLOWED_HOSTS`. Żądanie
-	# dochodzi do `api` z hostem `api:8000`, który nie jest na tej liście,
-	# więc bez przepisania hosta każde wywołanie wracałoby z 400.
-	#
-	# Ścieżka NIE jest zmieniana: `/api/*` obsługuje ten sam router co
-	# `/v1/*` tylko dlatego, że oba trafiają do Django — różnią się tym,
-	# co Django pod danym prefiksem wystawia. `/api/health` nie istnieje
-	# w `urls.py`, więc zwraca 404 i to jest poprawne.
-	handle /api/* {
-		reverse_proxy api:8000 {
-			header_up Host {$DOMAIN}
-		}
-	}
-
 	# ── API — prefiks `/v1` ──────────────────────────────────────
-	# Właściwe ścieżki API. Bez tego bloku `/v1/health` trafia do `web`
-	# i wraca 404, co wygląda jak awaria API, a jest brakiem trasy.
+	# Prawdziwe ścieżki Django. Bez tego bloku `/v1/health` trafiało
+	# do `web` i wracało 404, co wygląda jak awaria API, a jest brakiem trasy.
+	#
+	# Django porównuje nagłówek `Host` z `ALLOWED_HOSTS`, a w sieci Dockera
+	# żądanie dochodzi z hostem `api:8000`, którego tam nie ma — stąd
+	# przepisanie hosta na `DOMAIN` z `.env`.
 	handle /v1/* {
 		reverse_proxy api:8000 {
 			header_up Host {$DOMAIN}
@@ -86,7 +87,12 @@
 		}
 	}
 
-	# ── Interfejs ────────────────────────────────────────────────
+	# ── Interfejs — razem z `/api/*` ─────────────────────────────
+	# `/api/*` jest tu CELOWO. To proxy w `apps/web`, które mapuje
+	# `/api/<domena>/<ścieżka>` na `/v1/<domena>/<ścieżka>`. Przekierowanie
+	# tego prefiksu do `api:8000` omijało proxy i pozbawiało aplikację
+	# rejestracji, logowania, zgód i kluczy dostawców.
+	#
 	# Bez `header_up Host`. Next zwraca pusty dokument, kiedy dostaje
 	# żądanie z podmienionym hostem — i nie zapisuje żadnego błędu.
 	handle {
@@ -116,9 +122,6 @@
 #
 # {$DOMAIN} {
 # 	encode zstd gzip
-# 	handle /api/* {
-# 		reverse_proxy api:8000
-# 	}
 # 	handle /v1/* {
 # 		reverse_proxy api:8000
 # 	}
