@@ -3,13 +3,24 @@ import Link from "next/link";
 /**
  * Rozwidlenia z BENGOS Home.
  *
- * Siedem modułów w jednej liście, każdy z jednym zdaniem o tym, co tam jest.
+ * Siedem modułów w jednej siatce, każdy z jednym zdaniem o tym, co tam jest.
  * Użytkownik nie widzi granic między dawnymi aplikacjami — widzi siedem
  * drzwi w jednym korytarzu.
  *
  * Każde rozwidlenie mówi też, na jakim etapie jest moduł. Bez tego użytkownik
  * wchodzi i dopiero tam dowiaduje się, że nic nie działa — a ma wiedzieć
  * przed wejściem, nie po.
+ *
+ * ── NAJPIERW SIATKA, POTEM KOLUMNY ────────────────────────────────────
+ * Siedem pozycji to liczba pierwsza, więc każdy układ kolumnowy zostawi
+ * jedną pozycję samą w ostatnim wierszu. Nie da się tego naprawić doborem
+ * siatki — zamiast tego ostatnia pozycja zajmuje obie kolumny, a rząd
+ * zostaje domknięty. Pusty róg czyta się jak błąd, pełny wiersz jak decyzja.
+ *
+ * ── ETAP ZAMIENIONY W ZNACZNIK, NIE W ZDANIE ──────────────────────────
+ * „Etap 2” jako osobna linia tekstu wyglądało jak część opisu. Teraz jest
+ * znakiem na krawędzi kafla: widać go kątem oka przy skanowaniu siatki
+ * i od razu wiadomo, które drzwi są zamknięte, a które nie.
  */
 const BRANCHES = [
   { href: "/feed", label: "BENGOS Feed", description: "Krótkie wideo, dźwięki, posty, twórcy.", stage: 2 },
@@ -36,20 +47,27 @@ export function ModuleBranches() {
       </p>
       <ul className="mt-4 grid gap-3 sm:grid-cols-2">
         {BRANCHES.map((branch) => (
-          <li key={branch.href}>
-            <Link
-              href={branch.href}
-              className="bengos-surface-card flex min-h-[var(--bengos-touch-target-min)] flex-col justify-center transition-colors duration-[var(--bengos-motion-fast)] hover:border-[var(--bengos-border-strong)]"
-            >
-              <span className="font-[var(--bengos-weight-medium)]">{branch.label}</span>
+          <li
+            key={branch.href}
+            /*
+              Ostatnia pozycja na szerokim ekranie bierze obie kolumny.
+              Siedem to liczba nieparzysta, więc bez tego zostawałaby
+              dziura w siatce.
+            */
+            className={branch.stage === null ? "sm:col-span-2" : undefined}
+          >
+            <Link href={branch.href} className="bengos-tile h-full">
+              <span className="flex items-center gap-2">
+                <span className="font-[var(--bengos-weight-medium)]">{branch.label}</span>
+                {branch.stage ? (
+                  <span className="bengos-eyebrow ml-auto shrink-0 text-[var(--bengos-accent)]">
+                    Etap {branch.stage}
+                  </span>
+                ) : null}
+              </span>
               <span className="text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
                 {branch.description}
               </span>
-              {branch.stage ? (
-                <span className="mt-1 text-[var(--bengos-size-caption)] text-[var(--bengos-accent)]">
-                  Etap {branch.stage}
-                </span>
-              ) : null}
             </Link>
           </li>
         ))}
