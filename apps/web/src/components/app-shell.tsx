@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 
 import { can, type Permission } from "@bengos/core";
@@ -29,6 +30,28 @@ const BRANCHES: { href: string; label: string; description: string; permission?:
   { href: "/profile", label: "Profile", description: "Tożsamość, twórczość, ustawienia" },
 ];
 
+/**
+ * Nagłówek powłoki.
+ *
+ * ── NAZWA: `BENGOS`, NIE `TIKBENGOS` ────────────────────────────────────
+ * Interfejs mówi „BENGOS” — tak nazywają się moduły (`BENGOS Home`,
+ * `BENGOS Studio`), tak nazywa się marka na logo i tak ma mówić nagłówek.
+ * `TIKBENGOS` zostaje wyłącznie jako nazwa repozytorium i pakietów w kodzie;
+ * użytkownik nie ma powodu jej oglądać.
+ *
+ * ── LOGO ZAMIAST TEKSTU ─────────────────────────────────────────────────
+ * Znak (`/brand/bengos-logo.jpg`) ma napis „BENGOS” wpisany w grafikę,
+ * więc obok niego NIE MA drugiego napisu tekstem — powielenie tego samego
+ * słowa dwa razy w jednym pasku to szum, nie hierarchia.
+ *
+ * Tekst alternatywny jest jednak konieczny: bez niego odnośnik do pulpitu
+ * jest dla czytnika ekranu pustym linkiem, a to wyklucza nawigację
+ * klawiaturą i czytnikiem — czyli dokładnie to, po co istnieje `SkipLink`.
+ *
+ * Obraz jest dekoracją w tym sensie, że niesie znak, a nie treść — dlatego
+ * `alt=""` (żeby czytnik nie czytał „BENGOS” dwa razy), a nazwę podaje
+ * `aria-label` na odnośniku, razem z celem przejścia.
+ */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { theme, accessibility } = usePreferences();
   const { identity } = useSession();
@@ -52,12 +75,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <SkipLink />
 
       <header className="sticky top-0 z-40 border-b border-[var(--bengos-border)] bg-[var(--bengos-surface)]/95 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
+        <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-2">
           <Link
             href="/"
-            className="bengos-touch-target px-1 text-[var(--bengos-size-title)] font-[var(--bengos-weight-semibold)]"
+            aria-label="BENGOS — przejdź do pulpitu"
+            className="bengos-touch-target flex items-center gap-2 rounded-[var(--bengos-radius-control)] px-1"
           >
-            TIKBENGOS
+            {/*
+              `priority` jest tu celowe: znak stoi nad zgięciem strony, więc
+              leniwe ładowanie pokazałoby go po chwili jako przeskok układu.
+              Rozmiar podany jawnie, bo obraz bez wymiarów rezerwuje zero
+              miejsca i wypycha nawigację w momencie wczytania.
+            */}
+            <Image
+              src="/brand/bengos-logo.jpg"
+              alt=""
+              width={40}
+              height={40}
+              priority
+              className="size-10 rounded-[var(--bengos-radius-control)] object-cover"
+            />
+            <span className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-semibold)]">
+              BENGOS
+            </span>
           </Link>
 
           <nav aria-label="Moduły" className="ml-auto hidden gap-1 md:flex">
