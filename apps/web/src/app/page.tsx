@@ -19,12 +19,15 @@ export const metadata: Metadata = { title: "BENGOS Home" };
  * zrealizować. Dlatego wyszukiwarka jest na samej górze, wejścia do tworzenia
  * są widoczne bez przewijania, a feed jest jedną kartą wśród pięciu.
  *
- * ── NAGŁÓWEK EKRANU ────────────────────────────────────────────────────
- * Ekran miał wcześniej samą wyszukiwarkę, bez tytułu widocznego dla oka.
- * Powłoka pokazuje znak w pasku u góry, ale nagłówek pierwszego stopnia
- * należy do TREŚCI, nie do powłoki — a bez niego czytnik ekranu wchodzi
- * w pulpit bez informacji, gdzie jest, i nie da się po nim skakać klawiszem
- * `h`. Dodajemy więc `h1`, wizualnie dyskretny, ale prawdziwy.
+ * ── RYTM WEJŚCIA ───────────────────────────────────────────────────────
+ * Elementy wchodzą jeden po drugim, w kolejności czytania. Kolejność jest
+ * tu nośnikiem informacji, nie ozdobą: najpierw pytanie („co chcesz
+ * zrobić?”), potem kim jesteś, potem co możesz zrobić, i dopiero na końcu
+ * gdzie wejść. Opóźnienia są krótkie i kończą się na piątej pozycji — dalej
+ * przestałyby być rytmem, a zaczęłyby być zwłoką.
+ *
+ * Przy `prefers-reduced-motion` token czasu schodzi do 1 ms, więc rytm
+ * zostaje zachowany jako funkcja i przestaje być widoczny dla oka.
  */
 export default function HomePage() {
   return (
@@ -37,17 +40,27 @@ export default function HomePage() {
       */}
       <h1 className="bengos-visually-hidden">BENGOS Home — pulpit</h1>
 
-      <UniversalSearch />
-      <IdentityBar />
+      <div className="bengos-rise bengos-rise-1">
+        <UniversalSearch />
+      </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="bengos-rise bengos-rise-2">
+        <IdentityBar />
+      </div>
+
+      <div className="bengos-rise bengos-rise-3 grid gap-4 md:grid-cols-2">
         <CreateNowCard />
         <ContinueCard />
       </div>
 
-      <ForYouCard />
-      <AccessibilityCard />
-      <ModuleBranches />
+      <div className="bengos-rise bengos-rise-4 space-y-6">
+        <ForYouCard />
+        <AccessibilityCard />
+      </div>
+
+      <div className="bengos-rise bengos-rise-5">
+        <ModuleBranches />
+      </div>
     </div>
   );
 }
