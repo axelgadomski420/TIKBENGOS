@@ -9,13 +9,83 @@ import { usePathname } from "next/navigation";
  * Pięć, nie siedem. Rozwidlenia z BENGOS Home to siedem modułów, ale
  * nawigacja dolna pokazuje pięć miejsc, w których użytkownik bywa stale —
  * Studio, Dev i Access są celami, do których się wchodzi z pulpitu.
+ *
+ * ── IKONY, NIE SAME NAPISY ─────────────────────────────────────────────
+ * Wcześniej były tu same napisy. Na telefonie to za mało: pasek nawigacji
+ * jest czytany w ruchu, kątem oka, a sam wyraz trzeba przeczytać, żeby go
+ * rozpoznać. Kształt rozpoznaje się szybciej niż literę — dlatego każdy cel
+ * ma teraz znak nad napisem.
+ *
+ * Ikony są napisane jako `path` w tym samym pliku, a nie pobierane z paczki:
+ * pięć znaków to mniej kodu niż zależność, a zależność na ikony ciągnie
+ * za sobą cały zestaw, z którego używalibyśmy pięciu. Każda jest rysowana
+ * `currentColor`, więc dziedziczy kolor stanu aktywnego i motyw — nie ma
+ * tu ani jednej wartości koloru.
+ *
+ * `stroke-width` 1.75 jest dobrane pod `size-6`: przy 2 linie zaczynają się
+ * zlewać na małych ekranach, przy 1.5 znak blednie przy jasnym świetle.
  */
-const DESTINATIONS = [
-  { href: "/", label: "Home", hint: "Pulpit" },
-  { href: "/feed", label: "Feed", hint: "Wideo i posty" },
-  { href: "/create", label: "Create", hint: "Asystent i tworzenie" },
-  { href: "/chat", label: "Chat", hint: "Rozmowy" },
-  { href: "/profile", label: "Profile", hint: "Twoja tożsamość" },
+type IconProps = { className?: string };
+
+const ICON_PROPS = {
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.75,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+  "aria-hidden": true,
+};
+
+function IconHome({ className }: IconProps) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <path d="M4 10.5 12 4l8 6.5" />
+      <path d="M6 9.5V20h12V9.5" />
+    </svg>
+  );
+}
+
+function IconFeed({ className }: IconProps) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <rect x="4" y="5" width="16" height="14" rx="3" />
+      <path d="m10.5 9.5 5 2.5-5 2.5z" />
+    </svg>
+  );
+}
+
+function IconCreate({ className }: IconProps) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <path d="M12 4v16M4 12h16" />
+    </svg>
+  );
+}
+
+function IconChat({ className }: IconProps) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <path d="M20 12a7 7 0 0 1-7 7H8l-4 3v-5.5A7 7 0 0 1 11 5h2a7 7 0 0 1 7 7Z" />
+    </svg>
+  );
+}
+
+function IconProfile({ className }: IconProps) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <circle cx="12" cy="9" r="3.25" />
+      <path d="M5.5 20a6.5 6.5 0 0 1 13 0" />
+    </svg>
+  );
+}
+
+const DESTINATIONS: { href: string; label: string; hint: string; Icon: (p: IconProps) => React.JSX.Element }[] = [
+  { href: "/", label: "Home", hint: "Pulpit", Icon: IconHome },
+  { href: "/feed", label: "Feed", hint: "Wideo i posty", Icon: IconFeed },
+  { href: "/create", label: "Create", hint: "Asystent i tworzenie", Icon: IconCreate },
+  { href: "/chat", label: "Chat", hint: "Rozmowy", Icon: IconChat },
+  { href: "/profile", label: "Profile", hint: "Twoja tożsamość", Icon: IconProfile },
 ];
 
 export function BottomNavigation() {
@@ -26,7 +96,7 @@ export function BottomNavigation() {
       aria-label="Nawigacja główna"
       className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--bengos-border)] bg-[var(--bengos-surface-raised)] pb-[env(safe-area-inset-bottom)] md:hidden"
     >
-      <ul className="mx-auto flex max-w-2xl items-stretch justify-between">
+      <ul className="mx-auto flex max-w-2xl items-stretch">
         {DESTINATIONS.map((destination) => {
           const active =
             destination.href === "/"
@@ -37,12 +107,18 @@ export function BottomNavigation() {
               <Link
                 href={destination.href}
                 aria-current={active ? "page" : undefined}
-                className={`bengos-touch-target flex-col gap-0.5 text-[var(--bengos-size-caption)] transition-colors duration-[var(--bengos-motion-fast)] ${
+                className={`bengos-touch-target w-full flex-col gap-0.5 !min-w-0 text-[var(--bengos-size-caption)] transition-colors duration-[var(--bengos-motion-fast)] ${
                   active
-                    ? "text-[var(--bengos-accent)] font-[var(--bengos-weight-medium)]"
+                    ? "font-[var(--bengos-weight-medium)] text-[var(--bengos-accent)]"
                     : "text-[var(--bengos-text-muted)]"
                 }`}
               >
+                <destination.Icon className="size-6" />
+                {/*
+                  Napis jest widoczny, ale jego treść powtarza `hint` dla
+                  czytnika — dlatego sam napis jest ukryty przed czytnikiem,
+                  a `hint` mówi pełnym zdaniem, dokąd prowadzi odnośnik.
+                */}
                 <span aria-hidden="true">{destination.label}</span>
                 <span className="bengos-visually-hidden">{destination.hint}</span>
               </Link>
