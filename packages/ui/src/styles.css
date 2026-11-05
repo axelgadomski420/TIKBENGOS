@@ -4,6 +4,15 @@
  * Wszystkie wartości pochodzą ze zmiennych, które wypisuje `tokensToCssVariables`.
  * Ten plik nie zawiera ani jednego koloru ani czasu trwania animacji — jeżeli
  * pojawi się tu wartość, to znaczy, że ominięto design system.
+ *
+ * ── WARSTWA MATERIAŁU ─────────────────────────────────────────────────
+ * Karta, arkusz i pasek to ten sam materiał w różnym podniesieniu. Hierarchię
+ * buduje światło, nie kolor: im wyżej leży powierzchnia, tym mocniejsza krawędź
+ * i wyraźniejszy cień. Dzięki temu ekran ma głębokość bez ani jednego nowego
+ * koloru — tokeny zostają nietknięte, a test kontrastu nie ma czego odrzucić.
+ *
+ * Cień jest subtelny celowo. Mocny cień na ciemnym tle wygląda jak rozmazany
+ * prostokąt i psuje czytelność tekstu, który na nim leży.
  */
 
 :root {
@@ -15,6 +24,12 @@
   background: var(--bengos-surface);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /*
+   * `text-wrap: pretty` usuwa sieroty — pojedyncze słowa, które spadają
+   * na ostatnią linię akapitu i zostają tam same. Na ekranie złożonym
+   * z krótkich opisów robi większą różnicę niż się wydaje.
+   */
+  text-wrap: pretty;
 }
 
 /* Motyw jasny. Ciemny jest domyślny, więc nie potrzebuje własnego selektora. */
@@ -82,6 +97,9 @@ button {
  * Fokus. Nigdy `outline: none` bez zamiennika — to najczęstszy sposób na
  * zniszczenie obsługi klawiatury. Pierścień rysujemy z offsetem, żeby był
  * widoczny także na elementach z obramowaniem i na ciemnym tle.
+ *
+ * `outline`, a nie `box-shadow`: nie wpływa na układ, więc element nie
+ * przesuwa się w chwili złapania fokusu i sąsiad nie ucieka.
  */
 :focus-visible {
   outline: 2px solid var(--bengos-focus-ring);
@@ -117,10 +135,58 @@ button {
 /*
  * Powierzchnia karty. Jedna klasa na jednej podstawie — karta, panel, arkusz
  * to ten sam materiał, różni je tylko podniesienie.
+ *
+ * Cień składa się z dwóch warstw: cienkiej stykowej, która rysuje krawędź,
+ * i szerokiej rozproszonej, która daje głębokość. Jedna warstwa daje albo
+ * brudną krawędź, albo mleczną chmurę — dopiero dwie czytają się jak materiał.
  */
 .bengos-surface-card {
   background: var(--bengos-surface-raised);
   border: 1px solid var(--bengos-border);
+  border-radius: var(--bengos-radius-card);
+  padding: var(--bengos-space-card);
+  box-shadow:
+    0 1px 2px -1px rgb(0 0 0 / 0.3),
+    0 8px 24px -18px rgb(0 0 0 / 0.55);
+  transition:
+    border-color var(--bengos-motion-fast) var(--bengos-ease-out),
+    box-shadow var(--bengos-motion-fast) var(--bengos-ease-out),
+    transform var(--bengos-motion-fast) var(--bengos-ease-out);
+}
+
+/*
+ * Karta, która jest odnośnikiem, reaguje na najechanie i na naciśnięcie.
+ * Podniesienie o 1 px jest mniejsze niż próg, od którego ruch zaczyna
+ * rozpraszać — jest wyczuwalne, nie jest efekciarskie.
+ */
+a.bengos-surface-card:hover,
+.bengos-surface-card--interactive:hover {
+  border-color: var(--bengos-border-strong);
+  box-shadow:
+    0 2px 4px -2px rgb(0 0 0 / 0.34),
+    0 16px 32px -22px rgb(0 0 0 / 0.65);
+}
+
+a.bengos-surface-card:active,
+.bengos-surface-card--interactive:active {
+  transform: translateY(1px);
+}
+
+/*
+ * Karta najwyższej wagi. Na pulpicie jest dokładnie jedna taka powierzchnia —
+ * ta, od której zaczyna się pracę. Więcej niż jedna znaczyłoby, że żadna nie
+ * jest najważniejsza, a wtedy hierarchia przestaje istnieć.
+ *
+ * Gradient idzie z dwóch istniejących tokenów powierzchni, więc nie wprowadza
+ * nowego koloru — zmienia tylko rozkład światła na tej samej powierzchni.
+ */
+.bengos-surface-hero {
+  background: linear-gradient(
+    165deg,
+    var(--bengos-surface-raised) 0%,
+    var(--bengos-surface) 100%
+  );
+  border: 1px solid var(--bengos-border-strong);
   border-radius: var(--bengos-radius-card);
   padding: var(--bengos-space-card);
 }
@@ -132,3 +198,70 @@ button {
 .bengos-glow-ring {
   box-shadow: 0 0 0 1px var(--bengos-glow), 0 0 32px -8px var(--bengos-glow);
 }
+
+/*
+ * Kafel wejścia — siatka rozwidleń na pulpicie. Osobny materiał od karty,
+ * bo zachowuje się inaczej: jest wejściem w siatce, a nie pojemnikiem
+ * na treść.
+ */
+.bengos-tile {
+  display: flex;
+  min-height: var(--bengos-touch-target-min);
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--bengos-border);
+  border-radius: var(--bengos-radius-control);
+  background: var(--bengos-surface-raised);
+  transition:
+    border-color var(--bengos-motion-fast) var(--bengos-ease-out),
+    background-color var(--bengos-motion-fast) var(--bengos-ease-out);
+}
+
+.bengos-tile:hover {
+  border-color: var(--bengos-border-strong);
+}
+
+/*
+ * Podpis sekcji. Małe wersaliki z rozstrzeleniem — czyta się jako etykieta,
+ * a nie jako nagłówek, więc nie konkuruje z `h2` stojącym obok w tym samym
+ * wierszu.
+ */
+.bengos-eyebrow {
+  font-size: var(--bengos-size-caption);
+  font-weight: var(--bengos-weight-medium);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bengos-text-muted);
+}
+
+/*
+ * Ruch wejścia. Elementy pierwszego ekranu wchodzą jeden po drugim, ale
+ * opóźnienia rosną tylko do piątej pozycji — dalej opóźnienie przestaje być
+ * wyczuwalne jako rytm, a zaczyna być wyczuwalne jako zwłoka.
+ *
+ * Przy ograniczeniu ruchu tokeny schodzą do 1 ms, więc animacja zostaje
+ * zachowana jako funkcja i przestaje być widoczna — dokładnie tak, jak
+ * wymaga brief: ruch schodzi do zera, nie znika.
+ */
+@keyframes bengos-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bengos-rise {
+  animation: bengos-rise var(--bengos-motion-enter) var(--bengos-ease-out) both;
+}
+
+.bengos-rise-1 { animation-delay: 0ms; }
+.bengos-rise-2 { animation-delay: 40ms; }
+.bengos-rise-3 { animation-delay: 80ms; }
+.bengos-rise-4 { animation-delay: 120ms; }
+.bengos-rise-5 { animation-delay: 160ms; }
