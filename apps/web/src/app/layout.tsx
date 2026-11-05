@@ -40,18 +40,24 @@ import { SessionProvider } from "@/providers/session-provider";
  * jedna: na bardzo wolnym łączu widać krótkie „nie zalogowany”, zanim stan
  * dojedzie. To jest lepsze niż biała strona, a `layout.tsx` przestaje
  * zależeć od tego, czy API zdąży odpowiedzieć.
+ *
+ * ── NAZWA W METADANYCH: `BENGOS` ────────────────────────────────────────
+ * Tytuł karty, nazwa instalowanej aplikacji i nagłówek powłoki mówią
+ * „BENGOS”. `TIKBENGOS` zostaje jako nazwa repozytorium, pakietów i obrazów
+ * Dockera — to nazwy techniczne, których użytkownik nie ogląda.
  */
 export const metadata: Metadata = {
   title: {
-    default: "TIKBENGOS",
-    template: "%s — TIKBENGOS",
+    default: "BENGOS",
+    template: "%s — BENGOS",
   },
   description: "Jeden społecznościowy system operacyjny.",
-  applicationName: "TIKBENGOS",
+  applicationName: "BENGOS",
   manifest: "/manifest.webmanifest",
-  // Ikony PWA są zadeklarowane w manifeście i tam prowadzą, ale pliki
-  // w `public/icons/` jeszcze nie istnieją. Nie wskazujemy tu ścieżek,
-  // których nie ma — brak ikon jest zgłoszony osobno.
+  // Ikony PWA są zadeklarowane w manifeście i tam prowadzą. Pliki
+  // w `public/icons/` nie istnieją — brak ikon jest zgłoszony osobno,
+  // a wskazywanie ścieżek, których nie ma, dałoby pusty kwadrat w miejsce
+  // ikony zamiast jej braku.
   appleWebApp: { capable: true, title: "BENGOS", statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
 };
