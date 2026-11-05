@@ -18,10 +18,25 @@ export const metadata: Metadata = { title: "BENGOS Home" };
  * do obejrzenia — przychodzi z pomysłem i ma zobaczyć, którą drogą go
  * zrealizować. Dlatego wyszukiwarka jest na samej górze, wejścia do tworzenia
  * są widoczne bez przewijania, a feed jest jedną kartą wśród pięciu.
+ *
+ * ── NAGŁÓWEK EKRANU ────────────────────────────────────────────────────
+ * Ekran miał wcześniej samą wyszukiwarkę, bez tytułu widocznego dla oka.
+ * Powłoka pokazuje znak w pasku u góry, ale nagłówek pierwszego stopnia
+ * należy do TREŚCI, nie do powłoki — a bez niego czytnik ekranu wchodzi
+ * w pulpit bez informacji, gdzie jest, i nie da się po nim skakać klawiszem
+ * `h`. Dodajemy więc `h1`, wizualnie dyskretny, ale prawdziwy.
  */
 export default function HomePage() {
   return (
     <div className="space-y-6">
+      {/*
+        Tytuł jest dla czytnika ekranu, nie dla oka — znak i nazwa stoją
+        już w pasku u góry, a powtórzenie ich tutaj byłoby szumem. Klasa
+        `bengos-visually-hidden` zostawia treść w drzewie dostępności:
+        `display: none` usunęłoby ją razem z informacją o strukturze.
+      */}
+      <h1 className="bengos-visually-hidden">BENGOS Home — pulpit</h1>
+
       <UniversalSearch />
       <IdentityBar />
 
