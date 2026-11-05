@@ -1,0 +1,92 @@
+# TIKBENGOS — nazwany tunel Cloudflare (STAŁY adres zamiast losowego).
+#
+# ── PO CO TEN PLIK ──────────────────────────────────────────────────────
+# `infra/docker-compose.tunnel.yml` używa trybu `--url`, który nie wymaga
+# konta Cloudflare, ale za to przydziela adres LOSOWY i zmienia go przy
+# każdym restarcie kontenera. W praktyce wyglądało to tak, że każde
+# wdrożenie dawało inny adres (`wave-cartoons-…`, `poetry-thumbs-…`,
+# `missed-arm-…`), a adres trzeba było dopisywać do `ALLOWED_HOSTS`
+# i `CSRF_TRUSTED_ORIGINS` od nowa.
+#
+# Ten plik podnosi tunel NAZWANY: adres jest przypisany do konta Cloudflare
+# i do domeny, więc nie zmienia się nigdy.
+#
+# ── CZEGO WYMAGA ────────────────────────────────────────────────────────
+# 1. Konta Cloudflare (plan darmowy wystarcza).
+# 2. Domeny dodanej do tego konta (serwery nazw wskazują na Cloudflare).
+# 3. Tunelu utworzonego w panelu — panel wypisze TOKEN, który wpisujesz
+#    do `.env` jako `CLOUDFLARE_TUNNEL_TOKEN`.
+# 4. Publicznego hosta tunelu (np. `bengos.twojadomena.pl`) w `.env`
+#    jako `DOMAIN`.
+#
+# Kroki w panelu są w `docs/cloudflare.md` — ten plik ich nie powtarza,
+# żeby nie było dwóch opisów, które się rozjadą.
+#
+# ── DLACZEGO `--token`, A NIE PLIK `config.yml` ─────────────────────────
+# Token jest krótszy do wpisania i nie wymaga montowania pliku do kontenera.
+# Reguły routingu (jaki host na jaki adres) trzyma panel Cloudflare, więc
+# zmiana trasy nie wymaga przebudowy obrazu ani restartu kontenera.
+#
+# ── CZEGO NIE ROBI TEN PLIK ─────────────────────────────────────────────
+# Nie zakłada konta, nie kupuje domeny i nie zmienia serwerów nazw —
+# to są czynności w panelu i u rejestratora domeny, których nie da się
+# wykonać z repozytorium.
+
+name: tikbengos-tunnel-named
+
+services:
+  # Kontener z tunelem nazwanym. Wersja obrazu przypięta tej samej linii
+  # co w trybie szybkim — dwa różne `cloudflared` w jednym projekcie to
+  # dokładnie ta klasa rozjazdu, którą reszta tego repozytorium wyklucza.
+  cloudflared:
+    image: cloudflare/cloudflared:2026.2.0
+    restart: unless-stopped
+    # `--token` zamiast `--url`: tożsamość tunelu pochodzi z panelu, więc
+    # adres jest stały. `--no-autoupdate` jak w trybie szybkim: obraz
+    # produkcyjny nie zmienia się bez decyzji człowieka.
+    #
+    # Token NIE JEST wpisany tutaj i nie może być. Docker Compose podstawia
+    # go z `.env`, a `.env` jest w `.gitignore` — sekret w pliku compose
+    # trafiłby do repozytorium i do historii gita na zawsze.
+    command:
+      - tunnel
+      - --no-autoupdate
+      - run
+      - --token
+      - ${CLOUDFLARE_TUNNEL_TOKEN:?Ustaw CLOUDFLARE_TUNNEL_TOKEN w .env}
+    depends_on:
+      - proxy
+    networks:
+      - tunnel
+
+  # Caddy bez zmian. W nazwanym tunelu reguła w panelu Cloudflare wskazuje
+  # na `http://proxy:80` w tej samej sieci Dockera co wdrożenie podstawowe —
+  # tunel nie wchodzi do aplikacji obok niej, a tak samo jak w trybie szybkim.
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    environment:
+      DOMAIN: ${DOMAIN:?Ustaw DOMAIN w .env}
+      ACME_EMAIL: ${ACME_EMAIL:?Ustaw ACME_EMAIL w .env}
+    networks:
+      - tunnel
+
+networks:
+  tunnel:
+    # Ta sama sieć zewnętrzna, którą tworzy wdrożenie podstawowe.
+    # Bez tego rozwiązanie nazwy `proxy` zawiedzie i tunel nie będzie miał
+    # dokąd przekazać ruchu.
+    external: true
+    name: tikbengos_default
+
+volumes:
+  caddy-data:
+    external: true
+    name: tikbengos_caddy-data
+  caddy-config:
+    external: true
+    name: tikbengos_caddy-config
