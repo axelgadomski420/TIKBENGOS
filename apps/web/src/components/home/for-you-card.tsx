@@ -10,27 +10,39 @@ import Link from "next/link";
  *
  * Przed uruchomieniem rekomendacji kryteria są opisem, nie filtrem. Przycisk
  * zmieniający wyłącznie własną etykietę sugerowałby działające wyniki.
+ *
+ * ── TRZY KRYTERIA JAKO ZNACZNIKI ──────────────────────────────────────
+ * Wypisane po przecinku w jednym wierszu wyglądały jak resztka zdania.
+ * Jako osobne pigułki czytają się jak to, czym są: zestaw kryteriów, który
+ * będzie można włączać i wyłączać. Pigułka nie udaje działającej kontrolki —
+ * nie ma tu `button`, tylko znak, bo wyników jeszcze nie ma.
  */
 const REASONS = ["obserwujesz", "podobny temat", "nowy dla Ciebie"] as const;
 
 export function ForYouCard() {
   return (
     <section aria-labelledby="for-you" className="bengos-surface-card">
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <h2
           id="for-you"
           className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-medium)]"
         >
           Dla Ciebie
         </h2>
-        <p className="text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
-          Rekomendacje będą oparte na zainteresowaniach, nie na czasie oglądania.
-        </p>
+        <Link
+          href="/feed"
+          className="ml-auto text-[var(--bengos-size-caption)] text-[var(--bengos-accent)]"
+        >
+          Przejdź do feedu
+        </Link>
       </div>
 
-      <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-2">
+      <ul className="mt-4 flex flex-wrap gap-2">
         {REASONS.map((item) => (
-          <li key={item} className="text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
+          <li
+            key={item}
+            className="rounded-full border border-[var(--bengos-border)] px-3 py-1 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]"
+          >
             {item}
           </li>
         ))}
@@ -39,15 +51,6 @@ export function ForYouCard() {
       <p className="mt-4 text-[var(--bengos-text-muted)]">
         Rekomendacje pojawią się po Etapie 2, razem z feedem. Wtedy każda będzie miała jawny
         powód i działający filtr — obecnie nie pokazujemy zmyślonych treści.
-      </p>
-
-      <p className="mt-3">
-        <Link
-          href="/feed"
-          className="bengos-touch-target inline-flex rounded-[var(--bengos-radius-control)] px-2 text-[var(--bengos-accent)]"
-        >
-          Przejdź do feedu
-        </Link>
       </p>
     </section>
   );
