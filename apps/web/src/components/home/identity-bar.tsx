@@ -11,19 +11,39 @@ import { useSession } from "@/lib/session-context";
  *
  * Pokazuje rolę tylko wtedy, gdy użytkownik ma więcej niż jedną — dla
  * zwykłego konta napis „Użytkownik” jest szumem, który nic nie wnosi.
+ *
+ * ── NAZWA JEST NAJWIĘKSZYM ELEMENTEM, ALE NIE NAGŁÓWKIEM ────────────────
+ * Imię stoi wyżej niż reszta tekstu w karcie, bo odpowiada na pytanie
+ * „kto tu jest” zanim użytkownik zada je sobie sam. Nie jest jednak
+ * nagłówkiem `h2` — nagłówki opisują strukturę ekranu, a nazwa użytkownika
+ * strukturą nie jest. Czytnik ekranu ma dostać sekcję „Tożsamość”
+ * z `aria-label`, a nie kolejny nagłówek w spisie treści.
+ *
+ * ── BEZ SESJI: JEDNO WYJŚCIE, NIE DWA ──────────────────────────────────
+ * Wcześniej ten stan pokazywał zdanie i przycisk logowania, ale nie mówił,
+ * co użytkownik może zrobić bez konta. Teraz zdanie jest podzielone na to,
+ * co wolno, i to, czego nie wolno — a obok stoi odnośnik do pulpitu, bo
+ * rozejrzenie się jest dokładnie tym, co w tym stanie pozostaje.
  */
 export function IdentityBar() {
   const { identity, isAuthenticated } = useSession();
 
   if (!isAuthenticated || !identity) {
     return (
-      <section aria-label="Tożsamość" className="bengos-surface-card flex flex-wrap items-center gap-3">
-        <p className="flex-1">
-          Nie jesteś zalogowany. Możesz się rozejrzeć, ale tworzenie, czat i kod wymagają konta.
-        </p>
+      <section
+        aria-label="Tożsamość"
+        className="bengos-surface-card flex flex-wrap items-center gap-x-4 gap-y-3"
+      >
+        <div className="min-w-0 flex-1">
+          <p className="bengos-eyebrow">Nie zalogowano</p>
+          <p className="mt-1 text-[var(--bengos-text-muted)]">
+            Możesz się rozejrzeć po module. Tworzenie, czat i praca nad kodem wymagają konta —
+            jedno dla całego BENGOS.
+          </p>
+        </div>
         <Link
           href="/login"
-          className="bengos-touch-target inline-flex rounded-[var(--bengos-radius-control)] bg-[var(--bengos-accent)] px-4 text-[var(--bengos-text-on-accent)]"
+          className="bengos-touch-target inline-flex rounded-[var(--bengos-radius-control)] bg-[var(--bengos-accent)] px-4 font-[var(--bengos-weight-medium)] text-[var(--bengos-text-on-accent)]"
         >
           Zaloguj się
         </Link>
@@ -35,11 +55,23 @@ export function IdentityBar() {
   const shownName = identity.displayName ?? identity.username;
 
   return (
-    <section aria-label="Tożsamość" className="bengos-surface-card flex flex-wrap items-center gap-3">
-      <div className="flex-1">
-        <p className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-medium)]">
+    <section
+      aria-label="Tożsamość"
+      className="bengos-surface-card flex flex-wrap items-center gap-x-4 gap-y-3"
+    >
+      <div className="min-w-0 flex-1">
+        <p
+          className="truncate text-[var(--bengos-size-title)] font-[var(--bengos-weight-medium)]"
+          title={shownName}
+        >
           {shownName}
         </p>
+        {/*
+          `truncate` na nazwie jest tu konieczne, a nie kosmetyczne: nazwa
+          użytkownika ma limit 150 znaków w modelu, a karta ma stałą
+          szerokość. Bez ucięcia długa nazwa rozepchnęłaby przyciski poza
+          ekran na telefonie — a `title` zostawia do niej dostęp.
+        */}
         <p className="text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
           @{identity.username}
           {extraRoles.length > 0
@@ -50,13 +82,13 @@ export function IdentityBar() {
 
       <Link
         href="/studio"
-        className="bengos-touch-target inline-flex rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] px-4"
+        className="bengos-touch-target inline-flex rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] px-4 hover:border-[var(--bengos-border-strong)]"
       >
         Twórz
       </Link>
       <Link
         href="/profile"
-        className="bengos-touch-target inline-flex rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] px-4"
+        className="bengos-touch-target inline-flex rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] px-4 hover:border-[var(--bengos-border-strong)]"
       >
         Profil
       </Link>
