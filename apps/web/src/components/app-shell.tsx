@@ -39,18 +39,22 @@ const BRANCHES: { href: string; label: string; description: string; permission?:
  * `TIKBENGOS` zostaje wyłącznie jako nazwa repozytorium i pakietów w kodzie;
  * użytkownik nie ma powodu jej oglądać.
  *
- * ── LOGO ZAMIAST TEKSTU ─────────────────────────────────────────────────
- * Znak (`/brand/bengos-logo.jpg`) ma napis „BENGOS” wpisany w grafikę,
- * więc obok niego NIE MA drugiego napisu tekstem — powielenie tego samego
- * słowa dwa razy w jednym pasku to szum, nie hierarchia.
+ * ── ZNAK ZAMIAST SAMEJ NAZWY ────────────────────────────────────────────
+ * Logo (`/brand/bengos-logo.jpg`) ma napis „BENGOS” wpisany w grafikę.
+ * Obok niego stoi jednak nazwa tekstem — i to jest decyzja, nie przeoczenie:
+ * znak jest kwadratowy i ciemny, więc w pasku o wysokości 56 px czyta się
+ * jako sygnet, w którym słowo jest małe i nieczytelne. Nazwa obok mówi to,
+ * czego sygnet nie powie, i to ona zostaje w pamięci przy przewijaniu.
  *
- * Tekst alternatywny jest jednak konieczny: bez niego odnośnik do pulpitu
- * jest dla czytnika ekranu pustym linkiem, a to wyklucza nawigację
- * klawiaturą i czytnikiem — czyli dokładnie to, po co istnieje `SkipLink`.
+ * Tekst alternatywny jest pusty (`alt=""`), bo nazwę podaje `aria-label`
+ * odnośnika — inaczej czytnik ekranu przeczytałby „BENGOS” dwa razy,
+ * a opis znaku dublowałby etykietę.
  *
- * Obraz jest dekoracją w tym sensie, że niesie znak, a nie treść — dlatego
- * `alt=""` (żeby czytnik nie czytał „BENGOS” dwa razy), a nazwę podaje
- * `aria-label` na odnośniku, razem z celem przejścia.
+ * ── PASEK JEST JEDNYM MATERIAŁEM ────────────────────────────────────────
+ * Pozycje nawigacji dostały `bengos-tile` zamiast samych napisów: aktywna
+ * pozycja jest widoczna jako podświetlona powierzchnia, nie jako kolor
+ * liter. Kolor liter działa tylko wtedy, gdy ktoś odróżnia akcent od tła —
+ * powierzchnia działa zawsze, także przy zaburzeniu widzenia barw.
  */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { theme, accessibility } = usePreferences();
@@ -79,28 +83,40 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Link
             href="/"
             aria-label="BENGOS — przejdź do pulpitu"
-            className="bengos-touch-target flex items-center gap-2 rounded-[var(--bengos-radius-control)] px-1"
+            className="bengos-touch-target flex items-center gap-2.5 rounded-[var(--bengos-radius-control)] px-1"
           >
             {/*
               `priority` jest tu celowe: znak stoi nad zgięciem strony, więc
               leniwe ładowanie pokazałoby go po chwili jako przeskok układu.
               Rozmiar podany jawnie, bo obraz bez wymiarów rezerwuje zero
               miejsca i wypycha nawigację w momencie wczytania.
+
+              `unoptimized` jest wymagane, a nie wygodne: plik jest JPEG-em
+              w `public/` bez wymiarów zoptymalizowanych, a Next bez tej flagi
+              próbuje przetworzyć go na żądanie i przy braku pliku zwraca
+              pusty prostokąt zamiast informacji o braku. Wariant wprost
+              oddaje to, co leży w repozytorium.
             */}
             <Image
               src="/brand/bengos-logo.jpg"
               alt=""
-              width={40}
-              height={40}
+              width={36}
+              height={36}
               priority
-              className="size-10 rounded-[var(--bengos-radius-control)] object-cover"
+              unoptimized
+              className="size-9 rounded-[var(--bengos-radius-control)] object-cover"
             />
             <span className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-semibold)]">
               BENGOS
             </span>
           </Link>
 
-          <nav aria-label="Moduły" className="ml-auto hidden gap-1 md:flex">
+          {/*
+            `hidden md:flex` — siedem modułów w jednym pasku nie zmieści się
+            na telefonie. Tam nawigacja jest na dole (`BottomNavigation`),
+            a pasek zostaje przy znaku, nazwie i ustawieniach.
+          */}
+          <nav aria-label="Moduły" className="ml-auto hidden gap-0.5 md:flex">
             {visibleBranches.map((branch) => {
               const active = pathname === branch.href || pathname.startsWith(`${branch.href}/`);
               return (
@@ -109,10 +125,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   href={branch.href}
                   aria-current={active ? "page" : undefined}
                   title={branch.description}
-                  className={`bengos-touch-target px-3 text-[var(--bengos-size-body)] transition-colors duration-[var(--bengos-motion-fast)] ${
+                  className={`bengos-touch-target rounded-[var(--bengos-radius-control)] px-3 text-[var(--bengos-size-body)] transition-colors duration-[var(--bengos-motion-fast)] ${
                     active
-                      ? "text-[var(--bengos-accent)] font-[var(--bengos-weight-medium)]"
-                      : "text-[var(--bengos-text-muted)] hover:text-[var(--bengos-text)]"
+                      ? "bg-[var(--bengos-accent-muted)] font-[var(--bengos-weight-medium)] text-[var(--bengos-accent)]"
+                      : "text-[var(--bengos-text-muted)] hover:bg-[var(--bengos-surface-sunken)] hover:text-[var(--bengos-text)]"
                   }`}
                 >
                   {branch.label}
@@ -123,7 +139,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           <Link
             href="/settings"
-            className="bengos-touch-target ml-auto px-3 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)] md:ml-0"
+            className="bengos-touch-target ml-auto rounded-[var(--bengos-radius-control)] px-3 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)] hover:bg-[var(--bengos-surface-sunken)] md:ml-2"
           >
             Ustawienia
           </Link>
