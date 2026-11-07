@@ -17,6 +17,12 @@ import { useSession } from "@/lib/session-context";
  * Komunikat idzie przez `role="status"`, więc czytnik ekranu ogłosi zmianę
  * bez przerywania tego, co użytkownik właśnie czyta — `alert` byłby tu
  * za mocny dla informacji, która nie wymaga natychmiastowej reakcji.
+ *
+ * ── STAN MA ZNAK, NIE TYLKO KOLOR ──────────────────────────────────────
+ * Wcześniej jedynym wyróżnikiem stanu był kolor tekstu. Kolor działa tylko
+ * dla kogoś, kto odróżnia zieleń od pomarańczu. Znak na początku jest
+ * czytelny bez koloru, a dla czytnika jest dekoracją (`aria-hidden`), bo
+ * zdanie i tak niesie całą informację.
  */
 export function RealtimeIndicator() {
   const { isAuthenticated } = useSession();
@@ -37,9 +43,23 @@ export function RealtimeIndicator() {
         ? "text-[var(--bengos-warning)]"
         : "text-[var(--bengos-text-muted)]";
 
+  const mark =
+    status === "open"
+      ? "●"
+      : status === "connecting"
+        ? "◐"
+        : status === "closed" || status === "unavailable"
+          ? "▲"
+          : "○";
+
   return (
-    <p role="status" aria-live="polite" className={`text-[var(--bengos-size-caption)] ${tone}`}>
-      {label}
+    <p
+      role="status"
+      aria-live="polite"
+      className={`flex items-baseline gap-2 text-[var(--bengos-size-caption)] ${tone}`}
+    >
+      <span aria-hidden="true">{mark}</span>
+      <span>{label}</span>
     </p>
   );
 }
