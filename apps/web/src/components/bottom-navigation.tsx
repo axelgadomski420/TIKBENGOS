@@ -11,10 +11,9 @@ import { usePathname } from "next/navigation";
  * Studio, Dev i Access są celami, do których się wchodzi z pulpitu.
  *
  * ── IKONY, NIE SAME NAPISY ─────────────────────────────────────────────
- * Wcześniej były tu same napisy. Na telefonie to za mało: pasek nawigacji
- * jest czytany w ruchu, kątem oka, a sam wyraz trzeba przeczytać, żeby go
- * rozpoznać. Kształt rozpoznaje się szybciej niż literę — dlatego każdy cel
- * ma teraz znak nad napisem.
+ * Na telefonie pasek jest czytany w ruchu, kątem oka, a sam wyraz trzeba
+ * przeczytać, żeby go rozpoznać. Kształt rozpoznaje się szybciej niż literę
+ * — dlatego każdy cel ma znak nad napisem.
  *
  * Ikony są napisane jako `path` w tym samym pliku, a nie pobierane z paczki:
  * pięć znaków to mniej kodu niż zależność, a zależność na ikony ciągnie
@@ -22,8 +21,11 @@ import { usePathname } from "next/navigation";
  * `currentColor`, więc dziedziczy kolor stanu aktywnego i motyw — nie ma
  * tu ani jednej wartości koloru.
  *
- * `stroke-width` 1.75 jest dobrane pod `size-6`: przy 2 linie zaczynają się
- * zlewać na małych ekranach, przy 1.5 znak blednie przy jasnym świetle.
+ * ── AKTYWNY CEL MA TEZ KRESKE, NIE TYLKO KOLOR ─────────────────────────
+ * Klasa `bengos-nav-mark` (w `globals.css`) dorysowuje kreskę nad aktywną
+ * pozycją. Kolor ikony działa tylko dla kogoś, kto odróżnia akcent od tła;
+ * kreska działa niezależnie od tego — i to jest ta sama zasada, którą
+ * stosuje podświetlona powierzchnia w pasku górnym.
  */
 type IconProps = { className?: string };
 
@@ -107,7 +109,7 @@ export function BottomNavigation() {
               <Link
                 href={destination.href}
                 aria-current={active ? "page" : undefined}
-                className={`bengos-touch-target w-full flex-col gap-0.5 !min-w-0 text-[var(--bengos-size-caption)] transition-colors duration-[var(--bengos-motion-fast)] ${
+                className={`bengos-touch-target bengos-nav-mark w-full flex-col gap-0.5 !min-w-0 text-[var(--bengos-size-caption)] transition-colors duration-[var(--bengos-motion-fast)] ${
                   active
                     ? "font-[var(--bengos-weight-medium)] text-[var(--bengos-accent)]"
                     : "text-[var(--bengos-text-muted)]"
