@@ -11,6 +11,11 @@ export const metadata: Metadata = { title: "BENGOS Chat" };
  * ten ekran pokazuje ponad zwykły ekran zastępczy, to stan kanału czasu
  * rzeczywistego — bo ten kanał JEST już zaimplementowany i bez tego nie było
  * jak sprawdzić, czy działa.
+ *
+ * ── STAN KANAŁU JEST DOWODEM, NIE OZDOBĄ ──────────────────────────────
+ * Ten kafelek mówi coś, czego nie mówi żaden inny ekran: czy WebSocket
+ * faktycznie się łączy. Dlatego kanał stoi jako osobna sekcja pod planem
+ * etapu, z pełnym wyjaśnieniem — a nie jako jedna linia wciśnięta w opis.
  */
 export default function ChatPage() {
   return (
@@ -29,17 +34,19 @@ export default function ChatPage() {
 
       <section
         aria-labelledby="realtime-state"
-        className="bengos-surface-card mx-auto max-w-2xl"
+        className="bengos-rise bengos-surface-card mx-auto max-w-2xl"
       >
+        <p className="bengos-eyebrow">Zaimplementowane w Etapie 1</p>
         <h2
           id="realtime-state"
-          className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-medium)]"
+          className="mt-1 text-[var(--bengos-size-title)] font-[var(--bengos-weight-medium)]"
         >
           Kanał czasu rzeczywistego
         </h2>
         <p className="mt-2 text-[var(--bengos-text-muted)]">
           Kanał jest zaimplementowany i działa po stronie serwera — po Etapie 4 pójdą nim
-          wiadomości i obecność. Poniżej widać jego aktualny stan.
+          wiadomości i obecność. Tożsamość w kanale pochodzi wyłącznie z ciasteczka sesji;
+          bez sesji serwer zamyka połączenie kodem 4401.
         </p>
         <div className="mt-3">
           <RealtimeIndicator />
