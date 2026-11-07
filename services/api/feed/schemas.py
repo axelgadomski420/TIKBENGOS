@@ -42,3 +42,49 @@ class CreatePostIn(Schema):
 class LikeOut(Schema):
     liked: bool
     counters: CountersOut
+
+
+class AuthorOut(Schema):
+    """Autor wpisu — to, co wolno pokazać publicznie.
+
+    Świadomie BEZ adresu email. Feed jest czytany także bez sesji, więc
+    wszystko, co tu trafi, jest publiczne z definicji. `displayName` może
+    być puste, więc interfejs ma fallback na uchwyt — ale decyzja, co
+    pokazać, należy do interfejsu, a nie do tego schematu.
+    """
+
+    id: str
+    username: str
+    displayName: str | None
+    avatarUrl: str | None
+
+
+class PostListOut(Schema):
+    """Strona feedu razem z autorami.
+
+    Autorzy jadą obok wpisów, a nie w każdym wpisie, bo ten sam autor
+    powtarza się w kilku pozycjach — nadmiar tego samego obiektu w każdej
+    z nich to transfer bez treści.
+
+    Mapa, a nie lista: interfejs dopasowuje autora po identyfikatorze,
+    więc kolejność nie niesie informacji.
+    """
+
+    items: list[PostOut]
+    nextCursor: str | None
+    authors: dict[str, AuthorOut]
+
+
+class CommentOut(Schema):
+    id: str
+    postId: str
+    authorId: str
+    parentCommentId: str | None
+    body: str
+    likeCount: int
+    createdAt: datetime
+
+
+class CreateCommentIn(Schema):
+    body: str
+    parentCommentId: str | None = None
