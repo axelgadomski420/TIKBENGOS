@@ -15,25 +15,50 @@ import { useSession } from "@/lib/session-context";
  *
  * Nazwy pól pochodzą DOKŁADNIE z kontraktu `Post` w `packages/core/src/feed.ts`:
  * treść to `body` (nie `text`), a liczniki siedzą w zagnieżdżonym `counters`
- * (`counters.likes`, `counters.comments`). Wcześniejsza wersja używała nazw
- * zmyślonych i build produkcyjny przerywał się na błędzie typu.
+ * (`counters.likes`, `counters.comments`).
  *
- * Trzy rzeczy, które ten komponent robi celowo:
+ * ── AUTORZY JADĄ OSOBNO, PO TO ŻEBY BYŁO WIDAĆ KTO ─────────────────────
+ * Wpisy niosą tylko `authorId`. Bez mapy autorów interfejs pokazywał surowy
+ * identyfikator UUID — a to jest techniczny szczegół, nie nazwa człowieka.
+ * Serwer dosyła autorów tej strony w polu `authors`, więc nie ma ani jednego
+ * dodatkowego żądania na wpis.
  *
- * 1. Wczytuje po stronie klienta, bo lista zależy od sesji — bez tego pierwszy
- *    render serwerowy pokazywałby stan gościa, a potem przeskakiwał do stanu
- *    zalogowanego użytkownika.
- * 2. NIE pokazuje niczego, gdy serwer nie ma jeszcze feedu. Puste pole zamiast
- *    zmyślonych treści.
- * 3. Filtry powodu są opisem zamiarów, nie przyciskami. Rekomendacji jeszcze
- *    nie ma, więc przycisk zmieniający wyłącznie własną etykietę byłby atrapą.
+ * ── DODAWANIE WPISU ZOSTAŁO NA TYM EKRANIE ──────────────────────────────
+ * Wcześniej nie było tu formularza i słusznie: nie istniało nic, co można
+ * było napisać. Teraz endpoint publikowania działa, więc pole do pisania
+ * jest — a wpis pojawia się na liście natychmiast, bez przeładowania.
+ * Limity są te same co po stronie serwera i pokazywane przed wysłaniem,
+ * żeby użytkownik nie dowiadywał się o nich z błędu.
  */
 const REASONS = ["obserwujesz", "podobny temat", "nowy dla Ciebie"] as const;
 const FILTERS = ["wszystko", "obserwowani", "odkrywaj"] as const;
 
-type Filter = (typeof FILTERS)[number];
+/** Limity z serwera (`feed/models.py` i `feed/api.py`). Trzymane raz. */
+const BODY_MAX = 80;
+const TAGS_MAX = 5;
 
-/** Zapytanie do API. `wszystko` nie dokłada filtra — to brak zawężenia. */
+ type Filter = (typeof FILTERS)[number];
+
+/** Ludzka nazwa autora: nazwa wyświetlana, a gdy jej nie ma — uchwyt. */
+function authorLabel(authors: Record<string, Author>, authorId: string): string {
+  const author = authors[authorId];
+  if (!author) return authorId;
+  return author.displayName ?? `@${author.username}`;
+}
+
+interface Author {
+  id: string;
+  username: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+}
+
+interface PostPage {
+  items: Post[];
+  nextCursor: string | null;
+  authors: Record<string, Author>;
+}
+
 function pathFor(filter: Filter): string {
   if (filter === "wszystko") return "/api/feed/posts";
   if (filter === "obserwowani") return "/api/feed/posts?filter=following";
@@ -107,6 +132,8 @@ export function FeedList() {
         </p>
       </div>
 
+      {isAuthenticated ? <Composer onPublished={list.reload} /> : null}
+
       {list.loading ? (
         <p role="status" className="text-[var(--bengos-text-muted)]">
           Wczytuję wpisy…
@@ -131,17 +158,9 @@ export function FeedList() {
             Feed jest jeszcze pusty
           </h3>
           <p className="mt-2 text-[var(--bengos-text-muted)]">
-            Nie ma tu żadnych wpisów, bo serwer nie ma jeszcze funkcji publikowania —
-            to Etap 2. Nie pokazujemy przykładowych treści, żeby pusty feed nie wyglądał
-            na działający.
-          </p>
-          <p className="mt-3">
-            <Link
-              href="/studio"
-              className="bengos-touch-target inline-flex rounded-[var(--bengos-radius-control)] px-2 text-[var(--bengos-accent)]"
-            >
-              Co będzie można opublikować
-            </Link>
+            {isAuthenticated
+              ? "Nikt jeszcze nic nie napisał. Twój wpis będzie pierwszy — i pojawi się tu od razu."
+              : "Nie ma tu jeszcze żadnych wpisów. Możesz założyć konto i napisać pierwszy."}
           </p>
         </div>
       ) : (
@@ -150,7 +169,7 @@ export function FeedList() {
             {list.items.map((post) => (
               <li key={post.id} className="bengos-surface-card">
                 <p className="text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
-                  {post.authorId}
+                  {authorLabel(list.authors, post.authorId)}
                   {post.createdAt ? ` · ${post.createdAt}` : ""}
                 </p>
                 {post.body ? <p className="mt-2 whitespace-pre-line">{post.body}</p> : null}
@@ -197,5 +216,126 @@ export function FeedList() {
         </>
       )}
     </section>
+  );
+}
+
+/**
+ * Pole do napisania wpisu.
+ *
+ * Licznik znaków jest tu, a nie tylko w komunikacie błędu, bo limit 80 jest
+ * krótki: użytkownik pisze i widzi, ile mu zostało, zamiast dowiadywać się
+ * po fakcie, że o trzy znaki za dużo. Nadmiar nadal jest odrzucany także
+ * po stronie serwera — interfejs nie jest strażnikiem, jest podpowiedzią.
+ *
+ * Tagi przyjmujemy w jednym polu, oddzielone spacją, a nie jako osobne
+ * wejścia: pięć osobnych pól dla czegoś, co wpisuje się jednym ciągiem,
+ * to więcej formularza niż potrzeba.
+ */
+function Composer({ onPublished }: { onPublished: () => void }) {
+  const [body, setBody] = useState("");
+  const [tags, setTags] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const remaining = BODY_MAX - body.length;
+  const tooLong = remaining < 0;
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (busy || tooLong) return;
+
+    const trimmed = body.trim();
+    if (!trimmed) {
+      setError("Wpis nie może być pusty.");
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+    try {
+      await apiFetch<Post>("/api/feed/posts", {
+        method: "POST",
+        body: {
+          body: trimmed,
+          tags: tags
+            .split(/\s+/)
+            .map((tag) => tag.replace(/^#/, "").trim().toLowerCase())
+            .filter(Boolean)
+            .slice(0, TAGS_MAX),
+        },
+      });
+      setBody("");
+      setTags("");
+      onPublished();
+    } catch (cause) {
+      setError(
+        cause instanceof ApiRequestError
+          ? cause.error.message
+          : "Nie udało się opublikować wpisu.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="bengos-surface-card">
+      <label htmlFor="composer-body" className="block font-[var(--bengos-weight-medium)]">
+        Nowy wpis
+      </label>
+      <p id="composer-hint" className="mt-1 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
+        Krótki opis — do {BODY_MAX} znaków. Wideo, muzyka i projekty dołączą w kolejnych
+        krokach Etapu 2.
+      </p>
+
+      <textarea
+        id="composer-body"
+        value={body}
+        rows={2}
+        aria-describedby="composer-hint"
+        aria-invalid={tooLong ? true : undefined}
+        onChange={(event) => setBody(event.target.value)}
+        className={`mt-2 w-full rounded-[var(--bengos-radius-control)] border bg-[var(--bengos-surface-sunken)] px-3 py-2 ${
+          tooLong ? "border-[var(--bengos-danger)]" : "border-[var(--bengos-border)]"
+        }`}
+      />
+
+      <div className="mt-2 flex flex-wrap items-center gap-3">
+        <label htmlFor="composer-tags" className="text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
+          Tagi
+        </label>
+        <input
+          id="composer-tags"
+          type="text"
+          value={tags}
+          placeholder="poranek muzyka"
+          onChange={(event) => setTags(event.target.value)}
+          className="min-h-[var(--bengos-touch-target-min)] min-w-0 flex-1 rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] bg-[var(--bengos-surface-sunken)] px-3"
+        />
+        {/*
+          Licznik mówi, ile znaków zostało. `role="status"` byłby tu za
+          mocny — czytnik odczytałby każdą cyfrę przy każdym naciśnięciu
+          klawisza. Wartość jest widoczna, a nadmiar sygnalizuje kolor pola
+          i `aria-invalid`, co czytnik ogłosi razem z fokusem na polu.
+        */}
+        <span className={tooLong ? "text-[var(--bengos-danger)]" : "text-[var(--bengos-text-muted)]"}>
+          {remaining}
+        </span>
+      </div>
+
+      {error ? (
+        <p role="alert" className="mt-2 text-[var(--bengos-size-caption)] text-[var(--bengos-danger)]">
+          {error}
+        </p>
+      ) : null}
+
+      <button
+        type="submit"
+        disabled={busy || tooLong}
+        className="bengos-touch-target mt-3 rounded-[var(--bengos-radius-control)] bg-[var(--bengos-accent)] px-4 font-[var(--bengos-weight-medium)] text-[var(--bengos-text-on-accent)] disabled:opacity-60"
+      >
+        {busy ? "Publikuję…" : "Opublikuj"}
+      </button>
+    </form>
   );
 }
