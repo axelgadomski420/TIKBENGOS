@@ -39,3 +39,46 @@ body {
 .bengos-scroll-snap-x > * {
   scroll-snap-align: start;
 }
+
+/*
+ * ── ODSTĘP POD TRESCIĄ NA TELEFONIE ────────────────────────────────────
+ * Powłoka daje `pb-28` na `main`, ale to stała liczba pikseli. Przy
+ * powiększonej typografii (tryb dostępności) pasek nawigacji dolnej rośnie
+ * razem z tekstem i zasłania ostatni wiersz treści. Tutaj liczymy ten
+ * odstęp z tokenów, więc skaluje się razem z interfejsem.
+ *
+ * Zapytanie `max-width: 767px` odpowiada temu samemu progowi co `md:hidden`
+ * na dolnej nawigacji — jedno bez drugiego dawało by odstęp na ekranie,
+ * gdzie paska nie ma.
+ */
+@media (max-width: 767px) {
+  #bengos-main {
+    padding-bottom: calc(var(--bengos-touch-target-min) * 2.25);
+  }
+}
+
+/*
+ * ── ZNACZNIK AKTYWNEJ POZYCJI W NAWIGACJI DOLNEJ ────────────────────────
+ * Sam kolor ikony działa tylko dla kogoś, kto odróżnia akcent od tła.
+ * Kreska pod aktywnym celem jest widoczna bez koloru, tak samo jak
+ * podświetlona powierzchnia w pasku górnym.
+ *
+ * Rysujemy ją `::after` na odnośniku, a nie jako osobny element, bo
+ * nawigacja jest listą odnośników — dodatkowy `span` byłby treścią
+ * dla czytnika ekranu, a nie dekoracją.
+ */
+.bengos-nav-mark {
+  position: relative;
+}
+
+.bengos-nav-mark[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 1.75rem;
+  height: 2px;
+  border-radius: 9999px;
+  background: var(--bengos-accent);
+  transform: translateX(-50%);
+}
