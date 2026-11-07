@@ -25,6 +25,7 @@ from ninja import NinjaAPI
 
 from accounts.api import router as accounts_router
 from accounts.keys_api import router as keys_router
+from accounts.oauth import router as oauth_router
 from accounts.providers_api import router as providers_router
 from feed.api import router as feed_router
 
@@ -84,6 +85,10 @@ def config_view(request):
     `realtimePath` i `csrfPath` są tu po to, żeby interfejs i skrypty nie
     musiały znać tych ścieżek na sztywno. Rozjazd między klientem a serwerem
     w tych dwóch miejscach był już raz błędem w tym projekcie.
+
+    `oauthPaths` dołączyły z tego samego powodu: adresy callbacku są
+    wypisane tutaj, więc panel dostawcy i kod mają jedno źródło prawdy
+    zamiast dwóch, które się rozjadą.
     """
     return JsonResponse(
         {
@@ -91,6 +96,10 @@ def config_view(request):
             "csrfPath": "/v1/csrf",
             "healthPath": "/v1/health",
             "apiPrefix": "/v1",
+            "oauthPaths": {
+                "google": "/api/auth/oauth/google/callback",
+                "github": "/api/auth/oauth/github/callback",
+            },
         }
     )
 
@@ -100,6 +109,11 @@ def config_view(request):
 # co zatrzymuje `migrate` i start serwera, nie tylko routowanie.
 api.add_router("/auth", accounts_router, url_name_prefix="auth")
 api.add_router("/users", accounts_router, url_name_prefix="users")
+# Router OAuth jest OSOBNY i podpięty tylko pod `/auth`. Powód: django-ninja
+# nie pozwala zamontować tego samego routera dwa razy bez `url_name_prefix`,
+# a ścieżki `/oauth/{provider}/...` mają sens wyłącznie w domenie
+# uwierzytelniania — nie ma czego szukać pod `/users`.
+api.add_router("/auth", oauth_router, url_name_prefix="oauth")
 api.add_router("/settings", keys_router)
 api.add_router("/settings", providers_router)
 api.add_router("/feed", feed_router)
