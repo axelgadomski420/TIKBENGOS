@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 
 import "@bengos/ui/styles.css";
+import "@bengos/ui/boot.css";
 import "./globals.css";
 
 import { AppShell } from "@/components/app-shell";
@@ -12,14 +13,15 @@ import { SessionProvider } from "@/providers/session-provider";
  * Powłoka aplikacji.
  *
  * Ten plik montuje cztery rzeczy, bez których reszta interfejsu nie ma nośnika:
- * style (arkusz design systemu i Tailwind), preferencje użytkownika, powłokę
- * z nawigacją i rejestrację service workera.
+ * style (arkusz design systemu, ekran startowy i Tailwind), preferencje
+ * użytkownika, powłokę z nawigacją i rejestrację service workera.
  *
  * Kolejność importów nie jest dowolna. `@bengos/ui/styles.css` definiuje
  * `:root` łącznie z `color-scheme: dark` i odwołuje się do zmiennych, które
- * wypisuje `tokensToStyle` w `AppShell`. `globals.css` idzie po nim, bo zawiera
- * warstwy Tailwinda, a te muszą trafić na koniec arkusza — inaczej narzędziowe
- * klasy przegrają z regułami bazowymi.
+ * wypisuje `tokensToStyle` w `AppShell`. `boot.css` idzie po nim, a przed
+ * `globals.css`, bo zawiera zasłonę startową — a ta musi wygrać z warstwami
+ * Tailwinda, żeby nie dała się nadpisać narzędziową klasą. `globals.css`
+ * zamyka listę, bo warstwy Tailwinda muszą trafić na koniec arkusza.
  *
  * ⚠ SESJA NIE JEST CZYTANA W TYM PLIKU — i to jest poprawka, nie brak.
  *
@@ -54,10 +56,9 @@ export const metadata: Metadata = {
   description: "Jeden społecznościowy system operacyjny.",
   applicationName: "BENGOS",
   manifest: "/manifest.webmanifest",
-  // Ikony PWA są zadeklarowane w manifeście i tam prowadzą. Pliki
-  // w `public/icons/` nie istnieją — brak ikon jest zgłoszony osobno,
-  // a wskazywanie ścieżek, których nie ma, dałoby pusty kwadrat w miejsce
-  // ikony zamiast jej braku.
+  // Ikony PWA są zadeklarowane w manifeście; logo znaku jest też tam.
+  // Pliki w `public/icons/icon-*.png` nadal nie istnieją — brak jest
+  // zgłoszony osobno, a wskazywanie ścieżek bez plików dałoby pusty kwadrat.
   appleWebApp: { capable: true, title: "BENGOS", statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
 };
@@ -85,6 +86,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         może rozstrzygnąć. Wnętrze drzewa zostaje bez tego wyjątku.
       */}
       <body className="min-h-dvh bg-[var(--bengos-surface)] text-[var(--bengos-text)] antialiased">
+        {/*
+          Zasłona startowa. Leży PRZED resztą i jest `aria-hidden`, bo nie
+          niesie treści: mówi tylko, że aplikacja nadchodzi. Dla czytnika
+          ekranu to szum, a dla oka — zastępstwo za biały prostokąt.
+
+          `fetchPriority` i zwykły `img` zamiast `next/image`: obraz ma
+          pokazać się w pierwszej klatce, a optymalizator Next potrzebuje
+          żądania do serwera, co w tym miejscu jest opóźnieniem, nie zyskiem.
+        */}
+        <div className="bengos-boot" aria-hidden="true">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/bengos-logo.jpg" alt="" className="bengos-boot-mark" />
+          <p className="bengos-boot-name">BENGOS</p>
+          <div className="bengos-boot-bar" />
+        </div>
+
         <PreferencesProvider>
           <SessionProvider initialIdentity={null}>
             <AppShell>{children}</AppShell>
