@@ -19,18 +19,24 @@ import { ApiRequestError, apiFetch } from "@/lib/api-client";
  * wersja importowała stałą `PAGE_SIZE` z kontraktu, ale kontrakt jej nie ma —
  * build produkcyjny przerywał się na błędzie typu. Rozmiar strony jest
  * decyzją interfejsu, nie kontraktu danych, i to jest właściwe miejsce.
+ *
+ * ── ZWRACAMY CAŁĄ STRONĘ, NIE TYLKO POZYCJE ─────────────────────────────
+ * Feed dosyła razem z wpisami mapę autorów (`authors`). Wcześniejsza wersja
+ * tego hooka wycinała z odpowiedzi tylko `items` i `nextCursor`, więc mapa
+ * autorów ginęła po drodze — a bez niej lista pokazywała surowe identyfikatory
+ * UUID zamiast nazw. Hook oddaje teraz surową stronę, a decyzja, co z niej
+ * odczytać, należy do ekranu.
  */
 
-interface CursorPage<T> {
-  items: T[];
-  nextCursor: string | null;
-}
-
-/** Ile pozycji na stronę. Serwer ogranicza górną granicę osobnym limitem. */
 const PAGE_SIZE = 20;
 
 export interface CursorList<T> {
   items: T[];
+  /**
+   * Cała ostatnia strona odpowiedzi. Ekrany, które potrzebują pola spoza
+   * `items` (na przykład `authors` w feedzie), czytają je stąd.
+   */
+  page: unknown;
   loading: boolean;
   loadingMore: boolean;
   error: ApiError | null;
@@ -41,6 +47,7 @@ export interface CursorList<T> {
 
 export function useCursorList<T>(path: string, enabled = true): CursorList<T> {
   const [items, setItems] = useState<T[]>([]);
+  const [page, setPage] = useState<unknown>(null);
   const [loading, setLoading] = useState(enabled);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
@@ -53,7 +60,7 @@ export function useCursorList<T>(path: string, enabled = true): CursorList<T> {
       const query = cursor
         ? `${separator}limit=${PAGE_SIZE}&cursor=${encodeURIComponent(cursor)}`
         : `${separator}limit=${PAGE_SIZE}`;
-      return apiFetch<CursorPage<T>>(`${path}${query}`);
+      return apiFetch<{ items: T[]; nextCursor: string | null }>(`${path}${query}`);
     },
     [path],
   );
@@ -67,10 +74,11 @@ export function useCursorList<T>(path: string, enabled = true): CursorList<T> {
     setLoading(true);
     setError(null);
     fetchPage(null)
-      .then((page) => {
+      .then((result) => {
         if (cancelled) return;
-        setItems(page.items);
-        setNextCursor(page.nextCursor);
+        setItems(result.items);
+        setNextCursor(result.nextCursor);
+        setPage(result);
       })
       .catch((cause: unknown) => {
         if (cancelled) return;
@@ -92,9 +100,10 @@ export function useCursorList<T>(path: string, enabled = true): CursorList<T> {
     if (!nextCursor || loadingMore || loading) return;
     setLoadingMore(true);
     fetchPage(nextCursor)
-      .then((page) => {
-        setItems((prev) => [...prev, ...page.items]);
-        setNextCursor(page.nextCursor);
+      .then((result) => {
+        setItems((prev) => [...prev, ...result.items]);
+        setNextCursor(result.nextCursor);
+        setPage(result);
       })
       .catch((cause: unknown) => {
         setError(
@@ -110,6 +119,7 @@ export function useCursorList<T>(path: string, enabled = true): CursorList<T> {
 
   return {
     items,
+    page,
     loading,
     loadingMore,
     error,
