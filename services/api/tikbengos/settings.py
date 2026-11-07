@@ -196,11 +196,36 @@ CSRF_TRUSTED_ORIGINS = [
 # Objaw był mylący: strona się otwierała (GET-y CSRF nie dotyczą), więc
 # wyglądało to na brak funkcji, a nie na niezgodność jednej nazwy.
 #
-# Zmieniamy nazwę po stronie serwera, a nie klienta, bo nazwa po stronie
-# klienta jest już opisana w kontrakcie `packages/core` i używana przez
-# formularze. Django porównuje tę wartość z `HTTP_` + nazwa nagłówka
-# zapisana wielkimi literami i myślnikami zamienionymi na podkreślenia.
+# Django porównuje tę wartość z `HTTP_` + nazwa nagłówka zapisana wielkimi
+# literami i myślnikami zamienionymi na podkreślenia.
 CSRF_HEADER_NAME = "HTTP_X_CSRF_TOKEN"
+
+# ── Logowanie przez dostawcę zewnętrznego ────────────────────────────────
+# Wartości są OPcjonalne i celowo bez domyślnych. Gdy ich nie ma, endpointy
+# logowania przez dostawcę zwracają 503 z wyjaśnieniem, a lista dostawców
+# mówi `configured: false` — interfejs pokazuje wtedy przycisk nieaktywny.
+# Nie ma tu żadnego identyfikatora ani sekretu wpisanego na sztywno:
+# repozytorium nie może zawierać sekretów ani udawać, że je ma.
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
+GITHUB_OAUTH_CLIENT_ID = os.environ.get("GITHUB_OAUTH_CLIENT_ID", "")
+GITHUB_OAUTH_CLIENT_SECRET = os.environ.get("GITHUB_OAUTH_CLIENT_SECRET", "")
+
+# Baza adresu zwrotnego. Z niej biorą się oba adresy callbacku:
+#     {baza}/api/auth/oauth/google/callback
+#     {baza}/api/auth/oauth/github/callback
+#
+# Adres musi być DOKŁADNIE ten sam w panelu dostawcy i tutaj. Rozjazd daje
+# `redirect_uri_mismatch` u Google — najczęstszy błąd przy pierwszym
+# podłączeniu i najtrudniejszy do zauważenia, bo komunikat nie mówi,
+# która wartość jest nie tak.
+#
+# Domyślnie bierzemy pierwszy adres z `CSRF_TRUSTED_ORIGINS`, bo ten sam
+# adres, pod którym działa aplikacja, jest właściwą bazą dla callbacku.
+OAUTH_REDIRECT_BASE = os.environ.get(
+    "OAUTH_REDIRECT_BASE",
+    (CSRF_TRUSTED_ORIGINS[0] if CSRF_TRUSTED_ORIGINS else ""),
+)
 
 # ── Czas trwania sesji ───────────────────────────────────────────────────
 # 30 dni dla zwykłego logowania. MFA dokłada osobną, krótszą ważność tokenu.
