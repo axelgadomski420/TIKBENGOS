@@ -9,7 +9,8 @@
     "./tokens": "./src/tokens.ts",
     "./themes": "./src/themes.ts",
     "./contrast": "./src/contrast.ts",
-    "./styles.css": "./src/styles.css"
+    "./styles.css": "./src/styles.css",
+    "./boot.css": "./src/boot.css"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
