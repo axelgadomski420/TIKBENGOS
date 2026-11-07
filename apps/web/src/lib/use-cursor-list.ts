@@ -20,23 +20,49 @@ import { ApiRequestError, apiFetch } from "@/lib/api-client";
  * build produkcyjny przerywał się na błędzie typu. Rozmiar strony jest
  * decyzją interfejsu, nie kontraktu danych, i to jest właściwe miejsce.
  *
- * ── ZWRACAMY CAŁĄ STRONĘ, NIE TYLKO POZYCJE ─────────────────────────────
- * Feed dosyła razem z wpisami mapę autorów (`authors`). Wcześniejsza wersja
- * tego hooka wycinała z odpowiedzi tylko `items` i `nextCursor`, więc mapa
- * autorów ginęła po drodze — a bez niej lista pokazywała surowe identyfikatory
- * UUID zamiast nazw. Hook oddaje teraz surową stronę, a decyzja, co z niej
- * odczytać, należy do ekranu.
+ * ── `authors` JEST TYPOWANE, NIE PRZECIąGANE PRZEZ `unknown` ────────────
+ * Poprzednia wersja oddawała całą stronę w polu `page: unknown`, a ekran
+ * feedu czytał z niej `authors` — i build produkcyjny przerywał się na
+ * `Property 'authors' does not exist on type 'CursorList<Post>'`.
+ *
+ * Rzutowanie w komponencie byłoby obejściem, nie naprawą: typ `unknown`
+ * zmusza każdego odbiorcę do rzutowania i gubi informację o kształcie.
+ * Zamiast tego hook przyjmuje TYP STRONY jako drugi parametr generyczny,
+ * a `authors` (opcjonalna mapa autorów) jest częścią kontraktu hooka.
+ *
+ * Pole `authors` jest OPCJONALNE i puste, gdy odpowiedź go nie niesie —
+ * inne listy stronicowane w tym projekcie nie dosyłają autorów i mają
+ * prawo ich nie mieć. Dzięki temu hook obsługuje oba przypadki bez
+ * drugiego wariantu.
  */
 
 const PAGE_SIZE = 20;
 
+/** Autor w postaci, w jakiej dosyła go feed. */
+export interface PageAuthor {
+  id: string;
+  username: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+}
+
+/**
+ * Kształt strony z serwera. Pola poza `items` są OPCJONALNE, bo nie każdy
+ * endpoint stronicowany je dosyła — feed dosyła autorów, inne listy nie.
+ */
+export interface CursorPage<T> {
+  items: T[];
+  nextCursor: string | null;
+  authors?: Record<string, PageAuthor>;
+}
+
 export interface CursorList<T> {
   items: T[];
   /**
-   * Cała ostatnia strona odpowiedzi. Ekrany, które potrzebują pola spoza
-   * `items` (na przykład `authors` w feedzie), czytają je stąd.
+   * Mapa autorów z OSTATNIEJ pobranej strony. Pusta, gdy endpoint jej nie
+   * dosyła — konsument nie musi sprawdzać, czy pole istnieje.
    */
-  page: unknown;
+  authors: Record<string, PageAuthor>;
   loading: boolean;
   loadingMore: boolean;
   error: ApiError | null;
@@ -47,7 +73,7 @@ export interface CursorList<T> {
 
 export function useCursorList<T>(path: string, enabled = true): CursorList<T> {
   const [items, setItems] = useState<T[]>([]);
-  const [page, setPage] = useState<unknown>(null);
+  const [authors, setAuthors] = useState<Record<string, PageAuthor>>({});
   const [loading, setLoading] = useState(enabled);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
@@ -60,7 +86,7 @@ export function useCursorList<T>(path: string, enabled = true): CursorList<T> {
       const query = cursor
         ? `${separator}limit=${PAGE_SIZE}&cursor=${encodeURIComponent(cursor)}`
         : `${separator}limit=${PAGE_SIZE}`;
-      return apiFetch<{ items: T[]; nextCursor: string | null }>(`${path}${query}`);
+      return apiFetch<CursorPage<T>>(`${path}${query}`);
     },
     [path],
   );
@@ -78,7 +104,7 @@ export function useCursorList<T>(path: string, enabled = true): CursorList<T> {
         if (cancelled) return;
         setItems(result.items);
         setNextCursor(result.nextCursor);
-        setPage(result);
+        setAuthors(result.authors ?? {});
       })
       .catch((cause: unknown) => {
         if (cancelled) return;
@@ -103,7 +129,10 @@ export function useCursorList<T>(path: string, enabled = true): CursorList<T> {
       .then((result) => {
         setItems((prev) => [...prev, ...result.items]);
         setNextCursor(result.nextCursor);
-        setPage(result);
+        // Autorzy SCALAJĄ SIĘ, nie zastępują. Ta sama osoba występuje
+        // w kilku wpisach i na kilku stronach, a podmiana mapy na mapę
+        // z ostatniej strony wyrzuciłaby autorów z wcześniejszych wpisów.
+        setAuthors((prev) => ({ ...prev, ...(result.authors ?? {}) }));
       })
       .catch((cause: unknown) => {
         setError(
@@ -119,7 +148,7 @@ export function useCursorList<T>(path: string, enabled = true): CursorList<T> {
 
   return {
     items,
-    page,
+    authors,
     loading,
     loadingMore,
     error,
