@@ -23,6 +23,16 @@ import { useSession } from "@/lib/session-context";
  *
  * Zgody wymagają zalogowania, bo są przypisane do konta. Bez sesji komponent
  * pokazuje, dlaczego nie ma czego ustawiać, a nie atrapę przełączników.
+ *
+ * ── CAŁY WIERSZ JEST CELEM, STAN WIDAĆ BEZ KOLORU ──────────────────────
+ * Jak w karcie dostępności na pulpicie: `label` obejmuje wiersz razem
+ * z opisem, więc palec trafia w wiersz, a nie w sam kwadracik. Włączona
+ * zgoda dostaje podświetloną powierzchnię — widać ją niezależnie od tego,
+ * czy ktoś odróżnia akcent od tła.
+ *
+ * `disabled` na wszystkich polach w czasie zapisu jest celowe: zgody idą
+ * jednym żądaniem `PATCH`, więc druga zmiana w trakcie pierwszej wysłałaby
+ * stan, którego serwer jeszcze nie potwierdził.
  */
 
 const TOGGLES = [
@@ -99,25 +109,34 @@ export function ConsentSettings() {
         </p>
       ) : (
         <>
-          <ul className="mt-4 space-y-4">
+          <ul className="mt-3 grid gap-2">
             {TOGGLES.map((toggleItem) => {
               const checked = consents ? consents[toggleItem.key] : false;
               return (
-                <li key={toggleItem.key} className="flex items-start gap-3">
-                  <input
-                    id={`consent-${toggleItem.key}`}
-                    type="checkbox"
-                    checked={checked}
-                    disabled={busy !== null}
-                    onChange={(event) => void toggle(toggleItem.key, event.target.checked)}
-                    className="mt-1 size-5 shrink-0 accent-[var(--bengos-accent)]"
-                  />
-                  <label htmlFor={`consent-${toggleItem.key}`} className="cursor-pointer">
-                    <span className="block font-[var(--bengos-weight-medium)]">
-                      {toggleItem.label}
-                    </span>
-                    <span className="block text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
-                      {toggleItem.description}
+                <li key={toggleItem.key}>
+                  <label
+                    htmlFor={`consent-${toggleItem.key}`}
+                    className={`flex min-h-[var(--bengos-touch-target-min)] cursor-pointer items-start gap-3 rounded-[var(--bengos-radius-control)] border px-3 py-2 transition-colors duration-[var(--bengos-motion-fast)] ${
+                      checked
+                        ? "border-[var(--bengos-border-strong)] bg-[var(--bengos-surface-sunken)]"
+                        : "border-[var(--bengos-border)]"
+                    } ${busy !== null ? "opacity-60" : ""}`}
+                  >
+                    <input
+                      id={`consent-${toggleItem.key}`}
+                      type="checkbox"
+                      checked={checked}
+                      disabled={busy !== null}
+                      onChange={(event) => void toggle(toggleItem.key, event.target.checked)}
+                      className="mt-1 size-5 shrink-0 accent-[var(--bengos-accent)]"
+                    />
+                    <span>
+                      <span className="block font-[var(--bengos-weight-medium)]">
+                        {toggleItem.label}
+                      </span>
+                      <span className="block text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
+                        {toggleItem.description}
+                      </span>
                     </span>
                   </label>
                 </li>
