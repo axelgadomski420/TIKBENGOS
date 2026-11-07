@@ -39,22 +39,17 @@ const BRANCHES: { href: string; label: string; description: string; permission?:
  * `TIKBENGOS` zostaje wyłącznie jako nazwa repozytorium i pakietów w kodzie;
  * użytkownik nie ma powodu jej oglądać.
  *
- * ── ZNAK ZAMIAST SAMEJ NAZWY ────────────────────────────────────────────
- * Logo (`/brand/bengos-logo.jpg`) ma napis „BENGOS” wpisany w grafikę.
- * Obok niego stoi jednak nazwa tekstem — i to jest decyzja, nie przeoczenie:
- * znak jest kwadratowy i ciemny, więc w pasku o wysokości 56 px czyta się
- * jako sygnet, w którym słowo jest małe i nieczytelne. Nazwa obok mówi to,
- * czego sygnet nie powie, i to ona zostaje w pamięci przy przewijaniu.
+ * ── ZNAK JEST ZAOKRĄGLONY MOCNIEJ NIŻ KARTA ────────────────────────────
+ * Logo jest kwadratowe z ciemnym tłem, a napis „BENGOS” siedzi w górnej
+ * części grafiki. Przy pełnym kadrowaniu w kwadracie 40 px napis stawał się
+ * nieczytelnym szumem i zabierał miejsce samemu tygrysowi. Dlatego obraz
+ * dostaje `object-cover object-top` i większy promień — widać wtedy głowę,
+ * a nazwa obok mówi to, czego sygnet nie powie.
  *
- * Tekst alternatywny jest pusty (`alt=""`), bo nazwę podaje `aria-label`
- * odnośnika — inaczej czytnik ekranu przeczytałby „BENGOS” dwa razy,
- * a opis znaku dublowałby etykietę.
- *
- * ── PASEK JEST JEDNYM MATERIAŁEM ────────────────────────────────────────
- * Pozycje nawigacji dostały `bengos-tile` zamiast samych napisów: aktywna
- * pozycja jest widoczna jako podświetlona powierzchnia, nie jako kolor
- * liter. Kolor liter działa tylko wtedy, gdy ktoś odróżnia akcent od tła —
- * powierzchnia działa zawsze, także przy zaburzeniu widzenia barw.
+ * ── ODSTĘPY PIERWSZEŃSTWA: NAWIGACJA NAD ZNAKIEM ───────────────────────
+ * Pasek ustawia nawigację w `ml-auto` razem z ustawieniami, a znak zostaje
+ * po lewej. Bez tego przy siedmiu modułach nazwa i ostatni moduł zlepiały
+ * się w jeden ciąg i nie było widać, gdzie kończy się marka, a zaczyna menu.
  */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { theme, accessibility } = usePreferences();
@@ -88,14 +83,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {/*
               `priority` jest tu celowe: znak stoi nad zgięciem strony, więc
               leniwe ładowanie pokazałoby go po chwili jako przeskok układu.
-              Rozmiar podany jawnie, bo obraz bez wymiarów rezerwuje zero
-              miejsca i wypycha nawigację w momencie wczytania.
 
               `unoptimized` jest wymagane, a nie wygodne: plik jest JPEG-em
               w `public/` bez wymiarów zoptymalizowanych, a Next bez tej flagi
               próbuje przetworzyć go na żądanie i przy braku pliku zwraca
-              pusty prostokąt zamiast informacji o braku. Wariant wprost
-              oddaje to, co leży w repozytorium.
+              pusty prostokąt zamiast informacji o braku.
             */}
             <Image
               src="/brand/bengos-logo.jpg"
@@ -104,7 +96,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               height={36}
               priority
               unoptimized
-              className="size-9 rounded-[var(--bengos-radius-control)] object-cover"
+              className="size-9 rounded-full object-cover object-top"
             />
             <span className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-semibold)]">
               BENGOS
