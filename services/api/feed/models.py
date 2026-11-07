@@ -17,6 +17,10 @@ from django.db import models
 
 BODY_MAX_LENGTH = 80
 
+# Limit treści komentarza. Dłuższy niż wpis, bo komentarz bywa rozwinięciem
+# myśli, a wpis jest zajawką — tak samo było w modelu źródłowym z TIKTAK.
+COMMENT_MAX_LENGTH = 500
+
 
 class Post(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -39,9 +43,10 @@ class Post(models.Model):
         "self", on_delete=models.CASCADE, null=True, blank=True, related_name="reposts"
     )
 
-    # Liczniki denormalizowane. `bookmarks` i `views` zostają na zero do
-    # Etapu 2 — nie ma jeszcze ekranu zakładek ani liczenia odsłon, a licznik
-    # rosnący „sam z siebie” byłby danym wymyślonym.
+    # Liczniki denormalizowane. `like_count` i `comment_count` aktualizuje
+    # warstwa API w transakcji razem ze zmianą. `bookmark_count` i `view_count`
+    # zostają na zero do momentu, gdy powstaną ekran zakładek i liczenie
+    # odsłon — licznik rosnący „sam z siebie” byłby danym wymyślonym.
     like_count = models.PositiveIntegerField(default=0)
     comment_count = models.PositiveIntegerField(default=0)
     repost_count = models.PositiveIntegerField(default=0)
@@ -92,7 +97,7 @@ class Follow(models.Model):
     """Obserwacja. Jedna para na raz, bez obserwowania samego siebie.
 
     Model istnieje już teraz, bo filtr „obserwowani” musi mieć z czego
-    czytać, gdy feed ruszy — dolożenie go później zmieniłoby znaczenie
+    czytać, gdy feed ruszy — dołożenie go później zmieniłoby znaczenie
     istniejących zapytań o „twórców, których obserwujesz”.
     """
 
@@ -116,3 +121,40 @@ class Follow(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover
         return f"{self.follower_id} → {self.followed_id}"
+
+
+class Comment(models.Model):
+    """Komentarz albo odpowiedź na komentarz.
+
+    ── DWA POZIOMY, NIE DRZEWO ──────────────────────────────────────────
+    `parent_comment` wskazuje komentarz główny, a odpowiedź w nim jest już
+    płaska — tak samo jak w modelu źródłowym z TIKTAK i jak mówi kontrakt:
+    „dwa poziomy, głębsze zagnieżdżenie nie istnieje”.
+
+    Wymuszamy to walidacją w API, a nie w bazie, bo reguła dotyczy sensu
+    odpowiedzi, a nie spójności danych — w bazie pozostałby warunek, którego
+    nikt nie potrafi odczytać przy debugowaniu.
+
+    `like_count` na komentarzu stoi na zero do momentu, gdy powstanie
+    polubienie komentarza. Model polubienia wpisu tego nie obsługuje i nie
+    udajemy, że obsługuje.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="comments")
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="comments"
+    )
+    parent_comment = models.ForeignKey(
+        "self", on_delete=models.CASCADE, null=True, blank=True, related_name="replies"
+    )
+    body = models.CharField(max_length=COMMENT_MAX_LENGTH)
+    like_count = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["created_at"]
+        indexes = [models.Index(fields=["post", "created_at"])]
+
+    def __str__(self) -> str:  # pragma: no cover
+        return self.body[:40]
