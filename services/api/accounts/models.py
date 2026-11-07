@@ -9,6 +9,7 @@ import uuid
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils import timezone
 
 from .crypto import decrypt_secret, encrypt_secret
 
@@ -25,6 +26,11 @@ PERCEPTION_CHOICES = [
     ("audio-only", "Tylko dźwięk"),
     ("text-only", "Tylko tekst"),
 ]
+
+# Dostawcy, przez których można się zalogować bez hasła. Nazwy są
+# identyfikatorami w bazie i w adresach, więc zostają w tej samej postaci
+# co w katalogu dostawców (`packages/core/src/providers.ts`).
+OAUTH_PROVIDERS = ["google", "github"]
 
 
 class User(AbstractUser):
@@ -63,6 +69,58 @@ class User(AbstractUser):
 
     def __str__(self) -> str:  # pragma: no cover - wygoda w panelu
         return self.username
+
+
+class LinkedAccount(models.Model):
+    """Konto zewnętrzne podpięte do konta BENGOS.
+
+    ── DLACZEGO OSOBNY MODEL, A NIE POLA NA `User` ────────────────────────
+    Jedno konto BENGOS może mieć podpiętych kilku dostawców — dziś Google,
+    jutro GitHub i cokolwiek dalej. Trzy kolumny na `User` rosłyby z każdym
+    nowym dostawcą i wymagały migracji przy każdym dodaniu. Tabela z jednym
+    wierszem na parę (dostawca, konto) jest zamknięta na zmiany.
+
+    ── HASŁO ZOSTAJE NIEUŻYWALNE PRZY REJESTRACJI PRZEZ DOSTAWCĘ ──────────
+    `set_unusable_password()` ustawia skrót, którego nie da się dopasować
+    żadnym hasłem. To jest poprawne zachowanie, a nie luka: konto założone
+    przez Google nie ma hasła w BENGOS i nie powinno się go dać zgadnąć.
+    Użytkownik może później ustawić hasło osobnym krokiem, jeśli zechce
+    logować się także bez dostawcy.
+
+    ── ADRES EMAIL JEST TU ZAPISANY OSOBNO ───────────────────────────────
+    Adres może się różnić między dostawcami i może się zmienić u dostawcy.
+    Kopia w tym wierszu mówi, którym adresem dostawca się przedstawił
+    w chwili podpinania konta — bez tego nie da się wyjaśnić użytkownikowi,
+    dlaczego widzi dwa różne adresy.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="linked_accounts")
+    provider = models.CharField(max_length=32, choices=[(p, p) for p in OAUTH_PROVIDERS])
+    # Identyfikator użytkownika u dostawcy. Nie jest sekretem, ale jest
+    # niepowtarzalny — to on rozstrzyga, kto się loguje.
+    subject = models.CharField(max_length=191)
+    email = models.EmailField(blank=True, default="")
+    display_name = models.CharField(max_length=150, blank=True, default="")
+    created_at = models.DateTimeField(default=timezone.now)
+    last_login_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["provider"]
+        constraints = [
+            # Jeden wiersz na parę (dostawca, subject). Bez tego dwa równoległe
+            # żądania callbacku mogłyby założyć dwa konta dla tej samej osoby.
+            models.UniqueConstraint(
+                fields=["provider", "subject"], name="unique_linked_provider_subject"
+            ),
+            # Ten sam dostawca nie może być podpięty dwa razy do jednego konta.
+            models.UniqueConstraint(
+                fields=["user", "provider"], name="unique_linked_provider_per_user"
+            ),
+        ]
+
+    def __str__(self) -> str:  # pragma: no cover
+        return f"{self.provider}:{self.subject}"
 
 
 class ApiKey(models.Model):
