@@ -142,3 +142,34 @@ class RegisterOut(Schema):
     identity: IdentityOut
     accessToken: str
     expiresAt: datetime
+
+
+class OAuthStartOut(Schema):
+    """Adres, pod który przeglądarka ma przejść, żeby zacząć logowanie.
+
+    Serwer zwraca adres, a nie przekierowuje samodzielnie, z jednego powodu:
+    żądanie idzie przez proxy Next.js, a przekierowanie z `fetch` w trybie
+    `manual` nie przenosi ciasteczek tak, jak potrzebuje tego CSRF. Klient
+    robi `window.location.assign` — proste i jednoznaczne.
+    """
+
+    authorizeUrl: str
+
+
+class OAuthProviderOut(Schema):
+    """Dostawca dostępny do logowania — do listy przycisków na ekranie.
+
+    `configured` mówi, czy serwer ma komplet kluczy. Interfejs pokazuje
+    wtedy przycisk aktywny, a bez kompletu — przycisk z wyjaśnieniem.
+    Udawanie, że przycisk działa, a potem odsyłanie gościa z błędem 503,
+    byłoby dokładnie tym, czego ten projekt nie robi.
+    """
+
+    id: str
+    label: str
+    configured: bool
+
+
+class OAuthCallbackIn(Schema):
+    code: str
+    state: str
