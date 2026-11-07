@@ -19,11 +19,10 @@ import { useSession } from "@/lib/session-context";
  * strukturą nie jest. Czytnik ekranu ma dostać sekcję „Tożsamość”
  * z `aria-label`, a nie kolejny nagłówek w spisie treści.
  *
- * ── BEZ SESJI: JEDNO WYJŚCIE, NIE DWA ──────────────────────────────────
- * Wcześniej ten stan pokazywał zdanie i przycisk logowania, ale nie mówił,
- * co użytkownik może zrobić bez konta. Teraz zdanie jest podzielone na to,
- * co wolno, i to, czego nie wolno — a obok stoi odnośnik do pulpitu, bo
- * rozejrzenie się jest dokładnie tym, co w tym stanie pozostaje.
+ * ── BEZ SESJI: JEDNO WYJŚCIE ──────────────────────────────────────────
+ * Stan bez konta mówi wprost, co wolno bez zalogowania, i daje jedno
+ * wyjście: logowanie. Drugi odnośnik do pulpitu byłby tu zbędny, bo
+ * użytkownik właśnie na pulpicie stoi.
  */
 export function IdentityBar() {
   const { identity, isAuthenticated } = useSession();
@@ -60,18 +59,18 @@ export function IdentityBar() {
       className="bengos-surface-card flex flex-wrap items-center gap-x-4 gap-y-3"
     >
       <div className="min-w-0 flex-1">
-        <p
-          className="truncate text-[var(--bengos-size-title)] font-[var(--bengos-weight-medium)]"
-          title={shownName}
-        >
-          {shownName}
-        </p>
         {/*
           `truncate` na nazwie jest tu konieczne, a nie kosmetyczne: nazwa
           użytkownika ma limit 150 znaków w modelu, a karta ma stałą
           szerokość. Bez ucięcia długa nazwa rozepchnęłaby przyciski poza
           ekran na telefonie — a `title` zostawia do niej dostęp.
         */}
+        <p
+          className="truncate text-[var(--bengos-size-title)] font-[var(--bengos-weight-medium)]"
+          title={shownName}
+        >
+          {shownName}
+        </p>
         <p className="text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
           @{identity.username}
           {extraRoles.length > 0
