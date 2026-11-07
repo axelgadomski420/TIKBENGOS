@@ -1,0 +1,123 @@
+/*
+ * Ekran startowy BENGOS.
+ *
+ * ── CZYM TO NIE JEST ────────────────────────────────────────────────────
+ * To nie jest ekran ładowania aplikacji. Next.js serwuje interfejs tak
+ * szybko, że zasłanianie go na sekundę byłoby udawaniem pracy, której nie ma.
+ * Ten plik istnieje dla momentu, którego Next nie widzi: zanim CSS i czcionki
+ * dojadą, przeglądarka maluje coś sama.
+ *
+ * Bez tego użytkownik na wolnym łączu widzi biały prostokąt — a biały
+ * prostokąt w aplikacji z ciemnym motywem wygląda jak zepsuta strona,
+ * nie jak ładowanie. Dlatego tło i znak są tu wpisane wprost, bez
+ * odwołania do arkusza, którego jeszcze nie ma.
+ *
+ * ── KOLORY SĄ POWTÓRZONE ŚWIADOMIE ─────────────────────────────────────
+ * `#0B0B0F` to `--bengos-surface`, a `#7C5CFF` to `--bengos-accent`
+ * z ciemnego motywu. Nie da się tu użyć zmiennych CSS, bo ten arkusz jest
+ * tym, co sprawia, że zmienne zaczynają istnieć — więc w tym jednym miejscu
+ * kolor stoi wprost i nie da się tego obejść.
+ *
+ * ── ZNIKA SAME, BEZ JAVASCRIPTU ─────────────────────────────────────────
+ * Zasłona schodzi po 900 ms animacją, a nie po zdarzeniu `load`. Powód:
+ * zdarzenie `load` wymaga skryptu, a skrypt wykonuje się dopiero po
+ * hydracji — czyli dokładnie wtedy, gdy zasłona przestaje być potrzebna.
+ * Animacja CSS działa od pierwszej klatki, także przed JavaScriptem.
+ *
+ * ── ANIMACJA NIE ZNIKA PRZY OGRANICZENIU RUCHU ──────────────────────────
+ * Pulsowanie schodzi do 1 ms, tak jak tokeny ruchu w design systemie.
+ * Element, który się nie pojawia, jest błędem, a nie udogodnieniem.
+ */
+
+@keyframes bengos-boot-hide {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+@keyframes bengos-boot-pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: scale(0.985);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes bengos-boot-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+.bengos-boot {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  background: #0b0b0f;
+  /*
+   * Odcina zasłonę od dotyku od razu. Bez tego element przechwytywałby
+   * kliknięcia w interfejs, który jest pod nim — a jest tam już od
+   * pierwszej klatki.
+   */
+  pointer-events: none;
+  animation: bengos-boot-hide 240ms ease-out 900ms forwards;
+}
+
+.bengos-boot-mark {
+  width: 96px;
+  height: 96px;
+  border-radius: 24px;
+  object-fit: cover;
+  animation: bengos-boot-pulse 1.6s ease-in-out infinite;
+}
+
+.bengos-boot-name {
+  font-family: ui-sans-serif, -apple-system, "Segoe UI", Inter, Arial, sans-serif;
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #f5f5f7;
+  text-transform: uppercase;
+}
+
+.bengos-boot-bar {
+  width: 96px;
+  height: 2px;
+  border-radius: 9999px;
+  overflow: hidden;
+  background: rgb(124 92 255 / 0.25);
+}
+
+.bengos-boot-bar::after {
+  content: "";
+  display: block;
+  width: 40%;
+  height: 100%;
+  border-radius: 9999px;
+  background: #7c5cff;
+  animation: bengos-boot-slide 1.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bengos-boot {
+    animation-duration: 1ms;
+    animation-delay: 1ms;
+  }
+  .bengos-boot-mark,
+  .bengos-boot-bar::after {
+    animation: none;
+  }
+}
