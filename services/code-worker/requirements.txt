@@ -1,0 +1,21 @@
+# Zależności workera agenta kodującego — `services/code-worker`.
+#
+# ── CELOWO PUSTA LISTA ───────────────────────────────────────────────────
+# Worker to warstwa między kontraktem BENGOS a agentem: klonuje repozytorium,
+# buduje drzewo plików, woła agenta i zwraca plan oraz patch. Wszystko, co jest
+# do tego potrzebne, jest w bibliotece standardowej Pythona — `json`,
+# `subprocess`, `tempfile`, `pathlib`, `dataclasses`.
+#
+# Dlatego ten plik NIE zawiera Django, `requests` ani klienta żadnego modelu.
+# Django w tym obrazie byłby zaproszeniem do sięgnięcia po bazę użytkowników,
+# a tego ten kontener robić nie może: agent wykonuje polecenia powłoki i musi
+# być odizolowany od reszty systemu.
+#
+# ── AGENTA DOPISUJESZ TUTAJ, GDY OBRAZ BĘDZIE GOTOWY ─────────────────────
+# Wywołanie agenta jest oznaczone komentarzem w `run_agent_plan()`
+# (worker.py). Gdy podłączysz TIKCODING albo Aidera, jego zależności dodajesz
+# TUTAJ, a nie do obrazu API — bo agent jest częścią tego workera, nie Django.
+#
+# Nie wpisuję tu na zapas `aider-chat` ani `swebench`: nie są używane przez
+# żadną linię kodu, a zależność bez użycia to waga obrazu i powierzchnia
+# podatności, której nikt nie aktualizuje.
