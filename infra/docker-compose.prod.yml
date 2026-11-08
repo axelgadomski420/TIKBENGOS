@@ -1,4 +1,4 @@
-# Infrastruktura TIKBENGOS — środowisko produkcyjne.
+successfully downloaded text file (SHA: a135699e6edb125c2cfd959b1c436e6190b2d5d4)# Infrastruktura TIKBENGOS — środowisko produkcyjne.
 #
 # Pięć różnic wobec `docker-compose.yml`, każda jest celowa:
 #
@@ -74,6 +74,33 @@ services:
       FIELD_ENCRYPTION_KEY: ${FIELD_ENCRYPTION_KEY:?Ustaw FIELD_ENCRYPTION_KEY w .env}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:?Ustaw ALLOWED_HOSTS w .env}
       CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:?Ustaw CSRF_TRUSTED_ORIGINS w .env}
+      # ── Moduły i dostawcy ─────────────────────────────────────────────
+      # Compose NIE wstrzykuje zmiennych z ".env" do kontenerów sam z siebie:
+      # ".env" służy tylko do podstawień "${...}" w tym pliku. Zmienna, której
+      # tu nie ma, w kontenerze API nie istnieje nawet wtedy, gdy leży w ".env"
+      # na hoście — więc każda zmienna czytana przez settings.py musi tu jawnie
+      # przejść. Wszystkie poniższe są opcjonalne, dokładnie tak samo jak
+      # w ustawieniach: pusto = moduł uczciwie mówi "nie skonfigurowano".
+      # OAuth (Google, GitHub): pusto = przyciski dostawców nieaktywne.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GITHUB_OAUTH_CLIENT_ID: ${GITHUB_OAUTH_CLIENT_ID:-}
+      GITHUB_OAUTH_CLIENT_SECRET: ${GITHUB_OAUTH_CLIENT_SECRET:-}
+      # BENGOS Dev: token do GitHuba (plan + pull request) i adres executora.
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      BENGOS_CODE_EXECUTOR_URL: ${BENGOS_CODE_EXECUTOR_URL:-}
+      # BENGOS Music: adres workera GPU i limit dzienny na użytkownika.
+      # Limit używa ":-" (domyślna także przy pustym), bo pusty ciąg
+      # trafiłby do int("") i zatrzymał import ustawień.
+      MUSICGEN_ENDPOINT: ${MUSICGEN_ENDPOINT:-}
+      MUSIC_DAILY_LIMIT: ${MUSIC_DAILY_LIMIT:-10}
+      # Wspólny sekret endpointów zwrotnych /jobs/{id}/complete: worker GPU,
+      # executor zmian, worker asystenta. Pusto = endpointy zwrotne zwracają
+      # 403 dla każdego żądania.
+      BENGOS_WORKER_TOKEN: ${BENGOS_WORKER_TOKEN:-}
+      # BENGOS Asystent: adres usługi z modelem i nazwa modelu.
+      ASSISTANT_LLM_ENDPOINT: ${ASSISTANT_LLM_ENDPOINT:-}
+      ASSISTANT_MODEL: ${ASSISTANT_MODEL:-}
     depends_on:
       db:
         condition: service_healthy
@@ -100,6 +127,12 @@ services:
     build:
       context: ..
       dockerfile: apps/web/Dockerfile
+      # NEXT_PUBLIC_* Next.js wypala w paczce klienta W CZASIE BUDOWY.
+      # Podana tylko w "environment" (runtime) do przeglądarki nie trafia
+      # — po wdrożeniu czat pokazywałby "nieskonfigurowany", choć ".env"
+      # jest poprawny. Dlatego wartość idzie przez args do etapu builder.
+      args:
+        NEXT_PUBLIC_REALTIME_URL: ${NEXT_PUBLIC_REALTIME_URL:-}
     restart: unless-stopped
     environment:
       # Proxy w `apps/web` czyta ten adres po stronie serwera Next.js.

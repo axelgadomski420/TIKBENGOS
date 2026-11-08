@@ -1,4 +1,4 @@
-# Interfejs TIKBENGOS — obraz produkcyjny.
+successfully downloaded text file (SHA: 5bb2bb8d51383e15e886c76914a428ce7ab877e9)# Interfejs TIKBENGOS — obraz produkcyjny.
 #
 # Trzy etapy, celowo: zależności, budowanie, uruchomienie. Jednoetapowy obraz
 # z całym `node_modules` i źródłami waży kilkaset megabajtów więcej, a na
@@ -28,6 +28,11 @@ COPY . .
 # Adres wskazuje usługę w sieci Dockera: w czasie budowania odpowiada na
 # niego nic, ale `readSession()` traktuje nieosiągalne API jako brak
 # tożsamości, więc build tego nie wywala.
+# NEXT_PUBLIC_* trafia do paczki klienta W CZASIE BUDOWY, nie w runtime.
+# Bez tego ARG wartość z compose (sekcja "args") nie dotarłaby do kodu
+# przeglądarki — ENV podany w runtime nie nadpisze już zbudowanego klienta.
+ARG NEXT_PUBLIC_REALTIME_URL=""
+ENV NEXT_PUBLIC_REALTIME_URL=${NEXT_PUBLIC_REALTIME_URL}
 ENV API_INTERNAL_URL=http://api:8000
 RUN npm run build -w apps/web
 
