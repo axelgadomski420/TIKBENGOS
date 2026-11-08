@@ -9,52 +9,54 @@ import { BRAND } from "@/lib/brand";
 export const metadata: Metadata = { title: "BENGOS" };
 
 /**
+ * ── TA STRONA NIE JEST PRE-RENDEROWANA (naprawa 2026-11-08, noc) ────────
+ *
+ * `force-dynamic` jest tu NAJWAŻNIEJSZĄ linią w tym pliku i powód jest
+ * konkretny, nie estetyczny.
+ *
+ * Next.js domyślnie pre-renderuje statyczne trasy przy budowie obrazu.
+ * Skutek dla tej strony był podwójny:
+ *
+ * 1. Wysyłała `Cache-Control: s-maxage=31536000`, czyli pozwolenie na
+ *    trzymanie jej w cache przez ROK. Dowód z nagłówków po wdrożeniu:
+ *        cache-control: s-maxage=31536000
+ *        x-nextjs-cache: HIT
+ *    Właściciel widział na telefonie ekran sprzed godzin mimo nowego
+ *    obrazu — sprawdzone `grep`-em w kompilacie kontenera.
+ *
+ * 2. Renderowała PULPIT (`WelcomeBanner`, `ModuleOrbit`, `ModuleBranches`)
+ *    w HTML-u wysyłanym do przeglądarki — czyli treść konta dla osoby,
+ *    która go nie ma. Brama z `AppShell` dochodziła dopiero po hydracji,
+ *    więc przez chwilę (a przy wolnym łączu dłużej) widać było pulpit
+ *    zamiast ekranu wejścia: orbita z TYGRYSEM pośrodku i siatka kafli.
+ *
+ * To jest dokładnie ten obraz, który zgłaszał właściciel: „ogromny tygrys
+ * i wąski pasek formularza po lewej”. Tygrys pochodził z `ModuleOrbit`,
+ * a „pasek formularza” był fragmentem siatki — nie bramą logowania.
+ *
+ * `force-dynamic` sprawia, że strona renderuje się przy KAŻDYM żądaniu,
+ * a nie raz przy budowie. Cena jest jedna: brak statycznego pre-renderu,
+ * więc pierwsze żądanie jest wolniejsze o czas renderu serwera (kilka ms
+ * dla tego drzewa). W zamian HTML nie zawiera już pulpitu dla przybysza,
+ * a cache nie ma czego trzymać.
+ *
+ * Ta strona i tak zależy od stanu sesji — dla zalogowanego pokazuje
+ * pulpit, dla przybysza `AppShell` wstawia `EntryScreen`. Pre-render
+ * dowolnej z tych dwóch wersji jest więc z definicji błędny dla połowy
+ * odwiedzających.
+ */
+export const dynamic = "force-dynamic";
+
+/**
  * MENU GŁÓWNE — ekran, na który wchodzi się po zalogowaniu.
  *
- * ── TO JEST MENU, NIE DRUGI EKRAN LOGOWANIA (korekta 2026-11-08) ────────
- * Poprzednia wersja stawiała na środku ekranu DUŻY znak marki w okręgu HUD
- * — dokładnie taki sam, jaki stoi na ekranie logowania. Po zalogowaniu
- * użytkownik lądował więc na ekranie wizualnie NIEROZRÓŻNIALNYM od tego,
- * z którego właśnie wyszedł, a cała różnica (siatka kafli) była pod zgięciem.
- * Właściciel opisał to wprost: „logowanie i rejestracja do menu głównego”
- * — czyli po wejściu ma być WIDAĆ, że jest się w innym miejscu.
- *
- * Teraz hierarchia jest odwrócona tak, jak w każdym launcherze:
- *   1. PASEK TOŻSAMOŚCI — kto wszedł i jakim uchwytem (to potwierdza
- *      zalogowanie i jest pierwszą rzeczą, której szuka oko),
- *   2. SIATKA DZIEWIĘCIU WEJŚĆ — cała uwaga i cały ekran,
- *   3. znak marki jako mała pieczęć w tle nagłówka, nie jako kula
- *      na środku — znak jest dekoracją, drzwi są treścią.
- *
- * ── DLACZEGO ZNAK JEST MNIEJSZY, A NIE TAKI SAM ─────────────────────────
- * Na ekranie logowania znak jest osią kompozycji, bo nie ma tam nic
- * innego do zrobienia. Tu jest dziewięć rzeczy do zrobienia — a powtórzenie
- * tego samego znaku w tej samej wielkości odbiera uwagę siatce i sprawia,
- * że ekran wygląda jak kopia poprzedniego. Rozmiar 256–320 px w tle, mocno
- * przygaszony, wystarcza, żeby marka była obecna, i nie konkuruje z kaflami.
- *
- * ── ORBITA NA DUŻYCH EKRANACH (aktualizacja 2026-11-08, wieczorem) ────
- * Właściciel wybrał układ 1:1 z grafiki: moduły DOOKOŁA tygrysa. Od `lg`
- * rysuje go module-orbit.tsx (pierścień dziewięciu odnośników wokół znaku),
- * a siatka z module-branches zostaje na telefonie. Oba widoki rysują tę
- * samą listę wejść z module-branches.tsx, więc adresy nie mogą się rozjechać.
- *
- * ── PASEK „KONTO GOTOWE” PO REJESTRACJI ────────────────────────────────
- * Formularz wraca tu z `?welcome=1`. Pasek mówi, że konto powstało
- * i jakim uchwytem się logujesz — samo przeładowanie na pulpit niczego
- * nie potwierdzało. Po samym zalogowaniu parametru NIE MA, bo powitanie
- * jest dla nowego konta, nie dla każdego wejścia.
+ * `AppShell` pokazuje to drzewo WYŁĄCZNIE przy `status === "authenticated"`.
+ * Przy braku sesji renderuje `EntryScreen`, a z tego pliku nie trafia na
+ * ekran nic.
  */
 export default function HomePage() {
   return (
     <div className="relative isolate min-h-dvh overflow-hidden">
-      {/*
-        Tło: cicha powierzchnia i trzy poświaty — te same plamy świetlne
-        co na ekranie logowania, żeby przejście między ekranami nie zmieniało
-        nastroju. Znak marki jest tu PIEKĘCIĄ W TLE (duży, przygaszony,
-        przesunięty nad górną krawędź), a nie kulą na środku — bo prawdziwą
-        treścią są drzwi do modułów.
-      */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-[var(--bengos-surface)]" />
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -70,37 +72,16 @@ export default function HomePage() {
       </div>
 
       <div className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col px-4 pb-28 pt-6 md:pb-12 md:pt-10">
-        {/*
-          Pasek tożsamości — pierwsza rzecz na ekranie. Mówi, że jesteś
-          w środku i kim jesteś; dopiero pod nim stoją drzwi.
-        */}
         <WelcomeBanner />
 
-        {/*
-          Siatka dziewięciu wejść — CAŁA uwaga i pierwsza rzecz po nagłówku.
-          Na telefonie dwa kafle w rzędzie (44 px celu w każdym), od `lg`
-          trzy w rzędzie. Znak marki jest już w tle nagłówka, więc nie ma
-          tu drugiego okręgu — jest tylko `h1` z nazwą, czytany przez
-          czytnik ekranu (`sr-only`), bo nazwę widać na pasku powyżej.
-
-          (Aktualizacja 2026-11-08: na ekranach lg+ siatkę zastępuje orbita —
-          patrz sekcja ORBITA na górze pliku. Siatka zostaje na telefonie.)
-        */}
         <div className="mt-6">
           <h1 className="sr-only">{BRAND.name} — menu główne</h1>
-          {/* Orbita: moduły dookoła tygrysa, jak na grafice właściciela. */}
           <ModuleOrbit />
           <div className="lg:hidden">
             <ModuleBranches />
           </div>
         </div>
 
-        {/*
-          Wyszukiwarka uniwersalna — na dole, pod siatką. To jest celowe:
-          najpierw drzwi do modułów (najczęstsza droga), potem jedno pole
-          na wszystko (droga dla kogoś, kto wie, czego chce).
-          Kotwica `#wyszukiwarka` jest adresem kafla „wyszukiwarka”.
-        */}
         <div id="wyszukiwarka" className="mt-8 scroll-mt-24">
           <UniversalSearch />
         </div>
