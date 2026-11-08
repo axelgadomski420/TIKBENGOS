@@ -8,6 +8,8 @@ import { ForYouCard } from "@/components/home/for-you-card";
 import { AccessibilityCard } from "@/components/home/accessibility-card";
 import { ModuleBranches } from "@/components/home/module-branches";
 
+import { BRAND } from "@/lib/brand";
+
 export const metadata: Metadata = { title: "BENGOS Home" };
 
 /**
@@ -19,11 +21,21 @@ export const metadata: Metadata = { title: "BENGOS Home" };
  * zrealizować. Dlatego wyszukiwarka jest na samej górze, wejścia do tworzenia
  * są widoczne bez przewijania, a feed jest jedną kartą wśród pięciu.
  *
+ * ── NAGŁÓWEK Z GRAFIKĄ MARKI ───────────────────────────────────────────
+ * Na samej górze pulpitu stoi grafika z podpisami modułów. To jest jedyne
+ * miejsce w aplikacji, w którym te napisy mają sens: na pulpicie odsyłają
+ * wzrok do tego, co pod nimi, a w pasku o wysokości 40 px byłyby szumem.
+ *
+ * Grafika jest dekoracją (`alt=""`), bo nie niesie treści, której nie ma
+ * gdzie indziej: nazwy modułów stoją pod nią jako prawdziwe odnośniki
+ * i to one działają. Obraz bez `alt` kazałby czytnikowi odczytać pięć
+ * słów, które zaraz przeczyta drugi raz z listy.
+ *
  * ── RYTM WEJŚCIA ───────────────────────────────────────────────────────
  * Elementy wchodzą jeden po drugim, w kolejności czytania. Kolejność jest
- * tu nośnikiem informacji, nie ozdobą: najpierw pytanie („co chcesz
- * zrobić?”), potem kim jesteś, potem co możesz zrobić, i dopiero na końcu
- * gdzie wejść. Opóźnienia są krótkie i kończą się na piątej pozycji — dalej
+ * tu nośnikiem informacji, nie ozdobą: najpierw znak, potem pytanie
+ * („co chcesz zrobić?”), potem kim jesteś, potem co możesz zrobić, i dopiero
+ * na końcu gdzie wejść. Opóźnienia kończą się na piątej pozycji — dalej
  * przestałyby być rytmem, a zaczęłyby być zwłoką.
  *
  * Przy `prefers-reduced-motion` token czasu schodzi do 1 ms, więc rytm
@@ -34,17 +46,29 @@ export default function HomePage() {
     <div className="space-y-6">
       {/*
         Tytuł jest dla czytnika ekranu, nie dla oka — znak i nazwa stoją
-        już w pasku u góry, a powtórzenie ich tutaj byłoby szumem. Klasa
-        `bengos-visually-hidden` zostawia treść w drzewie dostępności:
-        `display: none` usunęłoby ją razem z informacją o strukturze.
+        w nagłówku powłoki oraz w grafice pod nim. Powtórzenie ich tutaj
+        byłoby szumem, a `bengos-visually-hidden` zostawia treść w drzewie
+        dostępności: `display: none` usunęłoby ją razem z informacją
+        o strukturze.
       */}
       <h1 className="bengos-visually-hidden">BENGOS Home — pulpit</h1>
 
       <div className="bengos-rise bengos-rise-1">
-        <UniversalSearch />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={BRAND.home}
+          alt=""
+          width={1024}
+          height={1024}
+          className="mx-auto w-full max-w-md rounded-[var(--bengos-radius-card)] object-contain"
+        />
       </div>
 
       <div className="bengos-rise bengos-rise-2">
+        <UniversalSearch />
+      </div>
+
+      <div className="bengos-rise bengos-rise-3">
         <IdentityBar />
       </div>
 
