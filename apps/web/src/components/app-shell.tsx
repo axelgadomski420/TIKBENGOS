@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 
 import { can, type Permission } from "@bengos/core";
 
-import { LoginGate } from "@/components/auth/login-gate";
+import { EntryScreen } from "@/components/auth/entry-screen";
 import { BottomNavigation } from "@/components/bottom-navigation";
 import { SkipLink } from "@/components/skip-link";
 import { useSession } from "@/lib/session-context";
@@ -21,13 +21,6 @@ import { BRAND } from "@/lib/brand";
  * prawa, nie pojawiało się wcale. Ukrywanie go wizualnie i zostawianie
  * klikalnego jest najgorszym z wariantów: wprowadza w błąd i ujawnia
  * istnienie czegoś, do czego i tak nie ma dostępu.
- *
- * ── PODPISY Z GRAFIKI MENU, JEDEN ZESTAW W CAŁEJ APLIKACJI ─────────────
- * Pasek górny mówił „Feed”, „Create”, „Access”, a kafle pulpitu i nawigacja
- * dolna mówią „bengtok”, „asystent”, „bridge” — tak podpisał grafikę
- * właściciel. Dwa języki dla tych samych drzwi to niespójność, więc wszędzie
- * stoi jeden zestaw podpisów: ten z grafiki marki. Trasy zostają bez zmian
- * — to podpis się zmienia, nie adres.
  */
 const BRANCHES: { href: string; label: string; description: string; permission?: Permission }[] = [
   { href: "/feed", label: "bengtok", description: "Krótkie wideo, dźwięki, twórcy" },
@@ -38,30 +31,6 @@ const BRANCHES: { href: string; label: string; description: string; permission?:
   { href: "/access", label: "bridge", description: "Język migowy, napisy, Morse" },
   { href: "/profile", label: "profil", description: "Tożsamość, twórczość, ustawienia" },
 ];
-
-/**
- * Nagłówek powłoki — pasek przyklejony u góry.
- *
- * ── NAZWA: `BENGOS`, NIE `TIKBENGOS` ────────────────────────────────────
- * Interfejs mówi „BENGOS” — tak nazywają się moduły, tak nazywa się marka
- * na logo i tak ma mówić nagłówek. `TIKBENGOS` zostaje wyłącznie jako nazwa
- * repozytorium i pakietów w kodzie; użytkownik nie ma powodu jej oglądać.
- *
- * ── `unoptimized` JEST WYMAGANE PRZY ZEWNĘTRZNYM ADRESIE ────────────────
- * Next.js optymalizuje obrazy na żądanie — pobiera plik i przetwarza go
- * po stronie serwera. Przy adresie z zewnętrznego hostingu bez wpisu
- * w `next.config.ts` ta optymalizacja kończy się błędem, a na ekranie
- * zostaje puste miejsce. `unoptimized` bierze plik wprost. Grafiki marki
- * są już lokalne (`/brand/…`), ale `unoptimized` zostaje: zdjęcie z
- * zewnątrz może wrócić w polu awatara.
- *
- * ── KONIEC Z SAMYMI NAPISAMI W NAWIGACJI ───────────────────────────────
- * Siedem pozycji to za dużo na same litery: przy 12 px pasek staje się
- * ścianą tekstu, w której nie ma czego zaczepić wzrokiem. Każda pozycja
- * ma teraz małą tarczę ze znakiem obok nazwy — ten sam język, którego
- * używa menu główne i dolna nawigacja. Znak jest dekoracją (`aria-hidden`),
- * bo to samo mówi etykieta obok.
- */
 
 type IconProps = { className?: string };
 
@@ -146,6 +115,25 @@ const ICONS: Record<string, (p: IconProps) => React.JSX.Element> = {
   "/profile": IconProfile,
 };
 
+/**
+ * Powłoka aplikacji.
+ *
+ * ── BRAMA LOGOWANIA: `EntryScreen`, NIE `LoginGate` (zmiana 2026-11-08) ─
+ * Powłoka renderowała wcześniej `LoginGate` — plik, który przeszedł przez
+ * kilkanaście wersji i przestał być przewidywalny. Zrzuty z telefonu
+ * pokazywały ekran, którego ten kod nie zawierał (ogromny tygrys na 55%
+ * wysokości, formularz wciśnięty w pasek po lewej), a każda poprawka na
+ * starym pliku dokładała kolejną warstwę do odkręcania.
+ *
+ * `EntryScreen` jest napisany od zera i nie dziedziczy niczego: cztery
+ * elementy, jeden obraz, stałe wymiary. Stary `login-gate.tsx` ZOSTAJE
+ * w repozytorium (nie kasujemy plików), ale nikt go już nie importuje —
+ * więc nie ma jak wpłynąć na to, co widać na ekranie.
+ *
+ * ── BRAMA STOI W POWŁOCE, NIE W STRONACH ───────────────────────────────
+ * Jedna brama, zero szczelin. Gdyby każda strona pilnowała sama, jedna
+ * zapomniana pokazałaby treść bez zalogowania.
+ */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { theme, accessibility } = usePreferences();
   const { identity, status } = useSession();
@@ -167,17 +155,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     accessibility.reducedMotion,
   );
 
-  /*
-    ── BRAMA: BEZ SESJI NIC NIE WIDAĆ ─────────────────────────────────────
-    Decyzja właściciela: aplikacja pokazuje treść wyłącznie zalogowanym.
-    Brama stoi w POWŁOCE, a nie w pojedynczych stronach — jedna brama, zero
-    szczelin. Gdyby każda strona pilnowała sama, jedna zapomniana
-    pokazałaby treść bez zalogowania.
-
-    W stanie `loading` krótko stoi zasłona (odpowiedź `/users/me` musi
-    dociągnąć), po niej brama logowania albo aplikacja. Tokeny motywu
-    trzymają OBA widoki: brama też mówi kolorami marki.
-  */
   if (status !== "authenticated") {
     return (
       <div
@@ -186,7 +163,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         className="min-h-dvh bg-[var(--bengos-surface)] text-[var(--bengos-text)]"
       >
         <SkipLink />
-        <LoginGate />
+        <EntryScreen />
       </div>
     );
   }
@@ -206,12 +183,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             aria-label="BENGOS — przejdź do pulpitu"
             className="bengos-touch-target flex items-center gap-2.5 rounded-[var(--bengos-radius-control)] px-1"
           >
-            {/*
-              `priority` jest tu celowe: znak stoi nad zgięciem strony, więc
-              leniwe ładowanie pokazałoby go po chwili jako przeskok układu.
-              Rozmiar podany jawnie, bo obraz bez wymiarów rezerwuje zero
-              miejsca i wypycha nawigację w momencie wczytania.
-            */}
             <Image
               src={BRAND.logo}
               alt=""
@@ -226,11 +197,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </span>
           </Link>
 
-          {/*
-            `hidden md:flex` — siedem modułów w jednym pasku nie zmieści się
-            na telefonie. Tam nawigacja jest na dole (`BottomNavigation`),
-            a pasek zostaje przy znaku, nazwie i ustawieniach.
-          */}
           <nav aria-label="Moduły" className="ml-auto hidden items-center gap-0.5 md:flex">
             {visibleBranches.map((branch) => {
               const active = pathname === branch.href || pathname.startsWith(`${branch.href}/`);
