@@ -47,6 +47,16 @@ interface RealtimeEvent {
   message?: Message;
 }
 
+// Design system projektu: klasy bengos-* i tokeny --bengos-*. Żadnych
+// własnych nazw ani zmiennych CSS spoza tego zestawu — to nie dekoracja,
+ tylko spójność: przycisk czatu ma wyglądać jak przycisk feedu.
+const BTN =
+  "bengos-touch-target inline-flex items-center rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] px-4 text-[var(--bengos-size-caption)]";
+const BTN_PRIMARY =
+  "bengos-touch-target inline-flex items-center rounded-[var(--bengos-radius-control)] bg-[var(--bengos-accent)] px-4 font-[var(--bengos-weight-medium)] text-[var(--bengos-text-on-accent)] disabled:opacity-60";
+const INPUT =
+  "min-h-[var(--bengos-touch-target-min)] w-full rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] bg-[var(--bengos-surface-sunken)] px-3 py-2 text-[var(--bengos-size-caption)]";
+
 function bodyOf(message: Message): string {
   // Unia typów z kontraktu. Dziś dochodzi text i system; reszta
   // (image, voice, sign, morse) dojdzie z mediami — pokaż to uczciwie.
@@ -255,11 +265,14 @@ export function ChatClient() {
 
   if (!isAuthenticated) {
     return (
-      <section className="card p-6" aria-labelledby="chat-login-title">
-        <h1 id="chat-login-title" className="text-lg font-semibold">
+      <section className="bengos-surface-card p-6" aria-labelledby="chat-login-title">
+        <h1
+          id="chat-login-title"
+          className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-semibold)]"
+        >
           Czat jest dla zalogowanych
         </h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">
+        <p className="mt-2 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
           Zaloguj się, aby rozmawiać. Bez konta nie ma tożsamości, a rozmowy
           są przypisane do osób — gość nie ma z kim rozmawiać.
         </p>
@@ -279,12 +292,12 @@ export function ChatClient() {
   return (
     <section aria-labelledby="chat-title" className="space-y-4">
       <header className="flex items-center justify-between gap-4">
-        <h1 id="chat-title" className="text-lg font-semibold">
+        <h1 id="chat-title" className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-semibold)]">
           Czat
         </h1>
         <button
           type="button"
-          className="btn btn-primary"
+          className={BTN_PRIMARY}
           aria-expanded={showContacts}
           onClick={() => void openContacts()}
         >
@@ -294,18 +307,21 @@ export function ChatClient() {
 
       <Announcement message={announcement} />
       {error ? (
-        <p role="alert" className="rounded border border-[var(--danger)] p-2 text-sm">
+        <p
+          role="alert"
+          className="rounded-[var(--bengos-radius-control)] border border-[var(--bengos-danger)] p-2 text-[var(--bengos-size-caption)]"
+        >
           {error.message}
         </p>
       ) : null}
 
       {showContacts ? (
-        <div className="card p-4">
-          <h2 className="text-sm font-semibold">Kontakty</h2>
+        <div className="bengos-surface-card p-4">
+          <h2 className="text-[var(--bengos-size-caption)] font-[var(--bengos-weight-semibold)]">Kontakty</h2>
           {contacts === null ? (
-            <p className="mt-2 text-sm text-[var(--muted)]">Wczytywanie…</p>
+            <p className="mt-2 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">Wczytywanie…</p>
           ) : contacts.length === 0 ? (
-            <p className="mt-2 text-sm text-[var(--muted)]">
+            <p className="mt-2 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
               Nikogo jeszcze nie obserwujesz. Zacznij od feedu — przycisk
               „Obserwuj” u autora wpisu daje Ci tu kontakt.
             </p>
@@ -315,7 +331,7 @@ export function ChatClient() {
                 <li key={contact.id}>
                   <button
                     type="button"
-                    className="btn"
+                    className={BTN}
                     onClick={() => void startConversation(contact.id)}
                   >
                     {contact.displayName ?? contact.username}
@@ -328,11 +344,11 @@ export function ChatClient() {
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
-        <aside className="card max-h-[70vh] overflow-y-auto p-3" aria-label="Lista rozmów">
+        <aside className="bengos-surface-card max-h-[70vh] overflow-y-auto p-3" aria-label="Lista rozmów">
           {loadingList ? (
-            <p className="p-2 text-sm text-[var(--muted)]">Wczytywanie rozmów…</p>
+            <p className="p-2 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">Wczytywanie rozmów…</p>
           ) : conversations.length === 0 ? (
-            <p className="p-2 text-sm text-[var(--muted)]">
+            <p className="p-2 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
               Brak rozmów. Kliknij „Nowa rozmowa”, aby zacząć.
             </p>
           ) : (
@@ -346,8 +362,10 @@ export function ChatClient() {
                       type="button"
                       aria-current={active ? "true" : undefined}
                       className={
-                        "w-full rounded p-2 text-left text-sm " +
-                        (active ? "bg-[var(--accent)] text-[var(--bg)]" : "hover:bg-[var(--surface)]")
+                        "bengos-touch-target w-full rounded-[var(--bengos-radius-control)] p-2 text-left text-[var(--bengos-size-caption)] " +
+                        (active
+                          ? "bg-[var(--bengos-accent)] text-[var(--bengos-text-on-accent)]"
+                          : "hover:bg-[var(--bengos-surface-sunken)]")
                       }
                       onClick={() => setSelectedId(conversation.id)}
                     >
@@ -355,14 +373,14 @@ export function ChatClient() {
                         <span className="truncate">{titleOf(conversation)}</span>
                         {unread > 0 ? (
                           <span
-                            className="rounded-full bg-[var(--danger)] px-2 py-0.5 text-xs font-semibold text-[var(--bg)]"
+                            className="rounded-full bg-[var(--bengos-danger)] px-2 py-0.5 font-[var(--bengos-weight-semibold)] text-[var(--bengos-text-on-accent)]"
                             aria-label={unread + " nieprzeczytanych"}
                           >
                             {unread}
                           </span>
                         ) : null}
                       </span>
-                      <span className="mt-1 block truncate text-xs text-[var(--muted)]">
+                      <span className="mt-1 block truncate text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
                         {conversation.lastMessage
                           ? bodyOf(conversation.lastMessage)
                           : "Brak wiadomości"}
@@ -375,12 +393,12 @@ export function ChatClient() {
           )}
         </aside>
 
-        <div className="card flex max-h-[70vh] flex-col p-4">
+        <div className="bengos-surface-card flex max-h-[70vh] flex-col p-4">
           {selected ? (
             <>
-              <header className="border-b border-[var(--surface)] pb-2">
-                <h2 className="text-sm font-semibold">{titleOf(selected)}</h2>
-                <p className="text-xs text-[var(--muted)]">
+              <header className="border-b border-[var(--bengos-border)] pb-2">
+                <h2 className="text-[var(--bengos-size-caption)] font-[var(--bengos-weight-semibold)]">{titleOf(selected)}</h2>
+                <p className="text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
                   Wiadomości tekstowe. Załączniki, głos i tłumaczenia dojdą
                   w kolejnych etapach.
                 </p>
@@ -388,14 +406,14 @@ export function ChatClient() {
 
               <div className="mt-2 flex-1 overflow-y-auto" aria-live="polite">
                 {hasMore ? (
-                  <button type="button" className="btn mb-2" onClick={() => void loadOlder()}>
+                  <button type="button" className={BTN + " mb-2"} onClick={() => void loadOlder()}>
                     Wczytaj starsze
                   </button>
                 ) : null}
                 {loadingThread ? (
-                  <p className="text-sm text-[var(--muted)]">Wczytywanie wiadomości…</p>
+                  <p className="text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">Wczytywanie wiadomości…</p>
                 ) : messages.length === 0 ? (
-                  <p className="text-sm text-[var(--muted)]">Brak wiadomości. Napisz pierwszą.</p>
+                  <p className="text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">Brak wiadomości. Napisz pierwszą.</p>
                 ) : (
                   <ul className="space-y-2">
                     {messages.map((message) => {
@@ -403,16 +421,16 @@ export function ChatClient() {
                       const author = participants[message.senderId];
                       return (
                         <li key={message.id} className={"flex " + (own ? "justify-end" : "justify-start")}>
-                          <div className="max-w-[80%] rounded border border-[var(--surface)] p-2">
+                          <div className="max-w-[80%] rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] p-2">
                             {!own ? (
-                              <p className="text-xs font-semibold">
+                              <p className="text-[var(--bengos-size-caption)] font-[var(--bengos-weight-semibold)]">
                                 {author?.displayName ?? author?.username ?? "Użytkownik"}
                               </p>
                             ) : null}
-                            <p className="text-sm">
+                            <p className="text-[var(--bengos-size-caption)]">
                               {message.deletedAt ? "Wiadomość usunięta" : bodyOf(message)}
                             </p>
-                            <p className="mt-1 flex items-center gap-2 text-xs text-[var(--muted)]">
+                            <p className="mt-1 flex items-center gap-2 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
                               {timeLabel(message.createdAt)}
                               {own && !message.deletedAt ? (
                                 <button
@@ -433,7 +451,7 @@ export function ChatClient() {
               </div>
 
               <form
-                className="mt-2 flex items-end gap-2 border-t border-[var(--surface)] pt-2"
+                className="mt-2 flex items-end gap-2 border-t border-[var(--bengos-border)] pt-2"
                 onSubmit={(e) => {
                   e.preventDefault();
                   void send();
@@ -444,19 +462,19 @@ export function ChatClient() {
                 </label>
                 <textarea
                   id="chat-draft"
-                  className="input min-h-[44px] flex-1 resize-y"
+                  className={INPUT + " flex-1 resize-y"}
                   value={draft}
                   maxLength={2000}
                   onChange={(e) => setDraft(e.target.value)}
                   placeholder="Napisz wiadomość…"
                 />
-                <button type="submit" className="btn btn-primary" disabled={sending || draft.trim().length === 0}>
+                <button type="submit" className={BTN_PRIMARY} disabled={sending || draft.trim().length === 0}>
                   {sending ? "Wysyłam…" : "Wyślij"}
                 </button>
               </form>
             </>
           ) : (
-            <p className="text-sm text-[var(--muted)]">
+            <p className="text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
               Wybierz rozmowę z listy albo zacznij nową.
             </p>
           )}

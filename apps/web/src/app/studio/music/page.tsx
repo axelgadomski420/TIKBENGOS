@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Muzyka — BENGOS Studio" };
  * utworu zależna od pochodzenia, limity generacji widoczne przed zleceniem.
  *
  * Dojdzie (napisane wprost): wykonanie generacji MusicGen/JASCO na maszynie
- * z GPU (MUSICGEN_ENDPOINT) — zlecenia dzisiaj powstają i czekają, a面板
+ * z GPU (MUSICGEN_ENDPOINT) — zlecenia dzisiaj powstają i czekają, a panel
  * nie udaje postępu, którego nie ma.
  */
 export default function StudioMusicPage() {

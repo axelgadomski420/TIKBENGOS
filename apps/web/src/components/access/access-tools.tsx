@@ -16,6 +16,16 @@ import { fromMorse, MORSE_TABLE, toMorse } from "@bengos/core";
  * Czego tu NIE ma i czemu — patrz lista na dole strony.
  */
 
+// Design system projektu: klasy bengos-* i tokeny --bengos-*, jak w feedzie
+// i czacie — dostępność nie dostaje osobnego wyglądu, bo osobny wygląd
+// to osobne punkty awarii.
+const BTN =
+  "bengos-touch-target inline-flex items-center rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] px-4 text-[var(--bengos-size-caption)]";
+const BTN_PRIMARY =
+  "bengos-touch-target inline-flex items-center rounded-[var(--bengos-radius-control)] bg-[var(--bengos-accent)] px-4 font-[var(--bengos-weight-medium)] text-[var(--bengos-text-on-accent)] disabled:opacity-60";
+const INPUT =
+  "min-h-[var(--bengos-touch-target-min)] w-full rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] bg-[var(--bengos-surface-sunken)] px-3 py-2 text-[var(--bengos-size-caption)]";
+
 // Web Speech API nie ma pełnej deklaracji typów w TS — opisujemy tylko
 // to, czego używamy, zamiast `any`.
 interface SpeechRecognitionLike {
@@ -174,10 +184,13 @@ export function AccessTools() {
   return (
     <section aria-labelledby="access-title" className="space-y-6">
       <header>
-        <h1 id="access-title" className="text-lg font-semibold">
+        <h1
+          id="access-title"
+          className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-semibold)]"
+        >
           Dostępność
         </h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">
+        <p className="mt-1 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
           Narzędzia, które działają od razu — w przeglądarce, bez sieci
           i bez silnika AI. Dostępność jest fundamentem, nie dodatkiem:
           stąd najpierw to, co działa wszędzie.
@@ -186,31 +199,33 @@ export function AccessTools() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         {/* ── TTS ── */}
-        <div className="card space-y-3 p-4">
-          <h2 className="text-sm font-semibold">Czytanie na głos (TTS)</h2>
+        <div className="bengos-surface-card space-y-3 p-4">
+          <h2 className="text-[var(--bengos-size-caption)] font-[var(--bengos-weight-semibold)]">
+            Czytanie na głos (TTS)
+          </h2>
           {!ttsSupported ? (
-            <p className="text-sm text-[var(--muted)]">
+            <p className="text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
               Ta przeglądarka nie ma syntezatora mowy. Na komputerze działa
               to w Chrome, Edge i Safari; w aplikacji mobilnej dojdzie
               natywny syntezator.
             </p>
           ) : (
             <>
-              <label className="block text-xs" htmlFor="tts-text">
+              <label className="block text-[var(--bengos-size-caption)]" htmlFor="tts-text">
                 Tekst do przeczytania
               </label>
               <textarea
                 id="tts-text"
-                className="input min-h-[80px] w-full"
+                className={INPUT + " min-h-[80px]"}
                 value={ttsText}
                 onChange={(e) => setTtsText(e.target.value)}
               />
-              <label className="block text-xs" htmlFor="tts-voice">
+              <label className="block text-[var(--bengos-size-caption)]" htmlFor="tts-voice">
                 Głos
               </label>
               <select
                 id="tts-voice"
-                className="input w-full"
+                className={INPUT}
                 value={voiceUri}
                 onChange={(e) => setVoiceUri(e.target.value)}
               >
@@ -221,7 +236,7 @@ export function AccessTools() {
                   </option>
                 ))}
               </select>
-              <label className="block text-xs" htmlFor="tts-rate">
+              <label className="block text-[var(--bengos-size-caption)]" htmlFor="tts-rate">
                 Szybkość: {ttsRate.toFixed(1)}x
               </label>
               <input
@@ -235,10 +250,10 @@ export function AccessTools() {
                 className="w-full"
               />
               <div className="flex gap-2">
-                <button type="button" className="btn btn-primary" onClick={speak}>
+                <button type="button" className={BTN_PRIMARY} onClick={speak}>
                   Czytaj
                 </button>
-                <button type="button" className="btn" onClick={stopSpeaking} disabled={!speaking}>
+                <button type="button" className={BTN} onClick={stopSpeaking} disabled={!speaking}>
                   Zatrzymaj
                 </button>
               </div>
@@ -247,10 +262,12 @@ export function AccessTools() {
         </div>
 
         {/* ── STT ── */}
-        <div className="card space-y-3 p-4">
-          <h2 className="text-sm font-semibold">Wpisywanie głosem (STT)</h2>
+        <div className="bengos-surface-card space-y-3 p-4">
+          <h2 className="text-[var(--bengos-size-caption)] font-[var(--bengos-weight-semibold)]">
+            Wpisywanie głosem (STT)
+          </h2>
           {!sttSupported ? (
-            <p className="text-sm text-[var(--muted)]">
+            <p className="text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
               Ta przeglądarka nie obsługuje rozpoznawania mowy. Działa w
               Chrome i Edge; serwerowy STT (Whisper) dojdzie z napisami
               w wideo i czacie.
@@ -259,23 +276,23 @@ export function AccessTools() {
             <>
               <button
                 type="button"
-                className="btn btn-primary"
+                className={BTN_PRIMARY}
                 onClick={startListening}
                 disabled={listening}
               >
                 {listening ? "Słucham… mów" : "Zacznij mówić"}
               </button>
               {sttError ? (
-                <p role="alert" className="text-sm text-[var(--danger)]">
+                <p role="alert" className="text-[var(--bengos-size-caption)] text-[var(--bengos-danger)]">
                   {sttError}
                 </p>
               ) : null}
-              <label className="block text-xs" htmlFor="stt-text">
+              <label className="block text-[var(--bengos-size-caption)]" htmlFor="stt-text">
                 Rozpoznany tekst
               </label>
               <textarea
                 id="stt-text"
-                className="input min-h-[80px] w-full"
+                className={INPUT + " min-h-[80px]"}
                 value={sttText}
                 onChange={(e) => setSttText(e.target.value)}
                 placeholder="Tu pojawi się tekst z mowy"
@@ -285,31 +302,36 @@ export function AccessTools() {
         </div>
 
         {/* ── Morse ── */}
-        <div className="card space-y-3 p-4 lg:col-span-2">
-          <h2 className="text-sm font-semibold">Morse — tekst, dotyk, wibracja</h2>
-          <p className="text-xs text-[var(--muted)]">
+        <div className="bengos-surface-card space-y-3 p-4 lg:col-span-2">
+          <h2 className="text-[var(--bengos-size-caption)] font-[var(--bengos-weight-semibold)]">
+            Morse — tekst, dotyk, wibracja
+          </h2>
+          <p className="text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
             Kodowanie i dekodowanie liczy kontrakt `@bengos/core` — jedna
             tabela znaków działa i w czacie, i tutaj.
           </p>
-          <label className="block text-xs" htmlFor="morse-input">
+          <label className="block text-[var(--bengos-size-caption)]" htmlFor="morse-input">
             Tekst do zakodowania
           </label>
           <input
             id="morse-input"
-            className="input w-full"
+            className={INPUT}
             value={morseInput}
             onChange={(e) => setMorseInput(e.target.value)}
           />
-          <output className="block rounded border border-[var(--surface)] p-2 font-mono text-sm" htmlFor="morse-input">
+          <output
+            className="block rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] p-2 font-mono text-[var(--bengos-size-caption)]"
+            htmlFor="morse-input"
+          >
             {morseEncoded || "(puste)"}
           </output>
           <div className="flex flex-wrap gap-2">
-            <button type="button" className="btn" onClick={decodeMorse}>
+            <button type="button" className={BTN} onClick={decodeMorse}>
               Dekoduj własny zapis
             </button>
             <button
               type="button"
-              className="btn"
+              className={BTN}
               onClick={vibrateMorse}
               disabled={!canVibrate || morseEncoded.length === 0}
             >
@@ -317,17 +339,17 @@ export function AccessTools() {
             </button>
           </div>
           {!canVibrate ? (
-            <p className="text-xs text-[var(--muted)]">
+            <p className="text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
               To urządzenie nie ma wibracji — kod Morse zobaczysz tutaj
               jako zapis; wibracja działa na telefonie.
             </p>
           ) : null}
           {morseDecoded ? (
-            <p className="text-sm">
+            <p className="text-[var(--bengos-size-caption)]">
               Odczyt: <span className="font-mono">{morseDecoded}</span>
             </p>
           ) : null}
-          <p className="text-xs text-[var(--muted)]">
+          <p className="text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
             Aby zdekodować własny zapis, wpisz go w pole powyżej i kliknij
             „Dekoduj własny zapis” — kropki, myślniki, spacje między
             literami, ukośniki między słowami.
@@ -336,16 +358,16 @@ export function AccessTools() {
       </div>
 
       {/* ── Co dojdzie ── */}
-      <div className="card space-y-2 p-4">
-        <h2 className="text-sm font-semibold">Co dojdzie</h2>
-        <ul className="list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
+      <div className="bengos-surface-card space-y-2 p-4">
+        <h2 className="text-[var(--bengos-size-caption)] font-[var(--bengos-weight-semibold)]">Co dojdzie</h2>
+        <ul className="list-disc space-y-1 pl-5 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
           <li>Napisy w wideo i czacie — worker mediów z modelem STT.</li>
           <li>Tłumaczenie polskiego języka migowego (PJM) — osobny worker,
             na start alfabet palcowy i podstawowe komendy.</li>
           <li>Tłumaczenia wiadomości na żywo w czacie.</li>
           <li>Tryb Morse’a w czacie: wysyłanie i odbiór wibracją.</li>
         </ul>
-        <p className="text-xs text-[var(--muted)]">
+        <p className="text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
           Alfabet palcowy zamiast pełnego PJM to wybór uczciwy: pełny język
           migowy wymaga własnego modelu i zbioru danych. Kłamstwo
           „obsługujemy PJM” byłoby gorsze niż jego brak.
