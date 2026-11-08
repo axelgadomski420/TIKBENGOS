@@ -37,9 +37,7 @@ import { BRAND } from "@/lib/brand";
  * ── PRZYCISK DOSTAWCY MA ZNAK, NIE TYLKO NAPIS ─────────────────────────
  * Rząd przycisków był wcześniej jednolitym prostokątem z tekstem, więc
  * wzrokiem nie dało się odróżnić Google od GitHuba bez czytania. Teraz
- * każdy niesie swój znak rysowany `currentColor`: cztery kolorowe pola
- * dla Google, sylwetka kota dla GitHuba. Znak jest dekoracją
- * (`aria-hidden`), bo to samo mówi etykieta obok.
+ * każdy niesie swój znak rysowany `currentColor`.
  */
 
 type Mode = "login" | "register";
@@ -58,6 +56,38 @@ interface OAuthProvider {
 }
 
 const EMPTY_FORM: FormState = { identifier: "", username: "", email: "", password: "" };
+
+/**
+ * Powody odmowy z adresu zwrotnego, zamienione na zdania.
+ *
+ * ── `Record<string, string>` TO ZA MAŁO DLA TYPESCRIPTU ─────────────────
+ * Wcześniejsza wersja miała `const messages: Record<string, string> = {...}`
+ * przy indeksowaniu `messages[reason]`, a TypeScript **przy włączonym
+ * `noUncheckedIndexedAccess`** traktuje każdy odczyt z indeksu jako
+ * `string | undefined`. `?? messages.odmowa` nie naprawiało tego, bo prawa
+ * strona też była `string | undefined` z punktu widzenia typów.
+ *
+ * Build przerywał się dokładnie tam:
+ *     Type error: Type 'string | undefined' is not assignable to type 'string'.
+ *
+ * Rozwiązanie ma dwie części: obiekt jest `as const` z literałami kluczy,
+ * a wartość domyślna stoi OSOBNO — żadna ze stron nie jest opcjonalna.
+ */
+const OAUTH_FAILURE_DEFAULT =
+  "Dostawca nie potwierdził logowania. Możesz spróbować ponownie albo zalogować się hasłem.";
+
+const OAUTH_MESSAGES: Record<string, string> = {
+  odmowa: OAUTH_FAILURE_DEFAULT,
+  "brak-danych": "Dostawca nie odesłał wszystkich potrzebnych danych. Spróbuj ponownie.",
+  "brak-konfiguracji": "Logowanie przez dostawcę nie jest skonfigurowane na tym serwerze.",
+  stan: "Sesja logowania wygasła albo została przerwana. Spróbuj ponownie.",
+  "blad-sieci": "Nie udało się dokończyć logowania — serwer nie odpowiedział.",
+};
+
+/** Zdanie dla powodu z adresu. Nieznany powód dostaje tekst domyślny. */
+function messageForReason(reason: string): string {
+  return OAUTH_MESSAGES[reason] ?? OAUTH_FAILURE_DEFAULT;
+}
 
 /** Znak dostawcy. Nieznany dostawca dostaje kropkę — nigdy pustkę. */
 function ProviderMark({ id }: { id: string }) {
@@ -135,14 +165,7 @@ export function LoginForm() {
     const params = new URLSearchParams(window.location.search);
     const reason = params.get("oauth");
     if (!reason) return;
-    const messages: Record<string, string> = {
-      odmowa: "Dostawca nie potwierdził logowania. Możesz spróbować ponownie albo zalogować się hasłem.",
-      "brak-danych": "Dostawca nie odesłał wszystkich potrzebnych danych. Spróbuj ponownie.",
-      "brak-konfiguracji": "Logowanie przez dostawcę nie jest skonfigurowane na tym serwerze.",
-      stan: "Sesja logowania wygasła albo została przerwana. Spróbuj ponownie.",
-      "blad-sieci": "Nie udało się dokończyć logowania — serwer nie odpowiedział.",
-    };
-    setOauthError({ code: "bad_request", message: messages[reason] ?? messages.odmowa });
+    setOauthError({ code: "bad_request", message: messageForReason(reason) });
     // Powód jest jednorazowy — po odczytaniu znika z adresu, żeby odświeżenie
     // nie pokazywało komunikatu po zdarzeniu, którego już nie ma.
     window.history.replaceState({}, "", "/login");
