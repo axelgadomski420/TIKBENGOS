@@ -10,16 +10,31 @@ import Link from "next/link";
  * To osobny stan błędu, a nie ekran modułu w przygotowaniu. Użytkownik musi
  * odróżnić nieistniejący adres od funkcji zaplanowanej na kolejny etap.
  *
- * ── WYJŚCIA SĄ DWA, BO PRZYCZYNY SĄ DWIE ───────────────────────────────
+ * ── DWA WYJŚCIA DLA DWÓCH PRZYCZYN ─────────────────────────────────────
  * Literówka w adresie i wejście na ekran z późniejszego etapu to dwa różne
  * zdarzenia, a jeden odnośnik do pulpitu nie odpowiada na oba. Drugi prowadzi
- * wprost do listy modułów na pulpicie, gdzie widać, co istnieje i na jakim
- * jest etapie.
+ * wprost do listy modułów, gdzie widać, co istnieje i na jakim jest etapie.
+ *
+ * ── ZNAK MARKI NAD TRESCIĄ ─────────────────────────────────────────────
+ * 404 jest jedynym ekranem, na którym użytkownik nie ma żadnego kontekstu
+ * — nagłówek powłoki zostaje, ale treść pod nim jest pusta. Znak nad
+ * nagłówkiem mówi, że to nadal ta aplikacja, a nie losowa strona błędu.
  */
+const LOGO = "https://i.ibb.co/bMZh3YJs/C57-AC4-F4-7-D83-4-F5-D-890-F-00-BB1-F79-D6-F3.jpg";
+
 export default function NotFound() {
   return (
     <section aria-labelledby="not-found-title" className="bengos-rise mx-auto max-w-2xl py-8">
-      <p className="bengos-eyebrow">Błąd 404</p>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={LOGO}
+        alt=""
+        width={72}
+        height={72}
+        className="size-18 rounded-full object-cover object-top"
+        style={{ boxShadow: "0 0 36px -12px var(--bengos-glow)" }}
+      />
+      <p className="bengos-eyebrow mt-4">Błąd 404</p>
       <h1
         id="not-found-title"
         className="mt-2 text-[var(--bengos-size-display)] font-[var(--bengos-weight-semibold)]"
