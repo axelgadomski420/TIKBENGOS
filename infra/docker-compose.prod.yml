@@ -1,18 +1,21 @@
 # Infrastruktura TIKBENGOS — środowisko produkcyjne.
 #
-# Cztery różnice wobec `docker-compose.yml`, każda jest celowa:
+# Pięć różnic wobec `docker-compose.yml`, każda jest celowa:
 #
 # 1. HASA WYMAGANE, NIE DOMYŚLNE. W pliku developerskim hasło bazy ma
 #    domyślkę `change-me`. Tu nie ma żadnej: brak zmiennej w `.env`
 #    zatrzymuje start z błędem. Domyślka na publicznej maszynie to baza
 #    otwarta dla każdego, kto zgadnie port.
-# 2. PORTY NA ZEWNĄTRZ ZAMKNIĘTE. Baza, Redis i API nie są wystawione
-#    na świat — tylko reverse proxy (Caddy) ma porty 80 i 443. Reszta
-#    rozmawia w sieci Dockera, gdzie nie dosięgnie jej nikt z zewnątrz.
+# 2. PORTY NA ZEWNĄTRZ ZAMKNIĘTE. Baza, Redis, API i worker agenta nie są
+#    wystawione na świat — tylko reverse proxy (Caddy) ma porty 80 i 443.
+#    Reszta rozmawia w sieci Dockera, gdzie nie dosięgnie jej nikt z zewnątrz.
 # 3. SERWER PRODUKCYJNY, NIE DEVELOPERSKI. `runserver` i `daphne` są
 #    zastąpione przez gunicorn (WSGI) i uvicorn (ASGI) z kilkoma procesami.
 # 4. USŁUGA `web`. W pliku developerskim jej nie było, więc pod adresem
 #    publicznym widać było samo API, a nie aplikację.
+# 5. USŁUGA `code-worker`. Agent kodujący żyje w OSOBNYM kontenerze, w innej
+#    sieci niż baza — powód jest w komentarzu przy samej usłudze i jest
+#    bezpieczeństwem, nie wygodą.
 #
 # `infra/docker-compose.yml` zostaje bez zmian jako środowisko developerskie.
 
@@ -126,8 +129,80 @@ services:
       - web
       - api
 
+  # ───────────────────────────────────────────────────────────────────────
+  # AGENT KODUJĄCY — BENGOS Dev
+  # ─────────────────────────────────────────────────────────────────────
+  #
+  # ── DLACZEGO OSOBNY KONTENER ───────────────────────────────────────────
+  # Agent wykonuje polecenia powłoki. README TIKCODING mówi to wprost:
+  # uruchamiaj wyłącznie w kontenerze, bo inaczej agent grzebie w systemie
+  # plików hosta. Gdyby chodził w procesie Django, jedno jego polecenie
+  # sięgałoby do bazy i do kluczy dostawców użytkowników.
+  #
+  # ── DLACZEGO W INNEJ SIECI NIŻ BAZA ────────────────────────────────────
+  # Ten kontener NIE JEST w domyślnej sieci `tikbengos`. To nie ostrożność,
+  # a warunek: agent, któremu model każe wysłać dane na zewnątrz, nie może
+  # mieć trasy do bazy ani do Redisa. Do internetu wychodzi (musi — klonuje
+  # repozytorium i woła model), ale do własnej infrastruktury nie.
+  #
+  # ── DLACZEGO `profiles` ────────────────────────────────────────────────
+  # Usługa jest w profilu `worker`, więc NIE startuje przy zwykłym
+  # `docker compose up -d`. Powód jest praktyczny: bez klucza modelu
+  # i bez podłączonego agenta ten kontener nie ma czego robić, a kontener,
+  # który stoi i nic nie robi, wygląda na zepsuty. Włącza się świadomie:
+  #     docker compose --profile worker up -d code-worker
+  #
+  # ── CZEGO TU NIE MA I DLACZEGO ─────────────────────────────────────────
+  # Bez `ports`: ten kontener nie ma portu. Woła go API, nie świat — a brak
+  # portu to brak powierzchni ataku, której nie potrzebujemy.
+  # Bez `DATABASE_URL` i bez `REDIS_URL`, przez co agent nie ma czym sięgnąć
+  # po dane użytkowników, nawet gdyby model go o to poprosił.
+  # Bez `GITHUB_READ_TOKEN` w domyślnym wariancie: klonowanie publicznych
+  # repozytoriów wystarcza do planu, a token dodajesz świadomie w `.env`.
+  code-worker:
+    build:
+      context: ..
+      dockerfile: services/code-worker/Dockerfile
+    restart: unless-stopped
+    profiles: ["worker"]
+    environment:
+      # Klucz modelu — po stronie serwera, nie użytkownika. Bez niego worker
+      # odmawia startu z wyjaśnieniem, a nie pada w połowie zlecenia.
+      # Puste znaczy „pominięty”: nie każdy używa Anthropica.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      # Potwierdzenie, że obraz z agentem jest podniesiony. Bez tego worker
+      # zwraca `unavailable` Z WYJAŚNIENIEM — wołanie agenta, którego nie ma,
+      # zwróciłoby „command not found”, czyli dokładnie tę atrapę, której
+      # brief zakazuje.
+      CODE_AGENT_AVAILABLE: ${CODE_AGENT_AVAILABLE:-0}
+      # Token tylko do CZYTANIA prywatnych repozytoriów. Zapis (gałąź, commit,
+      # pull request) robi API, gdzie jest token użytkownika i dziennik audytu.
+      GITHUB_READ_TOKEN: ${GITHUB_READ_TOKEN:-}
+      CODE_WORK_DIR: /srv/work
+    volumes:
+      # Katalog pracy na wolumenie, nie w warstwie obrazu: klony repozytoriów
+      # są duże, a obraz ma zostać mały. `:rw` jest konieczne — worker pisze.
+      - code-worker-work:/srv/work
+    networks:
+      # Własna sieć z wyjściem na świat i BEZ trasy do bazy oraz Redisa.
+      # `internal: false` znaczy, że internet działa (klonowanie, model),
+      # a brak wpisu o sieci domyślnej odcina drogę do reszty stosu.
+      - code-worker-net
+
+networks:
+  code-worker-net:
+    driver: bridge
+    # Nie `internal: true` — worker MUSI mieć wyjście na świat, żeby
+    # sklonować repozytorium i zawołać model. Izolacja polega na tym, że ta
+    # sieć nie zawiera bazy ani Redisa, a nie na odcięciu internetu.
+    internal: false
+
 volumes:
   db-data:
   redis-data:
   caddy-data:
   caddy-config:
+  code-worker-work:
