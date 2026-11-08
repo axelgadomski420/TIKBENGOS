@@ -79,11 +79,36 @@ function messageOf(cause: unknown): ApiError {
     : { code: "internal", message: "Nieznany błąd." };
 }
 
+/**
+ * Upload `multipart/form-data` — jedyna ścieżka, której `apiFetch` nie obsługuje,
+ * bo ten wysyła wyłącznie JSON.
+ *
+ * ── DLACZEGO PĘTLA MA SPRAWDZENIE WARTOŚCI ──────────────────────────────
+ * `for (const key of Object.keys(fields)) form.append(key, fields[key])`
+ * przerywało build produkcyjny:
+ *
+ *     Type error: No overload matches this call.
+ *     Argument of type 'string | undefined' is not assignable to parameter
+ *     of type 'string | Blob'.
+ *
+ * Przy `noUncheckedIndexedAccess` TypeScript traktuje KAŻDY odczyt z indeksu
+ * jako możliwie `undefined` — także `fields[key]`. `FormData.append` nie
+ * przyjmuje `undefined`, więc typ się nie zgadza.
+ *
+ * To nie jest przesada typów: `fields` przychodzi z zewnątrz i może nieść
+ * pole, którego nie ma. Rzutowanie `!` dałoby wtedy pole o wartości
+ * `"undefined"` wysłane na serwer — czyli tytuł utworu dosłownie taki.
+ * Dlatego pomijamy brakujące pole, a nie wstawiamy za nie napis.
+ */
 async function apiUpload<T>(path: string, file: Blob, fields: Record<string, string>): Promise<T> {
   const csrf = await csrfToken();
   const form = new FormData();
   form.append("file", file);
-  for (const key of Object.keys(fields)) form.append(key, fields[key]);
+  for (const key of Object.keys(fields)) {
+    const value = fields[key];
+    if (value === undefined) continue;
+    form.append(key, value);
+  }
   const res = await fetch(path, {
     method: "POST",
     headers: csrf ? { "x-csrf-token": csrf } : {},
@@ -251,6 +276,7 @@ export function MusicStudio() {
     }
     const ctx = new Ctor(1, 44100, 44100) as AudioContext;
     let cancelled = false;
+    let timer = 0;
     const runLoop = (loopStart: number) => {
       if (cancelled) return;
       for (let step = 0; step < STEPS; step += 1) {
@@ -260,9 +286,9 @@ export function MusicStudio() {
       }
       const next = loopStart + STEPS * stepDuration;
       const delayMs = Math.max(50, (next - ctx.currentTime - 0.1) * 1000);
-      timer = setTimeout(() => runLoop(next), delayMs);
+      timer = window.setTimeout(() => runLoop(next), delayMs);
     };
-    let timer = setTimeout(() => runLoop(ctx.currentTime + 0.05), 0);
+    timer = window.setTimeout(() => runLoop(ctx.currentTime + 0.05), 0);
     ctxRef.current = {
       ctx,
       stop: () => {
