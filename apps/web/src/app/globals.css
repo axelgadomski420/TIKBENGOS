@@ -1,11 +1,11 @@
-successfully downloaded text file (SHA: e25e1355c1bd8a717c34dafaf55394da9ff3ff41)/*
+/*
  * BENGOS — style dodatkowe dla interfejsu.
  *
  * Ten plik zbiera to, czego NIE DA SIĘ wyrazić tokenami ani klasami Tailwinda:
- * zachowanie przewijania, odstępy liczone od tokenów w zapytaniach o szerokość
- * ekranu, znaczniki rysowane pseudoelementami. **Nie ma tu ani jednego koloru
- * ani czasu trwania animacji** — te należą do `@bengos/ui/styles.css`
- * i pochodzą wyłącznie z tokenów.
+ * zachowanie przewijania, odstępy liczone od tokenów w zapytaniach
+ * o szerokość ekranu, znaczniki rysowane pseudoelementami oraz pierścienie
+ * HUD wokół znaku marki. **Nie ma tu ani jednego koloru ani czasu trwania
+ * animacji** — te należą do `@bengos/ui/styles.css` i pochodzą z tokenów.
  */
 
 html {
@@ -42,7 +42,7 @@ body {
 }
 
 /*
- * ── ODSTĘP POD TRESCIĄ NA TELEFONIE ────────────────────────────────────
+ * ── ODSTĘP POD TREŚCIĄ NA TELEFONIE ────────────────────────────────────
  * Powłoka daje `pb-28` na `main`, ale to stała liczba pikseli. Przy
  * powiększonej typografii (tryb dostępności) pasek nawigacji dolnej rośnie
  * razem z tekstem i zasłania ostatni wiersz treści. Tutaj liczymy ten
@@ -67,10 +67,6 @@ body {
  * Rysujemy ją `::after` na odnośniku, a nie jako osobny element, bo
  * nawigacja jest listą odnośników — dodatkowy `span` byłby treścią
  * dla czytnika ekranu, a nie dekoracją.
- *
- * Ten sam znacznik działa w nawigacji dolnej (pozycja na górnej krawędzi)
- * i w pasku górnym (pozycja na dolnej krawędzi) — stąd zmienna `--mark`
- * ustawiana przez modyfikator.
  */
 .bengos-nav-mark {
   position: relative;
@@ -97,7 +93,8 @@ body {
 
 /*
  * Ukrycie dla wzroku bez ukrycia dla czytnika ekranu — klasa używana przez
- * etykietę pola w podglądzie rozmowy. `display: none` usunęłoby treść
+ * etykietę pola w podglądzie rozmowy i w innych miejscach, gdzie napis ma
+ * być przeczytany, a nie pokazany. `display: none` usunęłoby treść
  * z drzewa dostępności razem z tekstem, który miał być przeczytany.
  */
 .sr-only {
@@ -117,11 +114,12 @@ body {
  * Ekran logowania stawia tygrysa w świecącym okręgu — dokładnie jak na
  * grafice marki. Pierścienie są rysowane CSS-em, a nie obrazem: skalują
  * się w trybie dostępności razem z typografią i działają w motywie
- * wysokim kontrastie, gdzie grafika JPEG nie jest używana.
+ * wysokiego kontrastu, gdzie grafika JPEG nie jest używana.
  *
  * KOLORY I CZASY pochodzą wyłącznie z tokenów — to warunek tego pliku:
- * cyjan z --bengos-accent, a obroty liczone mnożnikiem --bengos-motion-smooth
- * (320 ms × 60 ≈ 19 s), więc zmiana motywu zmienia pierścienie razem z resztą.
+ * cyjan z `--bengos-accent`, a obroty liczone mnożnikiem
+ * `--bengos-motion-smooth` (320 ms × 60 ≈ 19 s), więc zmiana motywu zmienia
+ * pierścienie razem z resztą interfejsu.
  */
 @keyframes bengos-hud-spin {
   to {
@@ -161,7 +159,7 @@ body {
 
 /*
  * Ograniczenie ruchu: pierścienie STAJĄ, ale nie znikają — ta sama zasada
- * co w REDUCED_MOTION z tokens.ts (zachowanie zostaje, ruch schodzi).
+ * co w `REDUCED_MOTION` z `tokens.ts` (zachowanie zostaje, ruch schodzi).
  */
 @media (prefers-reduced-motion: reduce) {
   .bengos-hud__ring--ticks,
