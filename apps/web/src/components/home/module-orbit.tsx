@@ -73,13 +73,13 @@ export function ModuleOrbit() {
           aria-hidden="true"
           className="absolute inset-[6%] rounded-full border border-dashed border-[var(--bengos-border-strong)]"
         />
-        {/* Tygrys w srodku — ten sam okrag HUD co na ekranie logowania. */}
-        <div aria-hidden="true" className="absolute left-1/2 top-1/2 size-[30%] -translate-x-1/2 -translate-y-1/2">
+        {/* Tygrys w srodku — większy, bliżej kompozycji ze zdjęcia menu. */}
+        <div aria-hidden="true" className="absolute left-1/2 top-1/2 size-[42%] -translate-x-1/2 -translate-y-1/2">
           <div className="bengos-hud flex size-full items-center justify-center">
             <span className="bengos-hud__ring bengos-hud__ring--static inset-0" />
-            <span className="bengos-hud__ring bengos-hud__ring--ticks -inset-2" />
-            <span className="bengos-hud__ring bengos-hud__ring--arc -inset-4" />
-            <span className="flex h-[80%] w-[80%] items-center justify-center overflow-hidden rounded-full border border-[var(--bengos-border-strong)] bg-[var(--bengos-surface-sunken)] shadow-[0_0_96px_-16px_var(--bengos-glow)]">
+            <span className="bengos-hud__ring bengos-hud__ring--ticks -inset-3" />
+            <span className="bengos-hud__ring bengos-hud__ring--arc -inset-5" />
+            <span className="flex h-[82%] w-[82%] items-center justify-center overflow-hidden rounded-full border border-[var(--bengos-border-strong)] bg-[var(--bengos-surface-sunken)] shadow-[0_0_140px_-24px_var(--bengos-glow)]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={BRAND.logo}
@@ -103,17 +103,17 @@ export function ModuleOrbit() {
               <Link
                 href={branch.href}
                 aria-label={branch.label + " — " + branch.description}
-                className="group flex min-h-[var(--bengos-touch-target-min)] min-w-[var(--bengos-touch-target-min)] flex-col items-center gap-1.5 rounded-[var(--bengos-radius-card)] px-2 py-2 text-center transition-colors duration-[var(--bengos-motion-fast)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bengos-focus-ring)]"
+                className="group flex min-h-[var(--bengos-touch-target-min)] min-w-[var(--bengos-touch-target-min)] flex-col items-center gap-1 rounded-[var(--bengos-radius-card)] px-2 py-1.5 text-center transition-all duration-[var(--bengos-motion-fast)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bengos-focus-ring)]"
               >
-                <span className="relative flex size-12 items-center justify-center rounded-full border border-[var(--bengos-border)] bg-[var(--bengos-surface-raised)] text-[var(--bengos-accent)] transition-colors duration-[var(--bengos-motion-fast)] group-hover:border-[var(--bengos-accent)]">
-                  <branch.Icon className="size-6" />
+                <span className="relative flex size-10 items-center justify-center rounded-full border border-[var(--bengos-border)]/50 bg-[var(--bengos-surface-raised)]/60 text-[var(--bengos-accent)] transition-colors duration-[var(--bengos-motion-fast)] group-hover:border-[var(--bengos-accent)] group-hover:bg-[var(--bengos-surface-raised)]">
+                  <branch.Icon className="size-5" />
                   {branch.stage ? (
-                    <span className="absolute -right-1 -top-1 rounded-full border border-[var(--bengos-border)] bg-[var(--bengos-surface)] px-1 text-[0.625rem] leading-4 text-[var(--bengos-text-muted)]">
+                    <span className="absolute -right-1 -top-1 rounded-full border border-[var(--bengos-border)] bg-[var(--bengos-surface)] px-1 text-[0.55rem] leading-3 text-[var(--bengos-text-muted)]">
                       {branch.stage}
                     </span>
                   ) : null}
                 </span>
-                <span className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-medium)] lowercase tracking-[0.06em] text-[var(--bengos-accent)]">
+                <span className="text-lg font-[var(--bengos-weight-semibold)] lowercase tracking-[0.1em] text-[var(--bengos-accent)] drop-shadow-[0_0_12px_var(--bengos-glow)] group-hover:drop-shadow-[0_0_20px_var(--bengos-glow)]">
                   {branch.label}
                 </span>
               </Link>
