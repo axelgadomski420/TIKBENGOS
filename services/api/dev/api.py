@@ -41,6 +41,7 @@ from .schemas import (
     ConnectRepositoryIn,
     ConnectRepositoryOut,
     CreateIssueIn,
+    CreatePlanIn,
     IssueCommentOut,
     IssueListOut,
     IssueOut,
