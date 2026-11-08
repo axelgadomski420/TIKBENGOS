@@ -1,4 +1,4 @@
-successfully downloaded text file (SHA: 2ca7d69426b22735c3e216ae299582aa22e9d9f6)"""Endpointy modułu Dev (montowane pod /git).
+"""Endpointy modułu Dev (montowane pod /git).
 
 Zasada z audytu, przeniesiona w kod: NIC nie jest zapisywane do GitHuba
 bez użytkownika, który to widzi i ponosi. Issue zakłada użytkownik,

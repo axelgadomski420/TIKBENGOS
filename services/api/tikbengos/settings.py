@@ -1,4 +1,4 @@
-successfully downloaded text file (SHA: 04225a00ec9533f686d38318bc4f452f8af6067d)"""
+"""
 Ustawienia TIKBENGOS API.
 
 Wszystko, co zależy od środowiska, pochodzi z zmiennych środowiskowych —

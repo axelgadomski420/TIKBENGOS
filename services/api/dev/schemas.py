@@ -1,4 +1,4 @@
-successfully downloaded text file (SHA: ed4ca9765e9ff434cb4f1aaff5850265bf055fe1)"""Kształty Dev — te same nazwy pól co packages/core/src/projects.ts."""
+"""Kształty Dev — te same nazwy pól co packages/core/src/projects.ts."""
 
 from datetime import datetime
 from typing import Any

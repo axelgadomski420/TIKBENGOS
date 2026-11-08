@@ -1,4 +1,4 @@
-successfully downloaded text file (SHA: 887b9037cdf9449dcb8cbcd0594ee79d78243538)"""Endpointy asystenta — montowane pod /ai (prefiks z API.ai).
+"""Endpointy asystenta — montowane pod /ai (prefiks z API.ai).
 
 Asystent jest asynchroniczny z definicji: pytanie tworzy zadanie i odchodzi
 do workera z modelem LLM, odpowiedź wraca endpointem zwrotnym. Bez

@@ -1,4 +1,4 @@
-successfully downloaded text file (SHA: 7b5aca50ff316688cfa8aadb619abe785ae041f4)"""Ręczna migracja początkowa asystenta — addytywna, jak każe zasada.
+"""Ręczna migracja początkowa asystenta — addytywna, jak każe zasada.
 
 Powstaje RĘCZNIE (nigdy makemigrations), bo migracje w tym projekcie są
 częścią kontraktu bazy: kolejność i kształt mają być czytelne dla człowieka.

@@ -1,4 +1,4 @@
-successfully downloaded text file (SHA: dcad39abd900a44bce003fc259b2b3c4944d103b)"""
+"""
 Adresy API.
 
 Jeden router django-ninja na prefiks `/v1`, tak jak opisuje to `packages/core`.
