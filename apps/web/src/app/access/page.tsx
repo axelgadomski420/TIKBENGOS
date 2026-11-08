@@ -1,20 +1,26 @@
 import type { Metadata } from "next";
-import { ModulePlaceholder } from "@/components/module-placeholder";
 
-export const metadata: Metadata = { title: "BENGOS Access" };
+import { AccessTools } from "@/components/access/access-tools";
 
+export const metadata: Metadata = {
+  title: "BENGOS Access — TIKBENGOS",
+};
+
+/**
+ * Dostępność — narzędzia działające w przeglądarce.
+ *
+ * Działa TERAZ: syntezator mowy (czytanie tekstu na głos), rozpoznawanie
+ * mowy po polsku (wpisywanie głosem), alfabet Morse’a z wibracją
+ * (dotykowy kanał informacji dla osób głuchych i niewidomych).
+ *
+ * Dojdzie (i jest o tym napisane poniżej, nie ukrywane): napisy w wideo
+ * (worker mediów), tłumacz polskiego języka migowego (osobny worker),
+ * napisy w czacie per rozmowa.
+ */
 export default function AccessPage() {
   return (
-    <ModulePlaceholder
-      name="Access"
-      stage={4}
-      description="Język migowy, napisy, czytanie na głos, pisanie głosem, Morse i wibracje. Warstwa rozpoznawania migów z TIKMIG jest przenoszona niemal bez zmian — jako osobna usługa, bo model potrzebuje własnego środowiska."
-      planned={[
-        "Rozpoznawanie migów: 250 znaków amerykańskiego języka migowego, nie PJM",
-        "Uczciwe ostrzeżenie na ekranie o tym, czego system nie potrafi — bez obiecywania pełnego tłumaczenia",
-        "Napisy i transkrypcje z edycją, czytanie na głos, pisanie głosem",
-        "Alerty Morse'a przez wibracje na urządzeniach, które je mają",
-      ]}
-    />
+    <div className="space-y-6">
+      <AccessTools />
+    </div>
   );
 }
