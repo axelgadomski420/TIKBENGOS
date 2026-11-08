@@ -25,10 +25,28 @@ import { ApiRequestError, apiFetch } from "@/lib/api-client";
  * zamiast martwego przycisku pojawia się zdanie, które mówi dlaczego —
  * przycisk, który nie reaguje, wygląda na zepsuty, a nie na niegotowy.
  *
+ * (Aktualizacja 2026-11-08: to zdanie zniknęło z karty — mówiło do
+ * administratora, nie do gościa, i zaśmiecało ekran. Uczciwa część
+ * została: przyciski stoją TYLKO dla dostawców skonfigurowanych, więc
+ * martwy przycisk nadal nie istnieje.)
+ *
  * ── SKRÓT `#rejestracja` WŁĄCZA ZAKŁADKĘ REJESTRACJI ────────────────────
  * Brama logowania ma na dole odnośnik „rejestracja” (jak na grafice marki).
  * Prowadzi on na `/login#rejestracja`, a ten komponent czyta skrót przy
  * montażu i przełącza tryb. Jedna implementacja formularza, dwa wejścia.
+ *
+ * (Aktualizacja 2026-11-08: skrót czyta teraz BRAMA i podaje tryb propsem
+ * `registerMode`; dolne słowo ekranu jest przyciskiem, który przełącza
+ * tryb od razu, bez przeładowania. Jedna implementacja formularza,
+ * dwa wejścia — to się nie zmieniło.)
+ *
+ * ── JEDEN NAGŁÓWEK, JEDEN PRZYCISK TRYBU ───────────────────────────────
+ * Ekran ma wyglądać jak grafika marki: wielkie słowo trybu u góry
+ * i słowo-przycisk na dole (rysuje oba brama). Dlatego karta straciła
+ * własny tytuł, podtytuł i zakładki „Logowanie/Rejestracja” — były drugim
+ * tytułem i drugim przełącznikiem obok słów z grafiki. Tryb przychodzi
+ * tu propsem, więc stan trybu jest JEDEN i stoi w jednym miejscu —
+ * nie może się rozjechać.
  *
  * ── PO REJESTRACJI WCHODZI SIĘ Z `?welcome=1` ───────────────────────────
  * Samo przeładowanie na pulpit niczego nie potwierdzało: użytkownik nie
@@ -61,8 +79,6 @@ import { ApiRequestError, apiFetch } from "@/lib/api-client";
  * które za chwilę sprawdzi serwer, wypisane uczciwie i bez przewidywania,
  * którego kontrakt nie zna.
  */
-
-type Mode = "login" | "register";
 
 interface FormState {
   identifier: string;
@@ -116,8 +132,7 @@ function ProviderMark({ id }: { id: string }) {
   return <span aria-hidden="true" className="size-2 rounded-full bg-current" />;
 }
 
-export function LoginForm() {
-  const [mode, setMode] = useState<Mode>("login");
+export function LoginForm({ registerMode }: { registerMode: boolean }) {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const [serverError, setServerError] = useState<ApiError | null>(null);
@@ -128,7 +143,7 @@ export function LoginForm() {
   const [oauthBusy, setOauthBusy] = useState<string | null>(null);
   const [oauthError, setOauthError] = useState<ApiError | null>(null);
 
-  const isRegister = mode === "register";
+  const isRegister = registerMode;
   const configured = providers.filter((provider) => provider.configured);
   // Druga reguła hasła sprawdzana na zywo — dokladnie ta, ktora policzy serwer.
   const passwordNotOnlyDigits = form.password.length > 0 && !/^\d+$/.test(form.password);
@@ -149,11 +164,6 @@ export function LoginForm() {
     };
   }, []);
 
-  // Skrót `#rejestracja` z bramy logowania włącza zakładkę rejestracji.
-  useEffect(() => {
-    if (window.location.hash === "#rejestracja") setMode("register");
-  }, []);
-
   // Powód odmowy zapisany przez trasę adresu zwrotnego. Jednorazowy — po
   // odczytaniu znika z adresu, żeby odświeżenie nie pokazywało komunikatu
   // po zdarzeniu, którego już nie ma.
@@ -165,18 +175,20 @@ export function LoginForm() {
     window.history.replaceState({}, "", "/login");
   }, []);
 
-  const update = useCallback((field: keyof FormState, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-    setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
-    setServerError(null);
-  }, []);
-
-  const switchMode = useCallback((next: Mode) => {
-    setMode(next);
+  // Zmiana trybu czyści formularz: dane wpisane przy rejestracji nie mają
+  // wyciekać do ekranu logowania ani odwrotnie. Przy pierwszym montażu
+  // czyści już pusty stan — to zamierzone: jedna droga kodu, bez wyjątków.
+  useEffect(() => {
     setForm(EMPTY_FORM);
     setFieldErrors({});
     setServerError(null);
     setShowPassword(false);
+  }, [isRegister]);
+
+  const update = useCallback((field: keyof FormState, value: string) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+    setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
+    setServerError(null);
   }, []);
 
   const validate = useCallback((): Partial<Record<keyof FormState, string>> => {
@@ -279,30 +291,21 @@ export function LoginForm() {
   }
 
   return (
-    <section aria-labelledby="login-heading" className="bengos-surface-card w-full text-left">
-      <h1
-        id="login-heading"
-        className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-semibold)]"
-      >
-        {isRegister ? "Załóż konto" : "Zaloguj się"}
-      </h1>
-      <p className="mt-1 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
-        {isRegister
-          ? "Jedno konto dla feedu, studia, czatu, asystenta i dev."
-          : "Wejdź do swojego pulpitu — konto masz już założone."}
-      </p>
-
+    <section
+      aria-label={isRegister ? "Formularz rejestracji" : "Formularz logowania"}
+      className="bengos-surface-card w-full text-left"
+    >
       {oauthError ? (
         <p
           role="alert"
-          className="mt-4 rounded-[var(--bengos-radius-control)] border border-[var(--bengos-warning)] bg-[var(--bengos-surface-sunken)] px-3 py-2 text-[var(--bengos-size-caption)]"
+          className="rounded-[var(--bengos-radius-control)] border border-[var(--bengos-warning)] bg-[var(--bengos-surface-sunken)] px-3 py-2 text-[var(--bengos-size-caption)]"
         >
           {oauthError.message}
         </p>
       ) : null}
 
       {configured.length > 0 ? (
-        <ul className="mt-5 space-y-2">
+        <ul className="mt-4 space-y-2">
           {configured.map((provider) => (
             <li key={provider.id}>
               <button
@@ -321,54 +324,13 @@ export function LoginForm() {
         </ul>
       ) : null}
 
-      {providers.length > 0 && configured.length === 0 ? (
-        <p className="mt-5 rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] bg-[var(--bengos-surface-sunken)] px-3 py-2 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
-          Logowanie przez Google albo GitHuba pojawi się, gdy administrator doda klucze do
-          tego serwera. Na razie konto zakładasz emailem.
-        </p>
-      ) : null}
-
       {configured.length > 0 ? (
         <p className="my-5 flex items-center gap-3 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
           <span aria-hidden="true" className="h-px flex-1 bg-[var(--bengos-border)]" />
           albo emailem
           <span aria-hidden="true" className="h-px flex-1 bg-[var(--bengos-border)]" />
         </p>
-      ) : (
-        <div className="mt-5" />
-      )}
-
-      {/*
-        Zakładki w jednym pasku z ciemniejszym tłem. Aktywna jest PODNIESIONA
-        na tło karty — widać, która jest wybrana, zanim przeczyta się podpis.
-      */}
-      <div
-        role="tablist"
-        aria-label="Tryb"
-        className="flex gap-1 rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] bg-[var(--bengos-surface-sunken)] p-1"
-      >
-        {(["login", "register"] as const).map((value) => {
-          const active = mode === value;
-          return (
-            <button
-              key={value}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              disabled={busy}
-              onClick={() => switchMode(value)}
-              className={
-                "min-h-[var(--bengos-touch-target-min)] flex-1 rounded-[var(--bengos-radius-control)] px-4 text-[var(--bengos-size-caption)] transition-colors duration-[var(--bengos-motion-fast)] " +
-                (active
-                  ? "bg-[var(--bengos-surface-raised)] font-[var(--bengos-weight-medium)] text-[var(--bengos-text)]"
-                  : "text-[var(--bengos-text-muted)] hover:text-[var(--bengos-text)]")
-              }
-            >
-              {value === "login" ? "Logowanie" : "Rejestracja"}
-            </button>
-          );
-        })}
-      </div>
+      ) : null}
 
       {serverError && !serverError.field ? (
         <p
@@ -379,7 +341,7 @@ export function LoginForm() {
         </p>
       ) : null}
 
-      <form className="mt-5 space-y-4" onSubmit={submit} noValidate>
+      <form className="mt-4 space-y-4" onSubmit={submit} noValidate>
         {isRegister ? (
           <>
             <Field

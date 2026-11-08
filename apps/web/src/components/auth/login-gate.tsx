@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
 import { LoginForm } from "@/components/auth/login-form";
@@ -23,13 +24,57 @@ import { useSession } from "@/lib/session-context";
  * odczytać czytnikiem ekranu. Tu stoją PRAWDZIWE napisy w tych samych
  * miejscach — klikalne, czytane, dostępne z Tab.
  *
+ * ── SŁOWO U GÓRY TO TRYB, SŁOWO NA DOLE TO PRZYCISK ────────────────────
+ * Grafika marki ma dokładnie dwa słowa: „logowanie” u góry i „rejestracja”
+ * na dole. Ekran robi z nich system: górne słowo mówi, w KTÓRYM trybie
+ * się jest, dolne ten tryb PRZEŁĄCZA. Wcześniej na ekranie były jeszcze
+ * zakładki i drugi tytuł na karcie formularza — trzy rzeczy powtarzały
+ * to samo, więc żadna nie mówiła nic wyraźnie. Teraz jedno słowo = jedna
+ * odpowiedzialność, dokładnie jak na grafice.
+ *
  * ── REJESTRACJA PRZEZ SKRÓT, NIE PRZEZ DRUGI FORMULARZ ────────────────
  * Odnośnik „rejestracja” prowadzi na /login#rejestracja; formularz czyta
- * skrót przy montażu i włącza zakładkę rejestracji. Jedna implementacja
- * formularza, dwa wejścia.
+ * skrót przy montażu i przełącza tryb. Jedna implementacja formularza,
+ * dwa wejścia.
+ *
+ * (Aktualizacja 2026-11-08: skrót czyta teraz TA brama i przekazuje tryb
+ * formularzowi propsem, a dolne słowo jest przyciskiem — przełącza tryb
+ * od razu, bez przeładowania. Głęboki odnośnik /login#rejestracja dalej
+ * działa, bo skrót czytany jest przy montażu.)
+ *
+ * ── ROZMIAR JAK NA GRAFICE, NIE MINIATURA ─────────────────────────────
+ * Na grafice marki kula z tygrysem DOMINUJE nad kompozycją — to oś, wokół
+ * której wszystko stoi. Wcześniejszy okrąg miał 144 px i był ozdobą.
+ * Teraz średnica liczy się od szerokości ekranu — min(64vw, 320px) — więc
+ * na telefonie tygrys zajmuje dwie trzecie szerokości jak na grafice,
+ * a na dużym ekranie nie rośnie w nieskończoność. Nagłówek idzie w parze:
+ * clamp(2.75rem, 11vw, 5.5rem), bo „logowanie” ma być pierwszą rzeczą,
+ * którą oko znajduje na ekranie.
  */
 export function LoginGate() {
   const { status, identity } = useSession();
+  const [registerMode, setRegisterMode] = useState(false);
+
+  // Głęboki odnośnik /login#rejestracja (zapisana zakładka, odnośnik z innego
+  // ekranu) ma od razu właściwy tryb. Pierwsza klatka pokaże „logowanie” —
+  // uniknięcie tego błysku wymagałoby czytania hasha poza Reactem, a koszt
+  // tego obejścia jest większy niż sama krótkotrwała niespójność.
+  useEffect(() => {
+    if (window.location.hash === "#rejestracja") setRegisterMode(true);
+  }, []);
+
+  // Dolne słowo przełącza tryb. Adres idzie w parze ze stanem (replaceState,
+  // nie przypisanie do hash — przypisanie odpala hashchange i skok do
+  // kotwicy), żeby odświeżenie strony i zapisana zakładka pamiętały tryb.
+  const flipMode = () => {
+    const next = !registerMode;
+    setRegisterMode(next);
+    if (next) {
+      window.history.replaceState({}, "", "#rejestracja");
+    } else {
+      window.history.replaceState({}, "", window.location.pathname + window.location.search);
+    }
+  };
 
   if (status === "loading") {
     // Chwila między wejściem a odpowiedzią /users/me. Krótka z definicji,
@@ -96,26 +141,26 @@ export function LoginGate() {
         <div className="absolute -right-20 bottom-8 size-80 rounded-full bg-[var(--bengos-warning)] opacity-[0.10] blur-3xl" />
       </div>
 
-      {/* „logowanie” — wielki cyjan u góry, jak na grafice marki. */}
-      <header className="px-5 pt-10 text-center sm:pt-14">
-        <h1 className="text-[var(--bengos-size-display)] font-[var(--bengos-weight-semibold)] lowercase tracking-[0.12em] text-[var(--bengos-accent)] [text-shadow:0_0_28px_var(--bengos-glow)]">
-          logowanie
+      {/* Górne słowo — wielki cyjan trybu, jak na grafice marki. */}
+      <header className="px-5 pt-8 text-center sm:pt-12">
+        <h1 className="text-[clamp(2.75rem,11vw,5.5rem)] font-[var(--bengos-weight-semibold)] lowercase leading-none tracking-[0.06em] text-[var(--bengos-accent)] [text-shadow:0_0_38px_var(--bengos-glow)]">
+          {registerMode ? "rejestracja" : "logowanie"}
         </h1>
-        <p className="bengos-eyebrow mt-2 text-[var(--bengos-text-muted)]">{BRAND.tagline}</p>
+        <p className="bengos-eyebrow mt-3 text-[var(--bengos-text-muted)]">{BRAND.tagline}</p>
       </header>
 
       {/*
-        Tygrys w świecącym okręgu — środek ekranu, jak na grafice. Całość
+        Tygrys w świecącym okręgu — oś kompozycji, jak na grafice. Całość
         jest dekoracją (aria-hidden): nazwę i działanie niosą napisy,
         obraz w kole jest czystym znakiem marki z pustym altem.
       */}
-      <div className="flex items-center justify-center px-5 py-8" aria-hidden="true">
-        <div className="flex size-36 items-center justify-center sm:size-44">
+      <div className="flex items-center justify-center px-5 py-6" aria-hidden="true">
+        <div className="flex size-[min(64vw,320px)] items-center justify-center">
           <div className="bengos-hud flex size-full items-center justify-center">
             <span className="bengos-hud__ring bengos-hud__ring--static inset-0" />
-            <span className="bengos-hud__ring bengos-hud__ring--ticks -inset-3 sm:-inset-5" />
-            <span className="bengos-hud__ring bengos-hud__ring--arc -inset-6 sm:-inset-10" />
-            <span className="flex h-[80%] w-[80%] items-center justify-center overflow-hidden rounded-full border border-[var(--bengos-border-strong)] bg-[var(--bengos-surface-sunken)] shadow-[0_0_72px_-12px_var(--bengos-glow)]">
+            <span className="bengos-hud__ring bengos-hud__ring--ticks -inset-4" />
+            <span className="bengos-hud__ring bengos-hud__ring--arc -inset-9" />
+            <span className="flex h-[80%] w-[80%] items-center justify-center overflow-hidden rounded-full border border-[var(--bengos-border-strong)] bg-[var(--bengos-surface-sunken)] shadow-[0_0_96px_-16px_var(--bengos-glow)]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={BRAND.logo}
@@ -130,18 +175,24 @@ export function LoginGate() {
         </div>
       </div>
 
-      <div className="mx-auto w-full max-w-sm px-5 pb-4 sm:max-w-md">
-        <LoginForm />
+      <div className="mx-auto w-full max-w-sm px-5 pb-2 sm:max-w-md">
+        <LoginForm registerMode={registerMode} />
       </div>
 
-      {/* „rejestracja” — odnośnik na dole, jak na grafice. */}
+      {/*
+        Dolne słowo — przełącznik trybu. U góry stoi tryb obecny, więc na
+        dole stoi jego przeciwieństwo: na ekranie logowania „rejestracja”,
+        na ekranie rejestracji „logowanie”. To przycisk, nie odnośnik —
+        przełącza stan bez przeładowania.
+      */}
       <footer className="mt-auto px-5 pb-10 pt-4 text-center">
-        <Link
-          href="/login#rejestracja"
-          className="bengos-touch-target inline-flex items-center justify-center px-4 text-[var(--bengos-size-body)] font-[var(--bengos-weight-medium)] lowercase tracking-[0.12em] text-[var(--bengos-accent)] [text-shadow:0_0_22px_var(--bengos-glow)]"
+        <button
+          type="button"
+          onClick={flipMode}
+          className="bengos-touch-target inline-flex items-center justify-center px-4 text-[var(--bengos-size-title)] font-[var(--bengos-weight-medium)] lowercase tracking-[0.06em] text-[var(--bengos-accent)] [text-shadow:0_0_22px_var(--bengos-glow)]"
         >
-          rejestracja
-        </Link>
+          {registerMode ? "logowanie" : "rejestracja"}
+        </button>
       </footer>
     </div>
   );
