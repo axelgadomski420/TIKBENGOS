@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { ApiError, Post } from "@bengos/core";
 
 import { Announcement } from "@/components/announcement";
+import { PostComments } from "@/components/feed/post-comments";
 import { ApiRequestError, apiFetch } from "@/lib/api-client";
 import { useCursorList } from "@/lib/use-cursor-list";
 import { useSession } from "@/lib/session-context";
@@ -29,6 +30,13 @@ import { useSession } from "@/lib/session-context";
  * jest — a wpis pojawia się na liście natychmiast, bez przeładowania.
  * Limity są te same co po stronie serwera i pokazywane przed wysłaniem,
  * żeby użytkownik nie dowiadywał się o nich z błędu.
+ *
+ * ── KOMENTARZE SĄ POD WPISEM, NIE W LICZNIKU ────────────────────────────
+ * `PostComments` stoi pod akapitem z polubieniami, a nie obok liczby
+ * komentarzy. Powód jest praktyczny: komentarze mają własny przycisk
+ * rozwijający i własny formularz, więc wciśnięte w zdanie dałyby akcję
+ * w środku tekstu. Licznik komentarzy niesie teraz przycisk — jeden
+ * element, jedno znaczenie.
  */
 const REASONS = ["obserwujesz", "podobny temat", "nowy dla Ciebie"] as const;
 const FILTERS = ["wszystko", "obserwowani", "odkrywaj"] as const;
@@ -179,7 +187,7 @@ export function FeedList() {
                   </p>
                 ) : null}
                 <p className="mt-3 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
-                  Polubienia: {post.counters.likes} · Komentarze: {post.counters.comments}
+                  Polubienia: {post.counters.likes}
                 </p>
                 {isAuthenticated ? (
                   <button
@@ -195,6 +203,13 @@ export function FeedList() {
                     {liked[post.id] ? "Polubione" : "Polub"}
                   </button>
                 ) : null}
+
+                {/*
+                  Komentarze stoją tu, a nie w akapicie z licznikiem:
+                  mają własny przycisk rozwijający i własny formularz, więc
+                  wciśnięcie ich w zdanie dałoby akcję w środku tekstu.
+                */}
+                <PostComments postId={post.id} count={post.counters.comments} />
               </li>
             ))}
           </ul>
