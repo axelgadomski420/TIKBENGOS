@@ -11,6 +11,7 @@ import { SkipLink } from "@/components/skip-link";
 import { useSession } from "@/lib/session-context";
 import { usePreferences } from "@/lib/preferences-context";
 import { themeAttributes, tokensToStyle } from "@/lib/tokens-to-style";
+import { BRAND } from "@/lib/brand";
 
 /**
  * Rozwidlenia z BENGOS Home w siódemkę modułów.
@@ -43,13 +44,17 @@ const BRANCHES: { href: string; label: string; description: string; permission?:
  * Logo jest kwadratowe z ciemnym tłem, a napis „BENGOS” siedzi w górnej
  * części grafiki. Przy pełnym kadrowaniu w kwadracie 40 px napis stawał się
  * nieczytelnym szumem i zabierał miejsce samemu tygrysowi. Dlatego obraz
- * dostaje `object-cover object-top` i większy promień — widać wtedy głowę,
+ * dostaje `object-cover object-top` i pełny promień — widać wtedy głowę,
  * a nazwa obok mówi to, czego sygnet nie powie.
  *
- * ── ODSTĘPY PIERWSZEŃSTWA: NAWIGACJA NAD ZNAKIEM ───────────────────────
- * Pasek ustawia nawigację w `ml-auto` razem z ustawieniami, a znak zostaje
- * po lewej. Bez tego przy siedmiu modułach nazwa i ostatni moduł zlepiały
- * się w jeden ciąg i nie było widać, gdzie kończy się marka, a zaczyna menu.
+ * ├─ `unoptimized` JEST WYMAGANE PRZY ZEWNĘTRZNYM ADRESIE ────────────────
+ * Next.js optymalizuje obrazy na żądanie — pobiera plik i przetwarza go
+ * po stronie serwera. Przy adresie z zewnętrznego hostingu bez wpisu
+ * w `next.config.ts` ta optymalizacja kończy się błędem, a na ekranie
+ * zostaje puste miejsce. `unoptimized` bierze plik wprost, tak jak leży.
+ *
+ * Cena: obraz idzie z serwera zewnętrznego bez pośrednictwa. Dlatego adres
+ * pochodzi z `@/lib/brand` — jedno miejsce, w którym wskazujemy znak.
  */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { theme, accessibility } = usePreferences();
@@ -83,14 +88,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {/*
               `priority` jest tu celowe: znak stoi nad zgięciem strony, więc
               leniwe ładowanie pokazałoby go po chwili jako przeskok układu.
-
-              `unoptimized` jest wymagane, a nie wygodne: plik jest JPEG-em
-              w `public/` bez wymiarów zoptymalizowanych, a Next bez tej flagi
-              próbuje przetworzyć go na żądanie i przy braku pliku zwraca
-              pusty prostokąt zamiast informacji o braku.
+              Rozmiar podany jawnie, bo obraz bez wymiarów rezerwuje zero
+              miejsca i wypycha nawigację w momencie wczytania.
             */}
             <Image
-              src="/brand/bengos-logo.jpg"
+              src={BRAND.logo}
               alt=""
               width={36}
               height={36}
@@ -98,7 +100,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               unoptimized
               className="size-9 rounded-full object-cover object-top"
             />
-            <span className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-semibold)]">
+            <span className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-semibold)] tracking-[0.08em]">
               BENGOS
             </span>
           </Link>
