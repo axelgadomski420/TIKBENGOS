@@ -20,22 +20,42 @@ const config: NextConfig = {
   // żądanie ze `status: 0` — czyli bez odpowiedzi.
   //
   // Wracamy do wyniku zwykłego, bo obraz i tak uruchamia `npm run start`
-  // z workspace'u. `standalone` wróci razem z powrotem do `node server.js`
-  // w Dockerfile — jedno bez drugiego nie działa.
-  // Typowanie strict w Next 15 wywala build, gdy `tsc` zgłosi cokolwiek.
-  // Zostawiamy to włączone świadomie — ale osobno mówimy Nextowi, że ma
-  // PRZERWAć na błędzie typów, a nie tylko go wypisać.
+  // z workspace'u.
   typescript: { ignoreBuildErrors: false },
   eslint: { ignoreDuringBuilds: true },
-  // Znak marki stoi dziś na `i.ibb.co` — decyzja właściciela opisana w
-  // `src/lib/brand.ts`. Grafika w nagłówku powłoki ma `unoptimized`, więc
-  // nie przechodzi przez `/_next/image` i ten wpis nie jest jej potrzebny.
-  // Istnieje na zapas: jeśli przy przyszłej optymalizacji obrazów ktoś zdejmie
-  // `unoptimized`, bez `remotePatterns` Next odmówi serwowania obcej domeny
-  // i logo zniknie z pasków. Wpis załatwia to zawczasu.
   images: {
     remotePatterns: [{ protocol: "https", hostname: "i.ibb.co" }],
   },
+  /*
+    ── PUSTY `Cache-Control` DLA STRON, KTÓRE ZALEŻĄ OD SESJI ─────────────
+    (naprawa 2026-11-08, noc — najważniejsza w tej sesji)
+
+    Next.js pre-renderuje `/` i wysyła na nią `Cache-Control: s-maxage=31536000`,
+    czyli pozwolenie na trzymanie strony w cache przez ROK. Dowód z nagłówków
+    po wdrożeniu, w którym kod był już nowy:
+
+        cache-control: s-maxage=31536000
+        x-nextjs-cache: HIT
+
+    Skutek: właściciel widział na telefonie ekran sprzed godzin, mimo że
+    w obrazie leżał nowy plik — sprawdzone `grep`-em w kompilacie:
+
+        /app/apps/web/.next/static/chunks/app/layout-79bebca49b9e89fd.js
+        curl https://bengos.pl/ | grep -c 'bengos-off' → w kodzie był nowy
+
+    To była przyczyna całej serii „napraw, dalej stare”. Każde wdrożenie
+    było poprawne, a przeglądarka (albo proxy operatora) serwowała kopię
+    z cache'u, bo serwer sam na to pozwolił.
+
+    ── DLACZEGO `no-store`, A NIE KRÓTSZY `max-age` ────────────────────
+    Te ekrany zależą od STANU SESJI: dla zalogowanego renderują pulpit, dla
+    przybysza bramę wejścia. Kopia w cache'u jest więc z definicji błędna
+    dla połowy odwiedzających — i to jest właśnie ten błąd, który widział
+    właściciel: zapisana brama pokazywana osobie, która już weszła.
+    `no-store` zabrania trzymania kopii całkowicie. Strony statyczne
+    i zasoby `/_next/static/` mają własne, dłuższe nagłówki i tego wpisu
+    nie dotyczą.
+  */
   async headers() {
     return [
       {
@@ -44,10 +64,26 @@ const config: NextConfig = {
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-Frame-Options", value: "DENY" },
-          // Kamera i mikrofon są potrzebne modułom Access i Studio, ale żadna
-          // z nich nie działa bez zgody użytkownika — pozwolenie w nagłówku
-          // to nie to samo co zgoda w aplikacji.
           { key: "Permissions-Policy", value: "camera=(self), microphone=(self), geolocation=()" },
+        ],
+      },
+      {
+        // ── STRONA GŁÓWNA: ZERO CACHE'U ──────────────────────────────────
+        // `/` jest stroną zależną od sesji, więc kopia w cache'u jest zawsze
+        // błędna dla kogoś. `no-store` + `must-revalidate` zabraniają
+        // jakiegokolwiek trzymania — i kończą serię niewidocznych wdrożeń.
+        source: "/",
+        headers: [
+          { key: "Cache-Control", value: "no-store, no-cache, must-revalidate, max-age=0" },
+        ],
+      },
+      {
+        // ── EKRANY MODUŁÓW: ZERO CACHE'U ────────────────────────────────
+        // Te trasy też zależą od sesji (brama staje na każdej z nich),
+        // więc ten sam powód co wyżej.
+        source: "/:path(feed|studio|chat|create|dev|access|profile|settings|login|register)",
+        headers: [
+          { key: "Cache-Control", value: "no-store, no-cache, must-revalidate, max-age=0" },
         ],
       },
       {
@@ -57,7 +93,7 @@ const config: NextConfig = {
         source: "/sw.js",
         headers: [
           { key: "Content-Type", value: "application/javascript; charset=utf-8" },
-          { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+          { key: "Cache-Control", value: "no-store, no-cache, must-revalidate, max-age=0" },
           { key: "Service-Worker-Allowed", value: "/" },
         ],
       },
