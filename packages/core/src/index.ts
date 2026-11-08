@@ -1,4 +1,4 @@
-successfully downloaded text file (SHA: 055fc21785126e880b7b0d0184d1c3568f9aef55)/**
+/**
  * Kontrakty TIKBENGOS — jedno źródło prawdy dla interfejsu i serwera.
  *
  * Importy są BEZ rozszerzenia i to jest celowe. Wcześniej stało tu `.js`,
@@ -8,6 +8,21 @@ successfully downloaded text file (SHA: 055fc21785126e880b7b0d0184d1c3568f9aef55
  *
  * Bez rozszerzenia rozwiązywanie idzie po rzeczywistych plikach, więc ten sam
  * zapis działa i w webpacku, i w `tsc`, i w Node po kompilacji.
+ *
+ * ── UWAGA, KTÓRA KOSZTOWAŁA CZTERY PRZEBUDOWY ───────────────────────────
+ * W pierwszej linii tego pliku stało kiedyś:
+ *
+ *     successfully downloaded text file (SHA: 055fc217…)/**
+ *
+ * To komunikat narzędzia, które pobierało plik — wklejony przed komentarzem,
+ * a nie do komentarza. Webpack przewracał się na tym komunikatem
+ * (`Expected ';', '}' or <eof>`), a TypeScript nie dochodził do swoich
+ * błędów, bo zatrzymuje się na pierwszym napotkanym. Skutek: przez kilka
+ * przebudów naprawiane było `access-tools.tsx`, które było bez winy.
+ *
+ * Pierwsza linia tego pliku MUSI zaczynać się od `/**`. Jeśli narzędzie
+ * do pobierania plików dopisze tu cokolwiek przed komentarzem, build padnie,
+ * a komunikat wskaże nie ten plik, który jest przyczyną.
  */
 
 export * from "./api";
