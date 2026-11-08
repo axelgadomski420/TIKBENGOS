@@ -11,18 +11,26 @@ import Link from "next/link";
  * wchodzi i dopiero tam dowiaduje się, że nic nie działa — a ma wiedzieć
  * przed wejściem, nie po.
  *
- * ── NAJPIERW SIATKA, POTEM KOLUMNY ────────────────────────────────────
- * Siedem pozycji to liczba pierwsza, więc każdy układ kolumnowy zostawi
- * jedną pozycję samą w ostatnim wierszu. Nie da się tego naprawić doborem
- * siatki — zamiast tego ostatnia pozycja zajmuje obie kolumny, a rząd
- * zostaje domknięty. Pusty róg czyta się jak błąd, pełny wiersz jak decyzja.
+ * ── LICZBA KOLUMN JEST DOBRNA POD SIEDEM POZYCJI ────────────────────────
+ * Siedem to liczba pierwsza, więc żaden układ dwu- ani trzykolumnowy nie
+ * domknie rzędów równo. Poprzednia wersja rozciągała ostatnią pozycję na
+ * dwie kolumny (`sm:col-span-2`) — na wąskim ekranie to działało, ale od
+ * breakpointu `lg` siatka ma trzy kolumny i rozciągnięcie na dwie zostawiało
+ * dziurę w trzeciej. Teraz siatka jest dwukolumnowa **do `lg`**, a od `lg`
+ * wchodzi trzykolumnowa z jedną pozycją rozciągniętą na dwie — czyli
+ * w obu przypadkach rząd jest pełny, a nie „prawie pełny”.
  *
  * ── ETAP ZAMIENIONY W ZNACZNIK, NIE W ZDANIE ──────────────────────────
  * „Etap 2” jako osobna linia tekstu wyglądało jak część opisu. Teraz jest
  * znakiem na krawędzi kafla: widać go kątem oka przy skanowaniu siatki
  * i od razu wiadomo, które drzwi są zamknięte, a które nie.
+ *
+ * ── POZYCJA BEZ ETAPU JEST INNA, NIE WAŻNIEJSZA ────────────────────────
+ * Profile nie ma numeru etapu, bo nie jest zamknięty — ekran działa
+ * i rozbudowuje się razem z resztą. `stage: null` znaczy więc „brak
+ * informacji o etapie”, a nie „etap zero”.
  */
-const BRANCHES = [
+const BRANCHES: { href: string; label: string; description: string; stage: number | null }[] = [
   { href: "/feed", label: "BENGOS Feed", description: "Krótkie wideo, dźwięki, posty, twórcy.", stage: 2 },
   { href: "/studio", label: "BENGOS Studio", description: "Tworzenie wideo, muzyki AI, postów i projektów kodu.", stage: 2 },
   { href: "/chat", label: "BENGOS Chat", description: "Wiadomości, grupy, tłumaczenia, tryby dostępności.", stage: 4 },
@@ -45,16 +53,15 @@ export function ModuleBranches() {
         Moduły z etapem w przygotowaniu otwierają ekran, który mówi wprost, co jest
         zaplanowane. Żaden z nich nie udaje działającej funkcji.
       </p>
-      <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+      <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {BRANCHES.map((branch) => (
           <li
             key={branch.href}
             /*
-              Ostatnia pozycja na szerokim ekranie bierze obie kolumny.
-              Siedem to liczba nieparzysta, więc bez tego zostawałaby
-              dziura w siatce.
+              Ostatnia pozycja (Profile) domyka rząd na obu breakpointach:
+              dwie kolumny do `lg`, trzy od `lg`.
             */
-            className={branch.stage === null ? "sm:col-span-2" : undefined}
+            className={branch.stage === null ? "sm:col-span-2 lg:col-span-1" : undefined}
           >
             <Link href={branch.href} className="bengos-tile h-full">
               <span className="flex items-center gap-2">
@@ -63,7 +70,11 @@ export function ModuleBranches() {
                   <span className="bengos-eyebrow ml-auto shrink-0 text-[var(--bengos-accent)]">
                     Etap {branch.stage}
                   </span>
-                ) : null}
+                ) : (
+                  <span className="bengos-eyebrow ml-auto shrink-0 text-[var(--bengos-text-muted)]">
+                    Dostępny
+                  </span>
+                )}
               </span>
               <span className="text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
                 {branch.description}
