@@ -1,4 +1,4 @@
-successfully downloaded text file (SHA: 4da9972074fea005d64121b57dfd0bf32482411d)import Link from "next/link";
+import Link from "next/link";
 
 /**
  * Rozwidlenia z BENGOS Home.
@@ -166,7 +166,7 @@ export function ModuleBranches() {
 
       {/*
         Siatka 2 → 3 kolumny. Na telefonie dwa kafle w rzędzie dają cel
-        dotykowy szerszy ni¿ 44 px, a trzy w rzędzie spadłyby poniżej progu.
+        dotykowy szerszy niż 44 px, a trzy w rzędzie spadłyby poniżej progu.
       */}
       <ul className="mt-5 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
         {BRANCHES.map((branch) => (
