@@ -1,4 +1,4 @@
-"""Endpointy modułu Dev (montowane pod /git).
+successfully downloaded text file (SHA: 2ca7d69426b22735c3e216ae299582aa22e9d9f6)"""Endpointy modułu Dev (montowane pod /git).
 
 Zasada z audytu, przeniesiona w kod: NIC nie jest zapisywane do GitHuba
 bez użytkownika, który to widzi i ponosi. Issue zakłada użytkownik,
@@ -10,6 +10,7 @@ Cudze repozytorium w tej instalacji: 404, nie 403 — zasada z czatu,
 """
 
 import re
+import secrets
 from datetime import datetime
 
 from django.conf import settings
@@ -43,6 +44,7 @@ from .schemas import (
     IssueCommentOut,
     IssueListOut,
     IssueOut,
+    JobCompleteIn,
     OperationListOut,
     OperationOut,
     PlanListOut,
@@ -509,3 +511,126 @@ def list_operations(request):
     user = current_user(request)
     rows = CodeOperation.objects.filter(actor=user)[:OPERATIONS_PAGE]
     return 200, {"items": [_operation_out(row) for row in rows]}
+
+# ── Endpoint zwrotny executora zmian ──────────────────────────────────
+
+# Stany, w jakich executor może zameldować się na endpoincie zwrotnym.
+WORKER_STATES = {"running", "succeeded", "failed"}
+
+
+def _worker_authorized(request) -> bool:
+    """Uwierzytelnienie executora — wspólny sekret, porównanie stałoczasowe.
+
+    Ten sam sekret co worker GPU muzyki (BENGOS_WORKER_TOKEN): usługi
+    wewnętrzne autoryzują się tak samo, bo różnicowanie sekretów nie daje
+    tu nic — obaj wykonawcy piszą do tej samej bazy przez callbacki.
+    Bez sekretu endpoint jest ZAMKNIĘTY (403), a nie „cicho”.
+    """
+    expected = getattr(settings, "BENGOS_WORKER_TOKEN", "")
+    if not expected:
+        return False
+    provided = request.headers.get("X-Bengos-Worker", "")
+    return secrets.compare_digest(expected, provided)
+
+
+@router.post(
+    "/jobs/{job_id}/complete",
+    response={200: None, 400: ErrorOut, 403: ErrorOut, 404: ErrorOut},
+)
+def complete_job(request, job_id: str, payload: JobCompleteIn):
+    """Raport executora: postęp, porażka albo wykonany plan z pull requestem.
+
+    To jedyne miejsce, w którym plan przechodzi w stan "applied" — bez
+    niego executor miałby zmieniony kod, a plan wciąż by „czekał", i to
+    by było kłamstwo wprost w bazie. Zatwierdzenie planu (approve) daje
+    ZGODĘ na wykonanie; ten endpoint stwierdza WYKONANIE.
+
+    Uwierzytelnienie: nagłówek X-Bengos-Worker z BENGOS_WORKER_TOKEN.
+    Sesja tu nie istnieje — executor nie jest człowiekiem.
+    """
+    if not _worker_authorized(request):
+        raise HttpError(
+            403,
+            {
+                "code": "forbidden",
+                "message": (
+                    "Endpoint zwrotny wymaga nagłówka X-Bengos-Worker z sekretem "
+                    "BENGOS_WORKER_TOKEN. Bez ustawionego sekretu jest zamknięty."
+                ),
+            },
+        )
+
+    job = CodeJob.objects.filter(id=job_id).first()
+    if job is None:
+        raise HttpError(404, {"code": "not_found", "message": "Nie znaleziono tego zadania."})
+    if payload.state not in WORKER_STATES:
+        raise HttpError(
+            400,
+            {
+                "code": "bad_request",
+                "message": "Stan raportu może być running, succeeded albo failed.",
+                "field": "state",
+            },
+        )
+
+    if payload.state == "running":
+        job.state = "running"
+        job.stage = (payload.stage or "")[:120]
+        job.progress = max(0.0, min(1.0, payload.progress))
+        job.save(update_fields=["state", "stage", "progress", "updated_at"])
+        return 200, {"state": job.state, "stage": job.stage, "progress": job.progress}
+
+    plan = job.plan  # SET_NULL: plan mógł zniknąć, a raport i tak musi się przyjąć
+
+    if payload.state == "failed":
+        job.state = "failed"
+        job.error = {
+            "code": "internal",
+            "message": (payload.error or "Executor zakończył zlecenie błędem.")[:2000],
+        }
+        job.save(update_fields=["state", "error", "updated_at"])
+        if plan is not None:
+            plan.state = {"state": "failed", "jobId": str(job.id), "error": (payload.error or "")[:2000]}
+            plan.save(update_fields=["state"])
+            _log(job.owner, plan.repository, "plan.failed", "Plan nieudany: " + (payload.error or "")[:200], plan=plan)
+            record(job.owner, "git.plan.failed", resource=str(plan.id))
+        return 200, {"state": job.state, "error": job.error}
+
+    # state == "succeeded": wykonanie jest prawdziwe tylko z pull requestem.
+    # Sukces bez PR oznaczałby zmiany w gałęzi, której nikt nie zobaczy.
+    pull_url = (payload.pullRequestUrl or "").strip()
+    if not pull_url:
+        raise HttpError(
+            400,
+            {
+                "code": "bad_request",
+                "message": "Sukces wymaga adresu pull requesta. Executor musi go utworzyć.",
+                "field": "pullRequestUrl",
+            },
+        )
+
+    job.state = "succeeded"
+    job.progress = 1.0
+    job.result_ref = pull_url[:400]
+    job.save(update_fields=["state", "progress", "result_ref", "updated_at"])
+    if plan is not None:
+        # Kroki i pliki wypełnia EXECUTOR — tu tylko zapisujemy raport
+        # wykonania. Puste kroki po sukcesie byłyby zgubą informacji,
+        # nie uczciwością.
+        if payload.summary.strip():
+            plan.summary = payload.summary.strip()
+        if payload.steps:
+            plan.steps = payload.steps
+        if payload.filesTouched:
+            plan.files_touched = payload.filesTouched
+        plan.state = {"state": "applied", "jobId": str(job.id), "pullRequestUrl": pull_url}
+        plan.save(update_fields=["summary", "steps", "files_touched", "state"])
+        _log(
+            job.owner,
+            plan.repository,
+            "plan.applied",
+            "Plan wykonany: " + pull_url,
+            plan=plan,
+        )
+        record(job.owner, "git.plan.apply", resource=str(plan.id))
+    return 200, {"state": job.state, "resultRef": job.result_ref}

@@ -1,4 +1,4 @@
-"""Kształty Dev — te same nazwy pól co packages/core/src/projects.ts."""
+successfully downloaded text file (SHA: ed4ca9765e9ff434cb4f1aaff5850265bf055fe1)"""Kształty Dev — te same nazwy pól co packages/core/src/projects.ts."""
 
 from datetime import datetime
 from typing import Any
@@ -128,3 +128,22 @@ class OperationOut(Schema):
 
 class OperationListOut(Schema):
     items: list[OperationOut]
+
+class JobCompleteIn(Schema):
+    """Raport executora zmian — dokładnie to, co oddaje services/executor.
+
+    Pola są opcjonalne poza state: raport "running" niesie tylko postęp,
+    a "succeeded" streszczenie, kroki, pliki i adres pull requesta.
+    Kroki są słownikami (nie schematem), bo kształt PlanStep z kontraktu
+    waliduje PlanOut przy odczycie — tu przyjmujemy je z zaufania do
+    workera z sekretem i zapisujemy.
+    """
+
+    state: str
+    stage: str = ""
+    progress: float = 0
+    summary: str = ""
+    steps: list[dict[str, Any]] = []
+    filesTouched: list[str] = []
+    pullRequestUrl: str = ""
+    error: str = ""
