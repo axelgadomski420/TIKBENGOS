@@ -5,10 +5,10 @@ import "@bengos/ui/boot.css";
 import "./globals.css";
 
 import { AppShell } from "@/components/app-shell";
+import { BootSplash } from "@/components/boot-splash";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
 import { PreferencesProvider } from "@/providers/preferences-provider";
 import { SessionProvider } from "@/providers/session-provider";
-import { BRAND } from "@/lib/brand";
 
 /**
  * Powłoka aplikacji.
@@ -57,10 +57,10 @@ export const metadata: Metadata = {
   description: "Jeden społecznościowy system operacyjny.",
   applicationName: "BENGOS",
   manifest: "/manifest.webmanifest",
-  // Ikony PWA są zadeklarowane w manifeście; logo znaku jest też tam.
-  // Pliki w `public/icons/icon-*.png` nadal nie istnieją — brak jest
-  // zgłoszony osobno, a wskazywanie ścieżek bez plików dałoby pusty kwadrat
-  // w miejsce ikony, zamiast jej braku.
+  // Ikony PWA są zadeklarowane w manifeście; znak marki jest tam jako JPEG
+  // z zewnętrznego hostingu oraz jako lokalny SVG. Pliki `icon-*.png`
+  // nadal nie istnieją — brak jest zgłoszony osobno, a wskazywanie ścieżek
+  // bez plików dałoby pusty kwadrat w miejsce ikony, zamiast jej braku.
   appleWebApp: { capable: true, title: "BENGOS", statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
 };
@@ -68,6 +68,10 @@ export const metadata: Metadata = {
 /**
  * `colorScheme` jest tu, a nie w arkuszu, żeby przeglądarka nie zdążyła
  * namalować jasnego tła, zanim wczyta CSS. Ciemny motyw jest domyślny.
+ *
+ * `themeColor` to `--bengos-surface` z ciemnego motywu — pasek adresu
+ * w telefonie ma ten sam kolor co tło aplikacji, więc nie odcina się
+ * jasnym prostokątem nad treścią.
  */
 export const viewport: Viewport = {
   colorScheme: "dark light",
@@ -89,21 +93,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       */}
       <body className="min-h-dvh bg-[var(--bengos-surface)] text-[var(--bengos-text)] antialiased">
         {/*
-          Zasłona startowa. Leży PRZED resztą i jest `aria-hidden`, bo nie
-          niesie treści: mówi tylko, że aplikacja nadchodzi. Dla czytnika
-          ekranu to szum, a dla oka — zastępstwo za biały prostokąt.
-
-          Zwykły `img`, a nie `next/image`: obraz ma pokazać się w pierwszej
-          klatce, a optymalizator Next potrzebuje żądania do serwera, co
-          w tym miejscu jest opóźnieniem, nie zyskiem. Dlatego też `src`
-          idzie przez `BRAND.logo` — jedno miejsce, w którym wskazujemy znak.
+          Zasłona startowa. `BootSplash` jest komponentem klienckim, bo decyduje
+          o pokazaniu się na podstawie `sessionStorage` — a to stan, którego
+          serwer nie zna. Pokazuje się RAZ NA SESJĘ, nie przy każdym wejściu:
+          przejście z pulpitu do feedu nie jest powitaniem.
         */}
-        <div className="bengos-boot" aria-hidden="true">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={BRAND.logo} alt="" className="bengos-boot-mark" />
-          <p className="bengos-boot-name">BENGOS</p>
-          <div className="bengos-boot-bar" />
-        </div>
+        <BootSplash />
 
         <PreferencesProvider>
           <SessionProvider initialIdentity={null}>
