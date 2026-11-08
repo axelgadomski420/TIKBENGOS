@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Worker asystenta — Ollama jako silnik modelu.
 
-Serwis w `services/ai-worker`. Bierze zadanie od API, woła Ollamę po
-`/api/chat` i oddaje odpowiedź na endpoint zwrotny API. Nic nie zapisuje,
+Serwis w `services/ai-worker`. Odbiera zlecenie od API po HTTP, woła Ollamę
+po `/api/chat` i oddaje odpowiedź na endpoint zwrotny API. Nic nie zapisuje,
 nic nie czyta z bazy — rozmawia wyłącznie po HTTP.
 
 ── DLACZEGO OLLAMA, A NIE DOSTAWCA Z KLUCZEM ──────────────────────────────
@@ -13,16 +13,28 @@ Model chodzi na tej samej maszynie co reszta stosu, więc:
 - nie ma drugiej tożsamości: użytkownik nie zakłada konta u nikogo, żeby
   asystent odpowiedział. Zostaje jedna tożsamość BENGOS z briefu.
 
-── ZADANIE JEST ASYNCHRONICZNE I TAK ZOSTAJE ──────────────────────────────
-API tworzy `AssistantJob` i zwraca 202 z `jobId`. Ten worker odbiera zlecenie,
-oddaje `running` z postępem, a na końcu `succeeded` z odpowiedzią albo
-`failed` z komunikatem. Kontrakt `AssistantCompleteIn` w `services/api/ai/`
-jest jedynym kształtem, w jakim raport wychodzi — bez własnych wariantów.
+── PROTOKÓŁ: PRZYJMUJEMY POST, ODPOWIADAMY 202 ────────────────────────────
+`ask_assistant` w `services/api/ai/api.py` wysyła POST na
+`ASSISTANT_LLM_ENDPOINT` i **nie czeka na treść odpowiedzi** — sprawdza tylko,
+że połączenie się udało, i od razu zwraca użytkownikowi 202 z `jobId`.
+Dlatego ten worker odpowiada 202 natychmiast, a model woła w wątku w tle.
+Gdyby czekał z odpowiedzią do końca generacji, żądanie API wisiałoby minuty
+i padało przy każdym restarcie workera — a to jest dokładnie ten problem,
+którego architektura zadań ma unikać.
+
+Odpowiedź powstaje WYŁĄCZNIE na endpoincie zwrotnym
+`/api/ai/jobs/{id}/complete` z sekretem `BENGOS_WORKER_TOKEN`. Ten plik nie
+zna modelu zadań Django i nie potrzebuje go.
 
 ── CZEGO TEN PLIK NIE ROBI ────────────────────────────────────────────────
-Nie generuje odpowiedzi "z ogólnej wiedzy", gdy model milczy. Endpoint API
+Nie generuje odpowiedzi „z ogólnej wiedzy”, gdy model milczy. Endpoint API
 mówi wprost: serwer żadnej wiedzy nie ma. Porażka Ollamy to `failed`
 z ludzkim wyjaśnieniem, nigdy pusta odpowiedź.
+
+── DLACZEGO BIBLIOTEKA STANDARDOWA ────────────────────────────────────────
+`http.server` + `urllib.request` + `threading`. Jedna funkcja i jeden
+endpoint nie są warte zależności; `fastapi` z uvicornem dołożyłby kilkanaście
+pakietów do obrazu, który ma robić trzy rzeczy. Patrz `requirements.txt`.
 """
 
 from __future__ import annotations
@@ -31,10 +43,12 @@ import argparse
 import json
 import os
 import sys
+import threading
 import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 # ── Limity ───────────────────────────────────────────────────────────────
 # Twarde, bo model bez limitu potrafi myśleć w nieskończoność i trzymać
@@ -44,6 +58,8 @@ from dataclasses import dataclass
 REQUEST_TIMEOUT_SECONDS = 180
 ANSWER_MAX = 20_000
 PROMPT_MAX = 4_000
+MAX_BODY_BYTES = 64_000
+PORT = 8000
 
 # ── System prompt ────────────────────────────────────────────────────────
 # Jedno zdanie o języku i jedno o granicy wiedzy. Bez tego model odpowiada
@@ -119,7 +135,7 @@ def load_config() -> Config:
 
 
 def _post_json(url: str, payload: dict, timeout: int, headers: dict | None = None) -> dict:
-    """POST z JSON-em i JSON-em w odpowiedzi. Jedyne wyjście na świat.
+    """POST z JSON-em i JSON-em w odpowiedzi.
 
     `urllib.request` zamiast `requests`/`httpx`, bo to jedyne miejsce,
     w którym ten obraz dotyka sieci — jedna funkcja nie jest warta
@@ -162,9 +178,9 @@ def check_model(config: Config) -> str:
         ) from exc
 
     names = {str(item.get("name", "")) for item in payload.get("models", [])}
-    # Ollama zwraca nazwy z etykietą (`llama3.2:3b`), a `ASSISTANT_MODEL`
+    # Ollama zwraca nazwy z etykietą (`qwen2.5:7b`), a `ASSISTANT_MODEL`
     # bywa podany bez niej. Porównujemy więc także część przed dwukropkiem,
-    # bo inaczej `llama3.2` zgłosiłoby brak modelu, który JEST pobrany.
+    # bo inaczej `qwen2.5` zgłosiłoby brak modelu, który JEST pobrany.
     if config.model in names or any(n.split(":")[0] == config.model for n in names):
         return config.model
 
@@ -235,8 +251,8 @@ def generate(config: Config, prompt: str) -> str:
     return answer[:ANSWER_MAX]
 
 
-def complete(config: Config, job_id: str, report: dict) -> None:
-    """Oddaje raport na endpoint zwrotny API.
+def report(config: Config, job_id: str, payload: dict) -> bool:
+    """Oddaje raport na endpoint zwrotny API. Zwraca, czy się udało.
 
     ── TO JEDYNA DROGA, KTÓRĄ ODPOWIEDŹ WIDAĆ W APLIKACJI ────────────────
     API nie ma wag modelu i nie udaje, że ma — bez tego POST-a pytanie
@@ -246,60 +262,190 @@ def complete(config: Config, job_id: str, report: dict) -> None:
     try:
         _post_json(
             f"{config.api_url}/api/ai/jobs/{job_id}/complete",
-            report,
+            payload,
             timeout=30,
             headers={"X-Bengos-Worker": config.worker_token},
         )
-    except (urllib.error.URLError, urllib.error.HTTPError, OSError) as exc:
-        # Nie udajemy, że raport dotarł: bez niego zadanie zostaje w stanie
-        # `running` i to jest prawda o tym stanie.
-        raise WorkerError(
-            "unavailable",
-            f"Nie udało się oddać raportu do API: {exc}. Zadanie zostanie "
-            "w stanie `running` do czasu ponowienia.",
-        ) from exc
-    except json.JSONDecodeError as exc:
-        raise WorkerError(
-            "internal", "API odpowiedziało w kształcie, którego nie znamy."
-        ) from exc
+        return True
+    except Exception as exc:  # noqa: BLE001 - raport nie może wywalić wątku
+        # Nie podnosimy błędu dalej: nieudany raport nie zmieni faktu, że
+        # model już odpowiedział, a wyjątek w wątku tła zabiłby tylko log.
+        print(
+            json.dumps(
+                {
+                    "level": "error",
+                    "message": f"Raport dla zadania {job_id} nie dotarł do API: {exc}",
+                },
+                ensure_ascii=False,
+            ),
+            flush=True,
+        )
+        return False
 
 
-def handle_request(config: Config, payload: dict) -> dict:
-    """Punkt wejścia jednego zlecenia.
-
-    Kształt wejścia: `{"jobId": "...", "prompt": "..."}` — dokładnie to,
-    co wysyła `ask_assistant` w `services/api/ai/api.py`.
+def process_job(config: Config, job_id: str, prompt: str) -> None:
+    """Cała praca nad jednym pytaniem — wołana w wątku tła.
 
     Kolejność jest celowa: najpierw raport `running`, potem model, potem
     wynik. Użytkownik ma zobaczyć, że zadanie ruszyło, ZANIM przyjdzie
     odpowiedź — inaczej przy wolnym modelu ekran stoi bez zmian.
     """
-    job_id = str(payload.get("jobId") or "").strip()
-    prompt = str(payload.get("prompt") or "").strip()
-
-    if not job_id:
-        raise WorkerError("bad_request", "Brak `jobId` — nie ma do czego oddać odpowiedzi.")
-    if not prompt:
-        raise WorkerError("bad_request", "Brak pytania w polu `prompt`.")
-    if len(prompt) > PROMPT_MAX:
-        prompt = prompt[:PROMPT_MAX]
-
-    complete(
-        config,
-        job_id,
-        {"state": "running", "stage": "Model czyta pytanie", "progress": 0.1},
-    )
+    report(config, job_id, {"state": "running", "stage": "Model czyta pytanie", "progress": 0.1})
 
     started = time.monotonic()
-    answer = generate(config, prompt)
+    try:
+        answer = generate(config, prompt)
+    except WorkerError as error:
+        # Porażka MUSI dotrzeć do API — inaczej zadanie wisi w `running`
+        # na zawsze i użytkownik nie wie, co się stało.
+        report(config, job_id, {"state": "failed", "error": error.message})
+        print(
+            json.dumps(
+                {"level": "error", "jobId": job_id, "message": error.message},
+                ensure_ascii=False,
+            ),
+            flush=True,
+        )
+        return
 
-    return {
-        "state": "succeeded",
-        "stage": "Gotowe",
-        "progress": 1.0,
-        "answer": answer,
-        "seconds": round(time.monotonic() - started, 1),
-    }
+    ok = report(
+        config,
+        job_id,
+        {"state": "succeeded", "stage": "Gotowe", "progress": 1.0, "answer": answer},
+    )
+    print(
+        json.dumps(
+            {
+                "level": "info",
+                "jobId": job_id,
+                "seconds": round(time.monotonic() - started, 1),
+                "delivered": ok,
+            },
+            ensure_ascii=False,
+        ),
+        flush=True,
+    )
+
+
+class Handler(BaseHTTPRequestHandler):
+    """Jeden endpoint: POST /. Wszystko inne to 404 albo 405.
+
+    ── DLACZEGO TYLKO POST I TYLKO JEDNA ŚCIEŻKA ─────────────────────────
+    API wysyła zlecenie na adres usługi bez ścieżki. Endpointów diagnostycznych
+    tu nie ma: `--check` jest komendą, którą uruchamia człowiek, a nie
+    publicznym adresem. Mniej powierzchni = mniej rzeczy do zepsucia.
+    """
+
+    # Konfiguracja jest na klasie, bo `http.server` tworzy nową instancję
+    # handlera na każde żądanie — nie ma gdzie przekazać jej inaczej.
+    config: Config
+
+    def do_POST(self) -> None:  # noqa: N802 - nazwa narzucona przez http.server
+        if self.path not in ("/", ""):
+            self._json(404, {"code": "not_found", "message": "Ten adres nic nie obsługuje."})
+            return
+
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            length = 0
+        if length <= 0:
+            self._json(400, {"code": "bad_request", "message": "Brak treści zlecenia."})
+            return
+        if length > MAX_BODY_BYTES:
+            self._json(413, {"code": "bad_request", "message": "Zlecenie jest za duże."})
+            return
+
+        try:
+            payload = json.loads(self.rfile.read(length).decode("utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            self._json(400, {"code": "bad_request", "message": "Zlecenie nie jest poprawnym JSON-em."})
+            return
+
+        if not isinstance(payload, dict):
+            self._json(400, {"code": "bad_request", "message": "Zlecenie musi być obiektem."})
+            return
+
+        job_id = str(payload.get("jobId") or "").strip()
+        prompt = str(payload.get("prompt") or "").strip()
+
+        if not job_id or not prompt:
+            self._json(
+                400,
+                {
+                    "code": "bad_request",
+                    "message": "Zlecenie wymaga pól `jobId` i `prompt`.",
+                },
+            )
+            return
+
+        if len(prompt) > PROMPT_MAX:
+            prompt = prompt[:PROMPT_MAX]
+
+        # ── 202 TERAZ, MODEL W TLE ─────────────────────────────────────
+        # API czyta tylko fakt, że połączenie się udało. Czekanie tutaj
+        # do końca generacji trzymałoby żądanie minuty i wywalało timeout
+        # po stronie Django (gunicorn ma 60 s).
+        thread = threading.Thread(
+            target=process_job,
+            args=(self.config, job_id, prompt),
+            daemon=True,
+        )
+        thread.start()
+
+        self._json(202, {"accepted": True, "jobId": job_id})
+
+    def do_GET(self) -> None:  # noqa: N802 - nazwa narzucona przez http.server
+        # Bez adresu diagnostycznego: stan sprawdza się `--check` z konsoli
+        # albo stanem kontenera, a nie publicznym GET-em.
+        self._json(405, {"code": "bad_request", "message": "Ten endpoint przyjmuje tylko POST."})
+
+    def _json(self, status: int, body: dict) -> None:
+        raw = json.dumps(body, ensure_ascii=False).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(raw)))
+        self.end_headers()
+        self.wfile.write(raw)
+
+    def log_message(self, fmt: str, *args) -> None:
+        """Log w jednej linii JSON, bez adresu klienta w treści.
+
+        Wewnętrzny adres w logu to informacja bez wartości dla właściciela,
+        a szum w każdym żądaniu. Zostaje sam fakt i ścieżka.
+        """
+        print(
+            json.dumps(
+                {"level": "access", "path": self.path, "format": fmt % args},
+                ensure_ascii=False,
+            ),
+            flush=True,
+        )
+
+
+def serve(config: Config, model: str) -> int:
+    """Podnosi serwer i stoi, aż proces zostanie zatrzymany.
+
+    `ThreadingHTTPServer`, nie `HTTPServer`: przy zwykłym serwerze jedno
+    długie zlecenie zablokowałoby przyjmowanie kolejnych, mimo że model
+    i tak pracuje poza wątkiem obsługi.
+    """
+    Handler.config = config
+    server = ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
+    print(
+        json.dumps(
+            {"status": "ready", "model": model, "port": PORT, "ollama": config.ollama_url},
+            ensure_ascii=False,
+        ),
+        flush=True,
+    )
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
+    return 0
 
 
 def main() -> int:
@@ -308,15 +454,12 @@ def main() -> int:
     parser.add_argument(
         "--check",
         action="store_true",
-        help="Tylko sprawdzenie konfiguracji i dostępności modelu, bez zlecenia.",
+        help="Tylko sprawdzenie konfiguracji i dostępności modelu, bez pracy.",
     )
     parser.add_argument(
-        "--serve",
+        "--once",
         action="store_true",
-        help=(
-            "Tryb usługi: worker stoi i czeka na zlecenia. Bez tej flagi "
-            "przetwarza jedno zlecenie i kończy pracę."
-        ),
+        help="Przetwarza jedno zlecenie ze stdin i kończy pracę. Do testów.",
     )
     args = parser.parse_args()
 
@@ -336,81 +479,29 @@ def main() -> int:
         )
         return 0
 
-    if not args.serve:
-        # ── JEDNO ZLECENIE ──────────────────────────────────────────────
-        # API woła workera POST-em z zadaniem, więc tryb jednorazowy jest
-        # tym, którego używa produkcja: proces startuje, pracuje, oddaje
-        # raport i kończy. `--serve` jest dla pracy lokalnej.
-        payload: dict = {}
+    if args.once:
+        # Tryb jednorazowy zostaje dla człowieka: pozwala sprawdzić całą
+        # drogę zlecenie → model → raport bez podnoszenia serwera.
         try:
-            if args.input:
-                with open(args.input, encoding="utf-8") as handle:
-                    payload = json.loads(handle.read())
-            else:
-                payload = json.loads(sys.stdin.read() or "{}")
-
-            result = handle_request(config, payload)
-            print(json.dumps(result, ensure_ascii=False))
-            return 0
-        except WorkerError as error:
-            job_id = str(payload.get("jobId") or "").strip() if isinstance(payload, dict) else ""
-            if job_id:
-                # Porażka MUSI dotrzeć do API — inaczej zadanie wisi
-                # w `running` na zawsze i użytkownik nie wie, co się stało.
-                try:
-                    complete(config, job_id, {"state": "failed", "error": error.message})
-                except WorkerError:
-                    pass
-            print(json.dumps({"code": error.code, "message": error.message}, ensure_ascii=False))
-            return 1
-        except json.JSONDecodeError:
-            print(
-                json.dumps(
-                    {"code": "bad_request", "message": "Zlecenie nie jest poprawnym JSON-em."},
-                    ensure_ascii=False,
-                )
-            )
-            return 1
-        except Exception:  # pragma: no cover - ścieżka awaryjna
-            # Bez stosu wywołań na wyjściu: w produkcji to wyciek, nie
-            # informacja. Ta sama zasada co `handler(Exception)` w `urls.py`.
-            print(
-                json.dumps(
-                    {
-                        "code": "internal",
-                        "message": "Coś poszło nie tak po stronie workera asystenta.",
-                    },
-                    ensure_ascii=False,
-                )
-            )
+            raw = open(args.input, encoding="utf-8").read() if args.input else sys.stdin.read()
+            payload = json.loads(raw or "{}")
+        except (OSError, json.JSONDecodeError) as exc:
+            print(json.dumps({"code": "bad_request", "message": f"Złe zlecenie: {exc}"}, ensure_ascii=False))
             return 1
 
-    # ── TRYB USŁUGI ─────────────────────────────────────────────────────
-    # Pętla, która czeka na zlecenia na stdin po jednej linii JSON. Nie ma
-    # portu, więc nie ma powierzchni ataku; woła ją właściciel lokalnie.
-    print(json.dumps({"status": "ready", "model": model}, ensure_ascii=False), flush=True)
-    for line in sys.stdin:
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            request_payload = json.loads(line)
-            result = handle_request(config, request_payload)
-            print(json.dumps(result, ensure_ascii=False), flush=True)
-        except WorkerError as error:
-            print(
-                json.dumps({"code": error.code, "message": error.message}, ensure_ascii=False),
-                flush=True,
-            )
-        except json.JSONDecodeError:
-            print(
-                json.dumps(
-                    {"code": "bad_request", "message": "Zlecenie nie jest poprawnym JSON-em."},
-                    ensure_ascii=False,
-                ),
-                flush=True,
-            )
-    return 0
+        job_id = str(payload.get("jobId") or "").strip()
+        prompt = str(payload.get("prompt") or "").strip()
+        if not job_id or not prompt:
+            print(json.dumps({"code": "bad_request", "message": "Wymagane `jobId` i `prompt`."}, ensure_ascii=False))
+            return 1
+
+        process_job(config, job_id, prompt[:PROMPT_MAX])
+        return 0
+
+    # ── TRYB DOMYŚLNY: SERWER ───────────────────────────────────────────
+    # To jest tryb, w którym kontener żyje w produkcji. `CMD` w Dockerfile
+    # nie ma żadnej flagi, więc trafia tutaj.
+    return serve(config, model)
 
 
 if __name__ == "__main__":
