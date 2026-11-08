@@ -68,21 +68,14 @@ function morseToVibrationPattern(morse: string): number[] {
 /**
  * Wybiera identyfikator głosu do syntezatora mowy.
  *
- * ── DLACZEGO OSOBNA FUNKCJA, A NIE `??` W MIEJSCU UŻYCIA ────────────────
- * Przy włączonym `noUncheckedIndexedAccess` TypeScript traktuje KAŻDY
- * odczyt z indeksu jako możliwie `undefined` — także `list[0]`. Wyrażenie
- * `(polish ?? list[0]).voiceURI` przerywało build produkcyjny:
+ * Przy `noUncheckedIndexedAccess` TypeScript traktuje KAŻDY odczyt
+ * z indeksu jako możliwie `undefined` — także `list[0]`. Wyrażenie
+ * `(polish ?? list[0]).voiceURI` przerywało build produkcyjny.
  *
- *     Type error: Object is possibly 'undefined'.
- *
- * Rzutowanie `!` byłoby obejściem, nie naprawą — lista głosów bywa EMPTY
+ * Rzutowanie `!` byłoby obejściem, nie naprawą — lista głosów bywa PUSTA
  * w przeglądarce, która ma syntezator, ale nie ma jeszcze żadnego głosu
- * zainstalowanego (świeży system, tryb prywatny). Wtedy `list[0]!`
- * wybuchłoby w chwili wykonania.
- *
- * Dlatego zwracamy `null`, gdy nie ma czego wybrać, i wołający zostawia
- * identyfikator pusty — pole wyboru pokazuje wtedy „Domyślny”, a syntezator
- * użyje swojego głosu domyślnego. To poprawny stan, nie brak funkcji.
+ * zainstalowanego (świeży system, tryb prywatny). Dlatego zwracamy `null`,
+ * gdy nie ma czego wybrać, a pole wyboru pokazuje „Domyślny”.
  */
 function pickVoiceUri(list: SpeechSynthesisVoice[]): string | null {
   if (list.length === 0) return null;
@@ -90,6 +83,35 @@ function pickVoiceUri(list: SpeechSynthesisVoice[]): string | null {
   if (polish) return polish.voiceURI;
   const first = list[0];
   return first ? first.voiceURI : null;
+}
+
+/**
+ * Skleja transkrypcję z wyniku rozpoznawania mowy.
+ *
+ * ── DLACZEGO SPRAWDZENIE, A NIE INDEKSOWANIE WPROST ─────────────────────
+ * `event.results[i][0].transcript` przerywało build:
+ *
+ *     Type error: Object is possibly 'undefined'.
+ *
+ * Ten sam powód co wyżej: przy `noUncheckedIndexedAccess` każdy odczyt
+ * z indeksu jest możliwie `undefined`. A to nie jest przesada typów —
+ * Web Speech API oddaje `results` jako listę **możliwych do dopisania**
+ * segmentów, a zdarzenie potrafi przyjść z pustym pierwszym segmentem.
+ * Wtedy odczyt wprost wybuchłby w chwili wykonania, w środku zdarzenia,
+ * którego nie da się obsłużyć.
+ *
+ * Dlatego pomijamy segment, którego nie ma, i sklejamy resztę.
+ */
+function transcriptFrom(event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }): string {
+  let transcript = "";
+  for (let i = 0; i < event.results.length; i += 1) {
+    const segment = event.results[i];
+    if (!segment) continue;
+    const alternative = segment[0];
+    if (!alternative) continue;
+    transcript += alternative.transcript;
+  }
+  return transcript.trim();
 }
 
 export function AccessTools() {
@@ -171,11 +193,7 @@ export function AccessTools() {
     recognition.continuous = true;
     recognition.interimResults = false;
     recognition.onresult = (event) => {
-      let transcript = "";
-      for (let i = 0; i < event.results.length; i += 1) {
-        transcript += event.results[i][0].transcript;
-      }
-      setSttText(transcript.trim());
+      setSttText(transcriptFrom(event));
     };
     recognition.onerror = (event) => {
       setSttError(
