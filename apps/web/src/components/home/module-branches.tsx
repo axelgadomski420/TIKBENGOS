@@ -1,4 +1,4 @@
-import Link from "next/link";
+successfully downloaded text file (SHA: 4da9972074fea005d64121b57dfd0bf32482411d)import Link from "next/link";
 
 /**
  * Rozwidlenia z BENGOS Home.
@@ -147,7 +147,7 @@ const BRANCHES: Branch[] = [
   { href: "/settings", label: "ustawienia", description: "Język, wygląd, dostępność, klucze API, zgody.", stage: null, Icon: IconSettings },
   { href: "/create", label: "asystent", description: "Asystent AI, pomysły, scenariusze, muzyka, kod.", stage: 5, Icon: IconAssistant },
   { href: "/feed", label: "bengtok", description: "Krótkie wideo, dźwięki, posty, twórcy.", stage: 2, Icon: IconFeed },
-  { href: "/", label: "wyszukiwarka", description: "Jedno pole na pytanie, tworzenie, szukanie i kod.", stage: null, Icon: IconSearch },
+  { href: "/#wyszukiwarka", label: "wyszukiwarka", description: "Jedno pole na pytanie, tworzenie, szukanie i kod.", stage: null, Icon: IconSearch },
 ];
 
 export function ModuleBranches() {
@@ -173,7 +173,7 @@ export function ModuleBranches() {
           <li key={branch.label}>
             <Link
               href={branch.href}
-              className="group flex h-full min-h-[var(--bengos-touch-target-min)] flex-col items-center gap-2 rounded-[var(--bengos-radius-card)] border border-[var(--bengos-border)] bg-[var(--bengos-surface-raised)] px-3 py-4 text-center transition-colors duration-[var(--bengos-motion-fast)] hover:border-[var(--bengos-accent)] focus-visible:border-[var(--bengos-focus-ring)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bengos-focus-ring)]"
+              className="group flex h-full min-h-[var(--bengos-touch-target-min)] flex-col items-center gap-2 rounded-[var(--bengos-radius-card)] border border-[var(--bengos-border)] bg-[var(--bengos-surface-raised)] px-3 py-4 text-center transition-colors duration-[var(--bengos-motion-fast)] hover:border-[var(--bengos-accent)] hover:shadow-[0_0_36px_-14px_var(--bengos-glow)] focus-visible:border-[var(--bengos-focus-ring)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bengos-focus-ring)]"
             >
               {/*
                 Tarcza modułu: okrągła jak w znaku marki, ale zbudowana
