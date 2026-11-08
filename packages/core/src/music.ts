@@ -17,7 +17,18 @@ export interface GenerateTrackRequest {
   continueFromTrackId?: string;
 }
 
-export type ModelId = "musicgen-small" | "musicgen-medium" | "musicgen-melody" | "jasco";
+/**
+ * Model generujący. "webaudio-sequencer" dołączył z Etapu 5: to jedyny
+ * sposób tworzenia muzyki, który działa BEZ maszyny z GPU — sekwencer
+ * liczy dźwięk w przeglądarce, a serwer tylko przechowuje wynik.
+ * Nie jest to model AI i nie udaje, że jest.
+ */
+export type ModelId =
+  | "musicgen-small"
+  | "musicgen-medium"
+  | "musicgen-melody"
+  | "jasco"
+  | "webaudio-sequencer";
 
 export interface GenerateTrackResponse {
   jobId: string;
@@ -35,7 +46,7 @@ export interface Track {
   model: ModelId;
   durationSeconds: number;
   /** Utwór może być przypisany do więcej niż jednego wideo. To relacja,
-   * nie pole w poście. */
+   * nie pole w poście. Pusta lista znaczy "nie przypisano" — nie "nie działa". */
   attachedToPostIds: string[];
   licence: TrackLicence;
   audioUrl: string | null;

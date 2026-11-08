@@ -1,26 +1,20 @@
 import type { Metadata } from "next";
-import { ModulePlaceholder } from "@/components/module-placeholder";
 
-export const metadata: Metadata = { title: "Muzyka AI — BENGOS Studio" };
+import { MusicStudio } from "@/components/music/music-studio";
+
+export const metadata: Metadata = { title: "Muzyka — BENGOS Studio" };
 
 /**
- * Docelowy adres tworzenia muzyki z pulpitu.
+ * Muzyka — Etap 5.
  *
- * Ekran opisuje wyłącznie zaplanowaną funkcję. Nie uruchamia generatora ani
- * nie pokazuje fałszywej kolejki przed powstaniem workera muzycznego.
+ * Działa TERAZ: sekwencer BENGOS Beat (kompozycja w przeglądarce, render
+ * do WAV, zapis do biblioteki), biblioteka utworów z odtwarzaniem, licencja
+ * utworu zależna od pochodzenia, limity generacji widoczne przed zleceniem.
+ *
+ * Dojdzie (napisane wprost): wykonanie generacji MusicGen/JASCO na maszynie
+ * z GPU (MUSICGEN_ENDPOINT) — zlecenia dzisiaj powstają i czekają, a面板
+ * nie udaje postępu, którego nie ma.
  */
 export default function StudioMusicPage() {
-  return (
-    <ModulePlaceholder
-      name="Studio — muzyka"
-      stage={3}
-      description="Generowanie muzyki AI, biblioteka utworów i przypisywanie dźwięku do wideo."
-      planned={[
-        "Opis utworu i wybór ustawień generowania",
-        "Zadanie asynchroniczne z powiadomieniem kanałem czasu rzeczywistego",
-        "Biblioteka własnych utworów bez zmyślonych pozycji",
-        "Przypisanie utworu do projektu wideo",
-      ]}
-    />
-  );
+  return <MusicStudio />;
 }
