@@ -35,10 +35,31 @@ RUN useradd --create-home --uid 10002 worker \
     && chown -R worker:worker /srv
 USER worker
 
-# Bez `EXPOSE` celowo: ten kontener nie ma portu. Woła go API, nie świat —
-# a brak portu to brak powierzchni ataku, której nie potrzebujemy. Odpowiedź
-# wraca POST-em na endpoint zwrotny API, nie połączeniem przychodzącym.
+# ── PORT W SIECI DOCKERA ─────────────────────────────────────────────────
+# API wysyła zlecenie POST-em na `ASSISTANT_LLM_ENDPOINT`, więc ten kontener
+# MUSI nasłuchiwać. `EXPOSE` jest tu tylko dokumentacją — port i tak nie jest
+# mapowany na host, bo usługa stoi w sieci Dockera.
+EXPOSE 8000
+
+# ── CMD: SERWER, NIE `--check` ──────────────────────────────────────────
 #
-# `--check` sprawdza konfigurację i kończy pracę: kontener, który startuje
-# bez modelu, ma powiedzieć dlaczego, a nie padać w połowie zadania.
-CMD ["python", "worker.py", "--check"]
+# ── POPRAWIONA KOMENDA STARTOWA ─────────────────────────────────────────
+# Stało tu kiedyś `CMD ["python", "worker.py", "--check"]`. `--check` jest
+# poleceniem DIAGNOSTYCZNYM: sprawdza konfigurację, wypisuje `status: ok`
+# i KOŃCZY PRACĘ. Jako komenda startowa kontenera robiło więc dokładnie to:
+# proces wstawał, sprawdzał model i wychodził z kodem 0, a `restart:
+# unless-stopped` wznawiał go w pętli.
+#
+# Objaw był mylący: `docker compose ps` pokazywał `Restarting (0)`, a log
+# zapełniał się liniami `{"status": "ok", "model": ...}`. Wyglądało to na
+# działającą usługę, która z jakiegoś powodu się przewraca — a była to
+# usługa, która kończy pracę POPRAWNIE, tylko nie ma czego robić.
+#
+# Bez żadnej flagi `worker.py` wchodzi w tryb domyślny: `ThreadingHTTPServer`
+# na porcie 8000, jeden endpoint `POST /`, odpowiedź 202 natychmiast,
+# a model wołany w wątku tła. To jest tryb, w którym kontener żyje
+# w produkcji — patrz `serve()` w `worker.py`.
+#
+# Sprawdzenie stanu należy do człowieka i ma osobną flagę:
+#     docker compose exec -T ai-worker python worker.py --check
+CMD ["python", "worker.py"]
