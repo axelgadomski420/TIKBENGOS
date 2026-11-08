@@ -10,50 +10,45 @@ import { useSession } from "@/lib/session-context";
 /**
  * Brama logowania — jedyny widok dla osoby bez sesji.
  *
- * ── „BEZ ZALOGOWANIA NIC NIE WIDAĆ” ───────────────────────────────────
- * Właściciel postanowił, że aplikacja nie pokazuje niczego przed wejściem:
- * feed, studio, chat, asystent — to treść konta, więc osoba bez sesji
- * widzi tylko wejście. Brama stoi w POWŁOCE (AppShell), a nie w pojedynczych
- * stronach: jedna brama, zero szczelin.
+ * ── UKŁAD Z GRAFIKI WŁAŚCICIELA ────────────────────────────────────────
+ * Grafika marki pokazuje dwie sceny i obie są tu odtworzone napisami:
  *
- * ── JEDEN TYGRYS NA EKRAN, NIE DWA (naprawa 2026-11-08, wieczorem) ─────
- * Właściciel pokazał zrzut z telefonu: na ekranie startowym stały DWIE
- * kopie tygrysa jedna nad drugą, a formularz był przycięty na dole.
- * Przyczyna była w `brand.ts` — wszystkie trzy pola (`logo`, `login`,
- * `menu`) wskazywały na TEN SAM plik, więc `BRAND.login` jako pełnoekranowe
- * tło rysowało tę samą grafikę, którą `BRAND.logo` rysowało w okręgu.
- * Na desktopie tło było przygaszone i rozmyte, więc dublowanie nie rzucało
- * się w oczy; na telefonie grafika 1024×1024 rozciągnięta na cały pionowy
- * ekran dominowała mimo `blur-[2px]` i `opacity-60`.
+ *   ekran wejścia:  „logowanie” NAD tygrysem, „rejestracja” POD nim,
+ *   ekran menu:     podpisy modułów dookoła tygrysa.
  *
- * Tło z tygrysem zniknęło z tego ekranu. Zostaje JEDEN znak — ten w okręgu,
- * bo to on jest osią kompozycji z grafiki właściciela. Tło robią poświaty
- * z tokenów, tak samo jak na pulpicie: dzięki temu oba ekrany mówią jednym
- * językiem, a żadna grafika nie jest rysowana dwa razy.
+ * Oba napisy to PRAWDZIWE odnośniki w tych samych miejscach kompozycji.
+ * Kliknięcie przełącza formularz w wybrany tryb — a jednocześnie zmienia
+ * adres (replaceState), więc odświeżenie i zapisana zakładka pamiętają,
+ * w którym trybie się jest.
  *
- * ── MENU GŁÓWNE TYLKO PO ZALOGOWANIU ───────────────────────────────────
- * Brama ma DWA tryby i nic więcej: `logowanie` i `rejestracja`.
- * Menu główne to ekran PULPITU (`/`, rysowany przez `app-shell.tsx`
- * i `module-branches.tsx`), a nie widok dla przybysza — `AppShell` przy
- * braku sesji nie renderuje pulpitu wcale, tylko tę bramę.
+ * ── SŁOWO NAD ZNAKIEM JEST PRZYCISKIEM, NIE TYTUŁEM ─────────────────────
+ * Wcześniejsza wersja stawiała wielkie słowo trybu u góry jako nagłówek,
+ * a na dole odnośnik do drugiego trybu. Wyglądało jak grafika, ale czytało
+ * się mylnie: wielki napis wyglądał na etykietę, a nie na rzecz do kliknięcia.
+ * Teraz OBA słowa są przyciskami tej samej wagi: nad tygrysem „logowanie”,
+ * pod nim „rejestracja”, oba przełączają tryb i oba mają 44 px celu.
+ * Aktywne słowo jest podświetlone (tło akcentu), nieaktywne przygaszone —
+ * widać, gdzie się jest, zanim przeczyta się podpis.
  *
- * ── NAPISY SĄ KLIKALNE ────────────────────────────────────────────────
- * Na grafice właściciela napisy to WYPALONE PIKSELI — nie da się ich
- * kliknąć ani odczytać czytnikiem. Tu stoją jako PRAWDZIWE odnośniki
- * z adresem (`/login#rejestracja`) — mają stan fokusu z klawiatury,
- * pokazują adres po najechaniu i dają się wysłać komuś jako link.
+ * ── JEDEN TYGRYS NA EKRAN ──────────────────────────────────────────────
+ * Znak jest rysowany TYLKO raz — w okręgu HUD między słowami. Zasłona
+ * startowa (`BootSplash`), która rysowała tę samą grafikę w `layout.tsx`,
+ * została usunięta: pokazywała drugiego tygrysa pod bramą i ściskała
+ * formularz do wąskiego paska przy lewej krawędzi.
  *
  * ── MOBILE FIRST: WYMIARY OD WYSOKOŚCI, NIE OD SZEROKOŚCI ──────────────
- * Okrąg ma `min(34dvh,52vw,220px)`, odstępy `pt-5`/`mt-3`, a stopka
- * `pb-[max(1.5rem,env(safe-area-inset-bottom))]`. Dzięki temu przy
- * rejestracji — trzy pola, lista wymagań hasła, przycisk — wszystko mieści
- * się NAD zgięciem, a na iPhonie napis „rejestracja” nie siedzi pod paskiem
- * gestów. `dvh`, nie `vh`: na telefonie `vh` liczy się od największej
- * wysokości okna (z ukrytym paskiem adresu) i element wystaje poza ekran.
+ * Okrąg ma `min(30dvh,46vw,200px)`, więc przy rejestracji — trzy pola,
+ * lista wymagań hasła, przycisk — wszystko mieści się NAD zgięciem.
+ * `dvh`, nie `vh`: na telefonie `vh` liczy się od największej wysokości
+ * okna (z ukrytym paskiem adresu) i element wystaje poza ekran.
+ *
+ * ── STOPKA Z ODSTĘPEM NA PASEK GESTÓW ─────────────────────────────────
+ * `pb-[max(1rem,env(safe-area-inset-bottom))]` — bez tego dolny napis
+ * na iPhonie siedzi pod paskiem home i kliknięcie cofa użytkownika
+ * do ekranu głównego, co wygląda jak zepsuta strona.
  */
 type GateMode = "logowanie" | "rejestracja";
 
-/* Dwa słowa strony startowej. Dolny pasek pokazuje to, którym ekran nie jest. */
 const GATE_MODES: GateMode[] = ["logowanie", "rejestracja"];
 
 /** Adres trybu: logowanie bez skrótu, rejestracja ze skrótem. */
@@ -76,6 +71,46 @@ function safeAfter(): string {
     return value;
   }
   return "/";
+}
+
+/**
+ * Jedno słowo-przełącznik. Aktywne jest podświetlone tłem akcentu,
+ * nieaktywne przygaszone — stan widać bez czytania podpisu.
+ *
+ * To `button`, nie `Link`: przełącza formularz w tym samym ekranie, więc
+ * nawigacja byłaby przeładowaniem bez potrzeby. Adres i tak idzie w parze
+ * przez `setMode` (replaceState), więc zakładka pamięta tryb.
+ */
+function ModeWord({
+  mode,
+  active,
+  onClick,
+  size,
+}: {
+  mode: GateMode;
+  active: boolean;
+  onClick: () => void;
+  size: "hero" | "foot";
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={
+        "bengos-touch-target rounded-[var(--bengos-radius-control)] px-4 lowercase tracking-[0.06em] transition-colors duration-[var(--bengos-motion-fast)] " +
+        (size === "hero"
+          ? "text-[clamp(1.75rem,8vw,4.5rem)] font-[var(--bengos-weight-semibold)] leading-none "
+          : "text-[var(--bengos-size-title)] font-[var(--bengos-weight-medium)]") +
+        " " +
+        (active
+          ? "text-[var(--bengos-accent)] [text-shadow:0_0_38px_var(--bengos-glow)]"
+          : "text-[var(--bengos-text-muted)] hover:text-[var(--bengos-text)]")
+      }
+    >
+      {mode}
+    </button>
+  );
 }
 
 export function LoginGate() {
@@ -133,81 +168,76 @@ export function LoginGate() {
   return (
     <div className="relative isolate flex min-h-dvh flex-col overflow-hidden">
       {/*
-        Tło: TYLKO poświaty z tokenów. Grafika z tygrysem zniknęła stąd
-        celowo — powód jest w nagłówku pliku (dwa tygrysy na jednym ekranie,
-        bo `brand.ts` wskazywał tym samym adresem na wszystkie trzy pola).
-        Poświaty dają nastrój marki bez rysowania drugiego znaku.
+        Tło: tylko poświaty z tokenów — żadnej grafiki. Znak jest rysowany
+        raz, niżej, w okręgu; drugi tygrys w tle byłby powtórzeniem, które
+        już raz myliło użytkownika.
       */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-[var(--bengos-surface)]" />
-        <div className="absolute -left-24 top-1/4 size-72 rounded-full bg-[var(--bengos-accent)] opacity-[0.12] blur-3xl" />
-        <div className="absolute -right-20 bottom-8 size-80 rounded-full bg-[var(--bengos-warning)] opacity-[0.10] blur-3xl" />
-        <div className="absolute left-1/2 top-0 size-[24rem] -translate-x-1/2 -translate-y-1/3 rounded-full bg-[var(--bengos-accent)] opacity-[0.07] blur-3xl" />
+        <div className="absolute left-1/2 top-1/4 size-[26rem] -translate-x-1/2 rounded-full bg-[var(--bengos-accent)] opacity-[0.09] blur-3xl" />
+        <div className="absolute -left-24 bottom-12 size-72 rounded-full bg-[var(--bengos-accent)] opacity-[0.10] blur-3xl" />
+        <div className="absolute -right-20 bottom-8 size-80 rounded-full bg-[var(--bengos-warning)] opacity-[0.08] blur-3xl" />
       </div>
 
-      {/* Górne słowo — wielki cyjan trybu, jak na grafice marki. */}
-      <header className="px-4 pt-5 text-center sm:pt-10">
-        <h1 className="text-[clamp(2rem,9vw,5.5rem)] font-[var(--bengos-weight-semibold)] lowercase leading-none tracking-[0.06em] text-[var(--bengos-accent)] [text-shadow:0_0_38px_var(--bengos-glow)]">
-          {mode}
-        </h1>
-        <p className="bengos-eyebrow mt-2 text-[var(--bengos-text-muted)] sm:mt-3">{BRAND.tagline}</p>
-      </header>
+      <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-4 py-5">
+        {/* „logowanie” — NAD tygrysem, jak na grafice. */}
+        <ModeWord
+          mode="logowanie"
+          active={mode === "logowanie"}
+          onClick={() => setMode("logowanie")}
+          size="hero"
+        />
 
-      {/*
-        ── JEDEN ZNAK, W OKRĘGU ────────────────────────────────────────
-        To jest jedyna grafika na tym ekranie. Średnica liczona od
-        WYSOKOŚCI (`dvh`) i `vw` naraz, z sufitem 220 px — przy rejestracji
-        (trzy pola, lista wymagań, przycisk) wszystko mieści się nad
-        zgięciem. `aria-hidden`: tryb niosą napisy, obraz jest znakiem
-        marki z pustym altem.
-      */}
-      <div
-        className="relative mx-auto mt-3 flex size-[min(34dvh,52vw,220px)] items-center justify-center sm:mt-5"
-        aria-hidden="true"
-      >
-        <div className="bengos-hud flex size-full items-center justify-center">
-          <span className="bengos-hud__ring bengos-hud__ring--static inset-0" />
-          <span className="bengos-hud__ring bengos-hud__ring--ticks -inset-3 sm:-inset-4" />
-          <span className="bengos-hud__ring bengos-hud__ring--arc -inset-6 sm:-inset-9" />
-          <span className="flex h-[80%] w-[80%] items-center justify-center overflow-hidden rounded-full border border-[var(--bengos-border-strong)] bg-[var(--bengos-surface-sunken)] shadow-[0_0_96px_-16px_var(--bengos-glow)]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={BRAND.logo}
-              alt=""
-              width={1024}
-              height={1024}
-              fetchPriority="high"
-              className="size-full object-cover object-center"
-            />
-          </span>
+        {/*
+          Tygrys w okręgu HUD — jedyna grafika na tym ekranie i jedyne
+          miejsce, w którym `BRAND.logo` jest rysowane. Średnica od
+          WYSOKOŚCI (`dvh`), więc na niskim telefonie znak maleje i formularz
+          zostaje nad zgięciem.
+        */}
+        <div
+          className="relative my-3 flex size-[min(30dvh,46vw,200px)] items-center justify-center sm:my-4"
+          aria-hidden="true"
+        >
+          <div className="bengos-hud flex size-full items-center justify-center">
+            <span className="bengos-hud__ring bengos-hud__ring--static inset-0" />
+            <span className="bengos-hud__ring bengos-hud__ring--ticks -inset-3 sm:-inset-4" />
+            <span className="bengos-hud__ring bengos-hud__ring--arc -inset-6 sm:-inset-9" />
+            <span className="flex h-[80%] w-[80%] items-center justify-center overflow-hidden rounded-full border border-[var(--bengos-border-strong)] bg-[var(--bengos-surface-sunken)] shadow-[0_0_96px_-16px_var(--bengos-glow)]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={BRAND.logo}
+                alt=""
+                width={1024}
+                height={1024}
+                fetchPriority="high"
+                className="size-full object-cover object-center"
+              />
+            </span>
+          </div>
         </div>
-      </div>
 
-      <div className="mx-auto w-full max-w-sm px-4 pb-2 sm:max-w-md">
-        <LoginForm registerMode={mode === "rejestracja"} />
-      </div>
+        {/* „rejestracja” — POD tygrysem, jak na grafice. */}
+        <ModeWord
+          mode="rejestracja"
+          active={mode === "rejestracja"}
+          onClick={() => setMode("rejestracja")}
+          size="hero"
+        />
 
-      {/*
-        ── STOPKA Z ODSTĘPEM NA PASEK GESTÓW ────────────────────────────
-        Dolne słowo to ODNOŚNIK do drugiego trybu, nie przycisk.
-        `pb-[max(1.5rem,env(safe-area-inset-bottom))]` — dolny odstęp to
-        większa z dwóch wartości: nasze 24 px albo wcięcie systemowe.
-        Bez tego na iPhonie napis „rejestracja” siedzi pod paskiem home,
-        a kliknięcie w niego cofa użytkownika do ekranu głównego.
-      */}
-      <footer className="mt-auto px-4 pt-3 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-center">
-        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-          {GATE_MODES.filter((word) => word !== mode).map((word) => (
-            <Link
-              key={word}
-              href={"/login?after=" + encodeURIComponent(safeAfter()) + (word === "rejestracja" ? "#rejestracja" : "")}
-              onClick={() => setMode(word)}
-              className="bengos-touch-target px-3 py-2 text-[var(--bengos-size-title)] font-[var(--bengos-weight-medium)] lowercase tracking-[0.06em] text-[var(--bengos-accent)] [text-shadow:0_0_22px_var(--bengos-glow)]"
-            >
-              {word}
-            </Link>
-          ))}
+        {/*
+          Formularz. Karta POWYŻEJ słów w kolejności czytania jest niżej,
+          ale wizualnie stoi pod znakiem — a to jest układ z grafiki:
+          słowo, znak, słowo, formularz. `w-full` i `max-w-sm` na rodzicu
+          `max-w-md`, więc karta zajmuje całą szerokość telefonu, bez
+          ściskania do paska.
+        */}
+        <div className="mt-5 w-full">
+          <LoginForm registerMode={mode === "rejestracja"} />
         </div>
+      </main>
+
+      <footer className="mt-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 text-center">
+        <p className="text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">{BRAND.tagline}</p>
       </footer>
     </div>
   );
