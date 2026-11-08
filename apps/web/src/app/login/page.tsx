@@ -15,10 +15,10 @@ export const metadata: Metadata = { title: "Logowanie" };
  * formularza mieszka w `@/components/auth/login-form`, a tutaj zostaje
  * tylko to, co serwerowe.
  *
- * ── PIERWSZY EKRAN JEST TYLKO LOGOWANIEM ────────────────────────────────
- * Wejście na `/login` NIE wymusza zalogowania — pokazuje tylko ekran
- * z wyborem drogi. Wymuszenie sesji należy do ekranów modułów, nie tutaj:
- * użytkownik ma prawo zobaczyć, jak wygląda logowanie, zanim się zaloguje.
+ * ── PIERWSZY EKRAN NIE WYMUSZA SESJI ────────────────────────────────────
+ * Wejście na `/login` pokazuje tylko wybór drogi. Wymuszenie sesji należy
+ * do ekranów modułów, nie tutaj: użytkownik ma prawo zobaczyć, jak wygląda
+ * logowanie, zanim się zaloguje.
  *
  * ── GRAFIKA U GÓRY, ZNAK W KARCIE ───────────────────────────────────────
  * Kompozycja z podpisami „logowanie” i „rejestracja” ustawia nastrój
