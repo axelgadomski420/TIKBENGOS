@@ -10,6 +10,8 @@ from datetime import datetime, timedelta, timezone as dt_timezone
 
 from django.conf import settings
 from django.contrib.auth import authenticate
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from ninja import Router
@@ -88,6 +90,37 @@ def serialize(user: User) -> dict:
     }
 
 
+def _check_password_strength(password: str, user: User | None = None) -> None:
+    """Walidatory Django na haśle. Rzuca `HttpError` z powodem, albo nie robi nic.
+
+    ── DLACZEGO TO JEST TU, A NIE TYLKO W USTAWIENIACH ─────────────────────
+    `AUTH_PASSWORD_VALIDATORS` w `settings.py` ma trzy wpisy:
+    `MinimumLengthValidator` (12), `CommonPasswordValidator` i
+    `NumericPasswordValidator`. Tylko że Django **nie woła ich samo** przy
+    `create_user()` — walidacja haseł działa w formularzach i przy
+    `set_password()`, a nie przy tworzeniu konta przez API.
+
+    Poprzednia wersja `register()` sprawdzała wyłącznie długość, więc hasło
+    `aaaaaaaaaaaa` albo `123456789012` przechodziło. To nie jest luka
+    w uprawnieniach, ale jest luką w koncie: ktoś zakłada konto na hasło,
+    które zgadnie w pięć minut, i traci je bez śladu włamania.
+
+    `validate_password` bierze `user` tylko po to, żeby porównać hasło
+    z nazwą i adresem email — bez tego `SimilarityValidator` nie ma z czym
+    porównywać. Dlatego budujemy tymczasowy obiekt z nazwą i mailem,
+    zapisany jeszcze nie jest.
+    """
+    try:
+        validate_password(password, user=user)
+    except ValidationError as exc:
+        # Bierzemy PIERWSZY komunikat, nie wszystkie: interfejs pokazuje
+        # błąd pod polem, a lista pięciu zdań pod jednym polem to ściana,
+        # której nikt nie przeczyta. Kolejny powód wyjdzie przy następnej
+        # próbie — i tak jest lepiej niż pokazywać wszystko naraz.
+        first = exc.messages[0] if exc.messages else "Hasło jest zbyt słabe."
+        _error("bad_request", first, 400, "password")
+
+
 @router.post("/register", response={201: SessionOut, 400: ErrorOut, 409: ErrorOut})
 def register(request, payload: RegisterIn):
     username = payload.username.strip().lower()
@@ -104,6 +137,11 @@ def register(request, payload: RegisterIn):
         _error("bad_request", "Podaj poprawny adres email.", 400, "email")
     if len(payload.password) < MIN_PASSWORD_LENGTH:
         _error("bad_request", "Hasło musi mieć co najmniej 12 znaków.", 400, "password")
+
+    # Walidatory z ustawień — patrz `_check_password_strength`.
+    # Obiekt tymczasowy (nie zapisany) jest potrzebny, żeby walidator
+    # podobieństwa miał z czym porównać hasło.
+    _check_password_strength(payload.password, User(username=username, email=email))
 
     try:
         with transaction.atomic():
@@ -141,6 +179,8 @@ def login(request, payload: LoginIn):
         email=identifier
     ).first()
     if user_obj is None:
+        # Ten sam komunikat co przy złym haśle. Rozdzielenie ich mówiłoby
+        # wprost, które nazwy istnieją — to jest wyliczanie kont.
         _error("unauthorized", "Nieprawidłowa nazwa lub hasło.", 401)
 
     user = authenticate(request, username=user_obj.username, password=payload.password)
