@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import type { ApiError } from "@bengos/core";
 import { validateEmail, validatePassword, validateUsername } from "@bengos/core";
@@ -20,6 +20,18 @@ import { ApiRequestError, apiFetch } from "@/lib/api-client";
  * Błąd trafia do regionu `role="alert"`, żeby osoba korzystająca
  * z czytnika ekranu dowiedziała się o odrzuceniu — bez tego widzi tylko,
  * że nic się nie stało.
+ *
+ * ── NAJPIERW DOSTAWCA, POTEM HASŁO ──────────────────────────────────────
+ * Kolejność odzwierciedla to, jak dziś wygląda zakładanie konta: większość
+ * osób nie wymyśla nowego hasła, jeśli może kliknąć dwa razy. Przyciski
+ * dostawców stoją więc NAD formularzem i są pierwsze w kolejności czytania
+ * dla czytnika ekranu — nie schowane pod nim.
+ *
+ * ── DOSTAWCY PRZYCHODZĄ Z SERWERA ───────────────────────────────────────
+ * Lista przycisków pochodzi z `GET /api/auth/oauth/providers`. Dzięki temu
+ * ekran nie pokazuje przycisku dla dostawcy, którego serwer nie obsługuje.
+ * Gdy serwer nie ma kluczy, przycisk JEST widoczny, ale nieaktywny i mówi
+ * dlaczego — ukrycie go nie powiedziałoby, że taka droga istnieje.
  */
 
 type Mode = "login" | "register";
@@ -31,6 +43,12 @@ interface FormState {
   password: string;
 }
 
+interface OAuthProvider {
+  id: string;
+  label: string;
+  configured: boolean;
+}
+
 const EMPTY_FORM: FormState = { identifier: "", username: "", email: "", password: "" };
 
 export function LoginForm() {
@@ -40,7 +58,46 @@ export function LoginForm() {
   const [serverError, setServerError] = useState<ApiError | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const [providers, setProviders] = useState<OAuthProvider[]>([]);
+  const [oauthBusy, setOauthBusy] = useState<string | null>(null);
+  const [oauthError, setOauthError] = useState<ApiError | null>(null);
+
   const isRegister = mode === "register";
+
+  // Lista dostawców. Błąd tego żądania NIE jest pokazywany użytkownikowi:
+  // formularz z hasłem działa niezależnie, a komunikat o braku listy
+  // tylko by go mylił. Zero przycisków jest tu poprawnym stanem.
+  useEffect(() => {
+    let cancelled = false;
+    apiFetch<OAuthProvider[]>("/api/auth/oauth/providers")
+      .then((list) => {
+        if (!cancelled) setProviders(list);
+      })
+      .catch(() => {
+        if (!cancelled) setProviders([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Powód odmowy zapisany w sesji przez trasę adresu zwrotnego.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const reason = params.get("oauth");
+    if (!reason) return;
+    const messages: Record<string, string> = {
+      odmowa: "Dostawca nie potwierdził logowania. Możesz spróbować ponownie albo zalogować się hasłem.",
+      "brak-danych": "Dostawca nie odesłał wszystkich potrzebnych danych. Spróbuj ponownie.",
+      "brak-konfiguracji": "Logowanie przez dostawcę nie jest skonfigurowane na tym serwerze.",
+      stan: "Sesja logowania wygasła albo została przerwana. Spróbuj ponownie.",
+      "blad-sieci": "Nie udało się dokończyć logowania — serwer nie odpowiedział.",
+    };
+    setOauthError({ code: "bad_request", message: messages[reason] ?? messages.odmowa });
+    // Powód jest jednorazowy — po odczytaniu znika z adresu, żeby odświeżenie
+    // nie pokazywało komunikatu po zdarzeniu, którego już nie ma.
+    window.history.replaceState({}, "", "/login");
+  }, []);
 
   const update = useCallback((field: keyof FormState, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -70,6 +127,27 @@ export function LoginForm() {
       password: form.password ? undefined : "Podaj hasło.",
     };
   }, [form, isRegister]);
+
+  async function startOAuth(provider: string) {
+    setOauthBusy(provider);
+    setOauthError(null);
+    try {
+      const { authorizeUrl } = await apiFetch<{ authorizeUrl: string }>(
+        `/api/auth/oauth/${provider}/start`,
+        { method: "POST" },
+      );
+      // Pełne przejście, nie żądanie w tle: dostawca ustawia własne
+      // ciasteczka i wraca osobnym adresem.
+      window.location.assign(authorizeUrl);
+    } catch (cause) {
+      setOauthError(
+        cause instanceof ApiRequestError
+          ? cause.error
+          : { code: "internal", message: "Nie udało się zacząć logowania." },
+      );
+      setOauthBusy(null);
+    }
+  }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -120,15 +198,57 @@ export function LoginForm() {
     <section aria-labelledby="login-heading" className="bengos-surface-card">
       <h1
         id="login-heading"
-        className="text-center text-[var(--bengos-size-display)] font-[var(--bengos-weight-semibold)]"
+        className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-semibold)]"
       >
         {isRegister ? "Utwórz konto" : "Zaloguj się"}
       </h1>
-      <p className="mt-2 text-center text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
+      <p className="mt-1 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
         Jedno konto dla wszystkich modułów: feedu, studia, czatu, create, dev i access.
       </p>
 
-      <div role="tablist" aria-label="Tryb" className="mt-6 flex gap-2">
+      {oauthError ? (
+        <p
+          role="alert"
+          className="mt-4 rounded-[var(--bengos-radius-control)] border border-[var(--bengos-warning)] px-3 py-2 text-[var(--bengos-size-caption)]"
+        >
+          {oauthError.message}
+        </p>
+      ) : null}
+
+      {providers.length > 0 ? (
+        <ul className="mt-5 space-y-2">
+          {providers.map((provider) => (
+            <li key={provider.id}>
+              <button
+                type="button"
+                disabled={!provider.configured || busy || oauthBusy !== null}
+                onClick={() => void startOAuth(provider.id)}
+                className="bengos-touch-target w-full rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] px-4 font-[var(--bengos-weight-medium)] transition-colors duration-[var(--bengos-motion-fast)] hover:border-[var(--bengos-border-strong)] disabled:opacity-60"
+              >
+                {oauthBusy === provider.id
+                  ? `Przechodzę do ${provider.label}…`
+                  : `Kontynuuj z ${provider.label}`}
+              </button>
+              {!provider.configured ? (
+                <p className="mt-1 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
+                  Ten serwer nie ma jeszcze kluczy do {provider.label}. Możesz założyć konto
+                  hasłem — dostawcę podłączymy, gdy administrator doda klucze.
+                </p>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {providers.length > 0 ? (
+        <p className="my-5 flex items-center gap-3 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
+          <span aria-hidden="true" className="h-px flex-1 bg-[var(--bengos-border)]" />
+          albo emailem
+          <span aria-hidden="true" className="h-px flex-1 bg-[var(--bengos-border)]" />
+        </p>
+      ) : null}
+
+      <div role="tablist" aria-label="Tryb" className="mt-5 flex gap-2">
         <button
           type="button"
           role="tab"
@@ -137,7 +257,7 @@ export function LoginForm() {
           onClick={() => switchMode("login")}
           className={`min-h-[var(--bengos-touch-target-min)] flex-1 rounded-[var(--bengos-radius-control)] border px-4 transition-colors duration-[var(--bengos-motion-fast)] ${
             !isRegister
-              ? "border-[var(--bengos-accent)] font-[var(--bengos-weight-medium)] text-[var(--bengos-accent)]"
+              ? "border-[var(--bengos-accent)] bg-[var(--bengos-accent-muted)] font-[var(--bengos-weight-medium)] text-[var(--bengos-accent)]"
               : "border-[var(--bengos-border)] text-[var(--bengos-text-muted)]"
           }`}
         >
@@ -151,7 +271,7 @@ export function LoginForm() {
           onClick={() => switchMode("register")}
           className={`min-h-[var(--bengos-touch-target-min)] flex-1 rounded-[var(--bengos-radius-control)] border px-4 transition-colors duration-[var(--bengos-motion-fast)] ${
             isRegister
-              ? "border-[var(--bengos-accent)] font-[var(--bengos-weight-medium)] text-[var(--bengos-accent)]"
+              ? "border-[var(--bengos-accent)] bg-[var(--bengos-accent-muted)] font-[var(--bengos-weight-medium)] text-[var(--bengos-accent)]"
               : "border-[var(--bengos-border)] text-[var(--bengos-text-muted)]"
           }`}
         >
@@ -168,7 +288,7 @@ export function LoginForm() {
         </p>
       ) : null}
 
-      <form className="mt-6 space-y-4" onSubmit={submit} noValidate>
+      <form className="mt-5 space-y-4" onSubmit={submit} noValidate>
         {isRegister ? (
           <>
             <Field
@@ -229,7 +349,8 @@ export function LoginForm() {
 
       <p className="mt-4 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
         Hasło jest hashowane na serwerze i nigdy nie wraca w żadnej odpowiedzi. Zapisane klucze
-        dostawców są szyfrowane i pokazywane dokładnie raz.
+        dostawców są szyfrowane i pokazywane dokładnie raz. Konto zakładasz jedno — dostawcę
+        możesz podpiąć później.
       </p>
     </section>
   );
