@@ -7,6 +7,8 @@ import type { Identity } from "@bengos/core";
 export interface SessionContextValue {
   identity: Identity | null;
   isAuthenticated: boolean;
+  /** Odświeża tożsamość z API; zwraca null, jeśli sesja nie istnieje. */
+  refresh: () => Promise<Identity | null>;
   logout: () => Promise<void>;
 }
 
