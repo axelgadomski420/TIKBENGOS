@@ -1,39 +1,34 @@
 /**
  * Znak marki BENGOS — jedno miejsce, w którym wskazujemy grafikę.
  *
- * ── DLACZEGO LINK, A NIE PLIK W REPOZYTORIUM ────────────────────────────
- * Grafiki leżą na zewnętrznym hostingu, a nie w `public/brand/`. Decyzja
- * należy do właściciela projektu i ma swoją cenę, którą trzeba znać:
- * **aplikacja zależy od zewnętrznego serwisu.** Jeśli obrazy znikną albo
- * hosting zmieni zasady, znak przestanie się wczytywać — strona nadal
- * będzie działać, ale z pustym miejscem po logo.
+ * ── PLIKI SĄ LOKALNE, NIE Z ZEWNĘTRZNEGO HOSTINGU ──────────────────────
+ * Grafiki leżały wcześniej na `i.ibb.co` i to było źródłem trzech kosztów
+ * naraz: dodatkowego połączenia TLS przy każdym wejściu (LCP), braku
+ * zarezerwowanego miejsca (CLS) i zależności od serwisu, który może zniknąć
+ * razem z logo. Teraz pliki są w `public/brand/` i jadą z tej samej domeny.
  *
- * Dlatego wszystkie odwołania przechodzą przez ten plik. Przeprowadzka na
- * pliki lokalne to zmiana wartości w `logo` i `login`, a nie szukanie
- * adresów po całym kodzie. To jest cały powód istnienia tego pliku.
+ * ── FORMAT DO ZROBIENIA ─────────────────────────────────────────────────
+ * Pliki są JPEG. Docelowo AVIF i WebP — przy 1024×1024 różnica to setki
+ * kilobajtów, a to bezpośrednio przekłada się na LCP. Konwersja wymaga
+ * narzędzia, którego nie było w środowisku budującym, więc zostaje jako
+ * świadome zadanie, a nie zapomnienie.
  *
- * ── TRZY GRAFIKI, TRZY ZASTOSOWANIA ────────────────────────────────────
- * 1. `logo` — znak: głowa tygrysa w kuli z napisem BENGOS. Nagłówek powłoki,
- *    zasłona startowa, ikona instalowanej aplikacji.
- * 2. `login` — pełna kompozycja z podpisami „logowanie" i „rejestracja".
- *    Należy do ekranu logowania i TYLKO tam: w nagłówku te napisy są
- *    nieczytelnym szumem, a ich powtórzenie obok prawdziwego przycisku
- *    myliłoby użytkownika.
- * 3. `home` — kompozycja z podpisami modułów. Wypełnia tło pulpitu.
- *
- * ── ADRESY SĄ LINKAMI BEZPOŚREDNIMI ────────────────────────────────────
- * Każdy zaczyna się od `i.ibb.co/…` — to adres PLIKU. Adres `ibb.co/…`
- * prowadzi do strony podglądu, czyli dokumentu HTML, a `<img src>`
- * wskazujący na HTML nie wyświetli niczego. Pomyłka tych dwóch form
- * kosztowała już jedną rundę.
+ * ── TRZY GRAFIKI, TRZY ZASTOSOWANIA ─────────────────────────────────────
+ * 1. `logo`  — znak: głowa tygrysa w kuli z napisem BENGOS. Nagłówek powłoki,
+ *    koło nad kartą logowania, ikona instalowanej aplikacji.
+ * 2. `login` — kompozycja z podpisami „logowanie" i „rejestracja". Należy do
+ *    ekranu startowego i TYLKO tam: w nagłówku te napisy są szumem, a obok
+ *    prawdziwego przycisku myliłyby użytkownika.
+ * 3. `menu`  — kompozycja z podpisami modułów. Tło nagłówka na pulpicie;
+ *    prawdziwe, klikalne wejścia stoją pod nią jako siatka.
  */
 export const BRAND = {
   /** Znak: głowa w kuli z napisem BENGOS. */
-  logo: "https://i.ibb.co/39LVJd1t/C57-AC4-F4-7-D83-4-F5-D-890-F-00-BB1-F79-D6-F3.jpg",
+  logo: "/brand/menu.jpg",
   /** Kompozycja logowania z podpisami „logowanie" i „rejestracja". */
-  login: "https://i.ibb.co/cK8XzcQz/C894714-D-AE6-F-4-BC6-8-B09-373-B4-EF5-D811.jpg",
+  login: "/brand/login.jpg",
   /** Kompozycja pulpitu z podpisami modułów. */
-  home: "https://i.ibb.co/TxDg2pFH/44747202-085-E-42B8-BE50-EF91CAF448-F1.jpg",
+  menu: "/brand/menu.jpg",
   name: "BENGOS",
   tagline: "Jeden społecznościowy system operacyjny.",
 } as const;
