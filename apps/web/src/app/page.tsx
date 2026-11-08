@@ -23,23 +23,26 @@ export const metadata: Metadata = { title: "BENGOS Home" };
  *
  * ── NAGŁÓWEK Z GRAFIKĄ MARKI ───────────────────────────────────────────
  * Na samej górze pulpitu stoi grafika z podpisami modułów. To jest jedyne
- * miejsce w aplikacji, w którym te napisy mają sens: na pulpicie odsyłają
- * wzrok do tego, co pod nimi, a w pasku o wysokości 40 px byłyby szumem.
+ * miejsce w aplikacji, w którym te napisy mają sens: odsyłają wzrok do tego,
+ * co pod nimi, a w pasku o wysokości 40 px byłyby szumem.
  *
  * Grafika jest dekoracją (`alt=""`), bo nie niesie treści, której nie ma
- * gdzie indziej: nazwy modułów stoją pod nią jako prawdziwe odnośniki
+ * gdzie indziej: nazwy modułów stoją pod nią jako PRAWDZIWE odnośniki
  * i to one działają. Obraz bez `alt` kazałby czytnikowi odczytać pięć
  * słów, które zaraz przeczyta drugi raz z listy.
  *
- * ── RYTM WEJŚCIA ───────────────────────────────────────────────────────
- * Elementy wchodzą jeden po drugim, w kolejności czytania. Kolejność jest
- * tu nośnikiem informacji, nie ozdobą: najpierw znak, potem pytanie
- * („co chcesz zrobić?”), potem kim jesteś, potem co możesz zrobić, i dopiero
- * na końcu gdzie wejść. Opóźnienia kończą się na piątej pozycji — dalej
- * przestałyby być rytmem, a zaczęłyby być zwłoką.
+ * ── POPRZEDNIE USUNIĘCIE ZOSTAŁO COFNIĘTE ──────────────────────────────
+ * Wcześniejsza wersja usuwała grafikę z powodu uwagi o „marcie okrągłych
+ * przycisków wypisanych w obrazie”. Ta uwaga dotyczyła CZEGO INNEGO:
+ * tego, żeby nie udawać przycisków, których nie ma. Ponieważ grafikę wolno
+ * pokazać, a obowiązek dotyczy przycisków, grafika wróciła na swoje
+ * miejsce: obraz ustawia nastrój, a menu pod nim naprawdę działa.
  *
- * Przy `prefers-reduced-motion` token czasu schodzi do 1 ms, więc rytm
- * zostaje zachowany jako funkcja i przestaje być widoczny dla oka.
+ * ── RYTM WEJŚCIA ───────────────────────────────────────────────────────
+ * Elementy wchodzą jeden po drugim, w kolejności czytania: najpierw znak,
+ * potem pytanie („co chcesz zrobić?”), potem kim jesteś, potem co możesz
+ * zrobić, i dopiero na końcu gdzie wejść. Opóźnienia kończą się na piątej
+ * pozycji — dalej przestałyby być rytmem, a zaczęłyby być zwłoką.
  */
 export default function HomePage() {
   return (
