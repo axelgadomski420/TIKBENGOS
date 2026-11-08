@@ -17,74 +17,86 @@ import { useSession } from "@/lib/session-context";
  * stronach: jedna brama, zero szczelin. Gdyby każda strona pilnowała sama,
  * jedna zapomniana pokazałaby treść bez zalogowania.
  *
- * ── UKŁAD Z GRAFIKI MARKI ─────────────────────────────────────────────
- * „logowanie” wielkim cyjanem u góry, tygrys w świecącym okręgu pośrodku,
- * „rejestracja” jako odnośnik na dole — kompozycja z pliku login.jpg.
- * Napisy z grafiki są wypalonymi pikselami: nie da się ich kliknąć ani
- * odczytać czytnikiem ekranu. Tu stoją PRAWDZIWE napisy w tych samych
- * miejscach — klikalne, czytane, dostępne z Tab.
+ * ── NAPISY NA GRAFICE SĄ KLIKALNE ──────────────────────────────────────
+ * Zdjęcie właściciela (2026-11-08) ma dokładnie dwa przeznaczenia:
  *
- * ── SŁOWO U GÓRY TO TRYB, SŁOWO NA DOLE TO PRZYCISK ────────────────────
- * Grafika marki ma dokładnie dwa słowa: „logowanie” u góry i „rejestracja”
- * na dole. Ekran robi z nich system: górne słowo mówi, w KTÓRYM trybie
- * się jest, dolne ten tryb PRZEŁĄCZA. Wcześniej na ekranie były jeszcze
- * zakładki i drugi tytuł na karcie formularza — trzy rzeczy powtarzały
- * to samo, więc żadna nie mówiła nic wyraźnie. Teraz jedno słowo = jedna
- * odpowiedzialność, dokładnie jak na grafice.
+ *   ekran główny — tygrys w świecącym okręgu, nad nim „logowanie”,
+ *   pod nim „rejestracja”;
+ *   ekran menu   — tygrys mniejszy, a wokół niego podpisy modułów:
+ *   studio, bridge, dev, profil, chat, ustawienia.
  *
- * ── REJESTRACJA PRZEZ SKRÓT, NIE PRZEZ DRUGI FORMULARZ ────────────────
- * Odnośnik „rejestracja” prowadzi na /login#rejestracja; formularz czyta
- * skrót przy montażu i przełącza tryb. Jedna implementacja formularza,
- * dwa wejścia.
+ * Na grafice te napisy są WYPALONYMI PIKSELAMI — nie da się ich kliknąć
+ * ani odczytać czytnikiem ekranu. Tu stoją one jako PRAWDZIWE odnośniki
+ * w tych samych miejscach kompozycji. Kliknięcie „logowanie” albo
+ * „rejestracja” otwiera okno formularza w tym trybie — a nie tylko
+ * przełącza stan, który już jest widoczny.
  *
- * (Aktualizacja 2026-11-08: skrót czyta teraz TA brama i przekazuje tryb
- * formularzowi propsem, a dolne słowo jest przyciskiem — przełącza tryb
- * od razu, bez przeładowania. Głęboki odnośnik /login#rejestracja dalej
- * działa, bo skrót czytany jest przy montażu.)
+ * ── DLACZEGO ODNOŚNIK, A NIE PRZYCISK ─────────────────────────────────
+ * Poprzednia wersja miała pod spodem przyciski, które przełączały tryb
+ * w tym samym miejscu. Właściciel pokazał na to zdjęcie i powiedział
+ * wprost: napisy mają PROWADZIĆ do okna logowania i rejestracji.
+ * Odnośnik daje trzy rzeczy naraz, których przycisk nie dawał:
+ *   1. działa z klawiatury i z `Tab` (jak każdy link),
+ *   2. widać adres po najechaniu (przeglądarka pokazuje `/login#rejestracja`),
+ *   3. działa z zakładki i z udostępnionego adresu — wejście w tryb
+ *      rejestracji ma swój adres, więc można go komuś wysłać.
+ *
+ * ── MENU GŁÓWNE JEST OSOBNYM EKRANEM, NIE DOKLEJKĄ ─────────────────────
+ * Wcześniej pod oknem logowania stała DRUGA kopia z podpisami modułów,
+ * co widać było na zdjęciu jako dwa tygrysy jeden pod drugim. Teraz
+ * ekrany się wykluczają: albo formularz (logowanie/rejestracja), albo
+ * menu główne z podpisami wokół mniejszego tygrysa. Jeden tygrys
+ * na ekran, jedna kompozycja, zero powtórzeń.
+ *
+ * ── PODPISY MODUŁÓW PROWADZĄ DO REJESTRACJI, NIE DO MODUŁU ─────────────
+ * Wejście do modułu bez konta i tak trafi na tę bramę — więc odsyłanie
+ * użytkownika „do studia” i pokazywanie mu z powrotem tego samego ekranu
+ * jest drogą w kółko, która wygląda na zepsutą. Podpis prowadzi więc
+ * do `#rejestracja`, czyli do drzwi, które naprawdę się otwierają.
+ * Pod kołem stoi zdanie, które to mówi, żeby kliknięcie nie zaskakiwało.
  *
  * ── ROZMIAR JAK NA GRAFICE, NIE MINIATURA ─────────────────────────────
  * Na grafice marki kula z tygrysem DOMINUJE nad kompozycją — to oś, wokół
- * której wszystko stoi. Wcześniejszy okrąg miał 144 px i był ozdobą.
- * Teraz średnica liczy się od szerokości ekranu — min(64vw, 320px) — więc
- * na telefonie tygrys zajmuje dwie trzecie szerokości jak na grafice,
- * a na dużym ekranie nie rośnie w nieskończoność. Nagłówek idzie w parze:
- * clamp(2.75rem, 11vw, 5.5rem), bo „logowanie” ma być pierwszą rzeczą,
- * którą oko znajduje na ekranie.
- *
- * ── TRZY EKRANY STARTU: LOGOWANIE, REJESTRACJA, MENU GŁÓWNE ───────────
- * (Aktualizacja 2026-11-08, po południu) Właściciel pokazał zdjęcie strony
- * startowej: poza „logowaniem” i „rejestracją” stoi na niej „menu główne”
- * — osobny ekran przełączany tak jak rejestracja, z podfolderami
- * („ustawienia”, „chat”, „asystent” i dalej) dookoła loga. Brama ma więc
- * trzy tryby; dolny pasek pokazuje dwa słowa, którymi ekran nie jest.
- * Podfoldery prowadzą do modułów prawdziwymi trasami — brama i tak staje
- * na drodze, więc pod kołem stoi jedno zdanie prawdy: moduły otwierają
- * się po zalogowaniu. „dev” na kole nie ma miejsca: to wejście za
- * uprawnieniem repo.connect, a brama nie zna uprawnień przybysza.
+ * której wszystko stoi. Średnica liczy się od szerokości ekranu —
+ * min(64vw, 320px) — więc na telefonie tygrys zajmuje dwie trzecie
+ * szerokości jak na grafice, a na dużym ekranie nie rośnie
+ * w nieskończoność. Nagłówek idzie w parze: clamp(2.75rem, 11vw, 5.5rem),
+ * bo tryb ma być pierwszą rzeczą, którą oko znajduje na ekranie.
  */
 type GateMode = "logowanie" | "rejestracja" | "menu";
 
 /*
-  Podfoldery menu głównego — te same trasy i podpisy, których po zalogowaniu
-  używa nagłówek powłoki (app-shell.tsx). Jedna wspólna lista byłaby
-  piękniejsza, ale nagłówek filtruje wejścia uprawnieniami zalogowanego,
-  a brama żadnych uprawnień nie zna — dlatego stoją tu dwie listy, każda
-  z własnym powodem. „dev” celowo pominięty: wejście za uprawnieniem
-  repo.connect, a zapraszanie przybysza do drzwi, których może nie mieć,
-  jest gorsze niż ich brak.
- */
-const MENU_FOLDERS: { href: string; label: string }[] = [
-  { href: "/feed", label: "bengtok" },
-  { href: "/studio", label: "studio" },
-  { href: "/chat", label: "chat" },
-  { href: "/create", label: "asystent" },
-  { href: "/access", label: "bridge" },
-  { href: "/profile", label: "profil" },
-  { href: "/settings", label: "ustawienia" },
+  Podfoldery menu głównego — podpisy z grafiki właściciela. Trasy były tu
+  kiedyś prawdziwe (do modułów), ale osoba bez sesji i tak wracała na tę
+  samą bramę — droga w kółko wyglądająca na zepsutą. Dlatego KAŻDY podpis
+  prowadzi teraz do rejestracji, czyli do drzwi, które się naprawdę
+  otwierają. Trasa modułu jest zapamiętana w `after`, żeby po założeniu
+  konta użytkownik trafił tam, gdzie chciał.
+*/
+const MENU_FOLDERS: { key: string; label: string; after: string }[] = [
+  { key: "bengtok", label: "bengtok", after: "/feed" },
+  { key: "studio", label: "studio", after: "/studio" },
+  { key: "chat", label: "chat", after: "/chat" },
+  { key: "asystent", label: "asystent", after: "/create" },
+  { key: "bridge", label: "bridge", after: "/access" },
+  { key: "profil", label: "profil", after: "/profile" },
+  { key: "ustawienia", label: "ustawienia", after: "/settings" },
 ];
 
-/* Trzy słowa strony startowej; dolny pasek pokazuje te, którymi nie jest. */
+/* Trzy słowa strony startowej. Dolny pasek pokazuje te, którymi ekran nie jest. */
 const GATE_MODES: GateMode[] = ["logowanie", "rejestracja", "menu"];
+
+/** Etykieta trybu do pokazania — tryb `menu` nazywa się „menu główne”. */
+function modeLabel(mode: GateMode): string {
+  return mode === "menu" ? "menu główne" : mode;
+}
+
+/** Adres trybu: logowanie bez skrótu, rejestracja i menu ze skrótem. */
+function modeHref(mode: GateMode): string {
+  if (mode === "rejestracja") return "/login#rejestracja";
+  if (mode === "menu") return "/login#menu";
+  return "/login";
+}
 
 export function LoginGate() {
   const { status, identity } = useSession();
@@ -97,25 +109,16 @@ export function LoginGate() {
   // krótkotrwała niespójność.
   useEffect(() => {
     const hash = window.location.hash;
-    if (hash === "#rejestracja") {
-      setModeState("rejestracja");
-    }
-    if (hash === "#menu") {
-      setModeState("menu");
-    }
+    if (hash === "#rejestracja") setModeState("rejestracja");
+    if (hash === "#menu") setModeState("menu");
   }, []);
 
-  // Dolne słowa przełączają tryb. Adres idzie w parze ze stanem
-  // (replaceState, nie przypisanie do hash — przypisanie odpala hashchange
-  // i skok do kotwicy), żeby odświeżenie strony i zapisana zakładka
-  // pamiętały tryb.
+  // Zmiana trybu idzie TAKŻE w adres (replaceState, nie przypisanie do
+  // hash — przypisanie odpala hashchange i skok do kotwicy). Dzięki temu
+  // odświeżenie strony i zapisana zakładka pamiętają tryb.
   const setMode = (next: GateMode) => {
     setModeState(next);
-    if (next === "logowanie") {
-      window.history.replaceState({}, "", window.location.pathname + window.location.search);
-      return;
-    }
-    window.history.replaceState({}, "", next === "rejestracja" ? "#rejestracja" : "#menu");
+    window.history.replaceState({}, "", modeHref(next));
   };
 
   if (status === "loading") {
@@ -164,8 +167,8 @@ export function LoginGate() {
   return (
     <div className="relative isolate flex min-h-dvh flex-col overflow-hidden">
       {/*
-        Tło: kompozycja logowania na CAŁYM ekranie, przygaszona i rozmyta —
-        daje nastrój znaku marki, a formularz czyta się NA niej, nie obok niej.
+        Tło: znak marki na CAŁYM ekranie, przygaszony i rozmyty — daje
+        nastrój marki, a napisy i formularz czytają się NA nim, nie obok.
       */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-[var(--bengos-surface)]" />
@@ -186,7 +189,7 @@ export function LoginGate() {
       {/* Górne słowo — wielki cyjan trybu, jak na grafice marki. */}
       <header className="px-5 pt-8 text-center sm:pt-12">
         <h1 className="text-[clamp(2.75rem,11vw,5.5rem)] font-[var(--bengos-weight-semibold)] lowercase leading-none tracking-[0.06em] text-[var(--bengos-accent)] [text-shadow:0_0_38px_var(--bengos-glow)]">
-          {mode === "menu" ? "menu główne" : mode}
+          {modeLabel(mode)}
         </h1>
         <p className="bengos-eyebrow mt-3 text-[var(--bengos-text-muted)]">{BRAND.tagline}</p>
       </header>
@@ -194,12 +197,14 @@ export function LoginGate() {
       {mode === "menu" ? (
         <>
           {/*
-            Ekran „menu główne”: logo pośrodku, podfoldery na kole wokół —
-            układ ze zdjęcia właściciela. Tygrys jest tu mniejszy niż na
-            ekranach logowania i rejestracji (46vw zamiast 64vw), bo
-            dookoła musi zmieścić się siedem podfolderów: na zdjęciu logo
-            jest osią, wokół której krążą podpisy, a nie kulą wypełniającą
-            cały ekran.
+            Ekran „menu główne”: logo pośrodku, podpisy modułów na kole
+            wokół — układ ze zdjęcia właściciela. Tygrys jest tu mniejszy
+            niż na ekranach logowania i rejestracji (46vw zamiast 64vw),
+            bo dookoła musi zmieścić się siedem podpisów.
+
+            KAŻDY podpis jest odnośnikiem do rejestracji — patrz komentarz
+            przy `MENU_FOLDERS`. Trasa modułu jedzie w parametrze `after`,
+            więc po założeniu konta użytkownik trafi tam, gdzie chciał.
           */}
           <nav aria-label="Menu główne" className="relative mx-auto my-4 size-[min(92vw,520px)]">
             <div
@@ -223,21 +228,24 @@ export function LoginGate() {
               </div>
             </div>
             {/*
-              Podfoldery DOOKOŁA loga. Kąt liczony z indeksu (pierwszy
-              na godzinie dwunastej, dalej równe łuki co 360/7), pozycja
-              idzie stylem inline, bo Tailwind nie ma klas dla współrzędnych
+              Podpisy DOOKOŁA loga. Kąt liczony z indeksu (pierwszy na
+              godzinie dwunastej, dalej równe łuki co 360/7), pozycja idzie
+              stylem inline, bo Tailwind nie ma klas dla współrzędnych
               policzonych z kosinusa i sinusa. Promień to 42% boku
-              kontenera — zostawia między pierścieniami HUD a podfolderami
+              kontenera — zostawia między pierścieniami HUD a podpisami
               wolne pole, nic się nie dotyka, a koło czyta się od razu.
             */}
             {MENU_FOLDERS.map((folder, index) => {
               const angle = ((-90 + (360 / MENU_FOLDERS.length) * index) * Math.PI) / 180;
               return (
                 <Link
-                  key={folder.href}
-                  href={folder.href}
-                  style={{ left: (50 + Math.cos(angle) * 42) + "%", top: (50 + Math.sin(angle) * 42) + "%" }}
-                  className="bengos-touch-target absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] bg-[var(--bengos-surface)]/85 px-3 py-1.5 font-[var(--bengos-weight-medium)] lowercase tracking-[0.06em] text-[var(--bengos-size-caption)] text-[var(--bengos-accent)] [text-shadow:0_0_18px_var(--bengos-glow)] backdrop-blur-sm"
+                  key={folder.key}
+                  href={"/login?after=" + encodeURIComponent(folder.after) + "#rejestracja"}
+                  style={{
+                    left: 50 + Math.cos(angle) * 42 + "%",
+                    top: 50 + Math.sin(angle) * 42 + "%",
+                  }}
+                  className="bengos-touch-target absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] bg-[var(--bengos-surface)]/85 px-3 py-1.5 font-[var(--bengos-weight-medium)] lowercase tracking-[0.06em] text-[var(--bengos-size-caption)] text-[var(--bengos-accent)] [text-shadow:0_0_18px_var(--bengos-glow)] backdrop-blur-sm transition-colors duration-[var(--bengos-motion-fast)] hover:border-[var(--bengos-accent)]"
                 >
                   {folder.label}
                 </Link>
@@ -245,21 +253,20 @@ export function LoginGate() {
             })}
           </nav>
           {/*
-            Jedno zdanie prawdy: brama i tak staje na trasie modułu, więc
-            kliknięcie podfolderu wróci tutaj. Bez tego zdania klik
-            wyglądałby na martwy; ze zdaniem jest zaproszeniem
-            do zalogowania.
+            Jedno zdanie prawdy: kliknięcie podpisu otwiera rejestrację,
+            a nie moduł — bez tego zdania klik wyglądałby na prowadzący
+            do modułu, którym nie jest.
           */}
           <p className="px-5 pb-2 text-center text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
-            Moduły otwierają się po zalogowaniu.
+            Wybierz moduł — otworzy się okno rejestracji. Konta jeszcze nie masz.
           </p>
         </>
       ) : (
         <>
           {/*
-            Tygrys w świecącym okręgu — oś kompozycji, jak na grafice. Całość
-            jest dekoracją (aria-hidden): nazwę i działanie niosą napisy,
-            obraz w kole jest czystym znakiem marki z pustym altem.
+            Tygrys w świecącym okręgu — oś kompozycji, jak na grafice.
+            Całość jest dekoracją (aria-hidden): tryb niosą napisy, obraz
+            w kole jest czystym znakiem marki z pustym altem.
           */}
           <div className="flex items-center justify-center px-5 py-6" aria-hidden="true">
             <div className="flex size-[min(64vw,320px)] items-center justify-center">
@@ -289,29 +296,50 @@ export function LoginGate() {
       )}
 
       {/*
-        Dolne słowo — przełącznik trybu. U góry stoi tryb obecny, więc na
-        dole stoi jego przeciwieństwo: na ekranie logowania „rejestracja”,
-        na ekranie rejestracji „logowanie”. To przycisk, nie odnośnik —
-        przełącza stan bez przeładowania.
-
-        (Aktualizacja 2026-11-08, po południu: trybów jest trzy, więc na
-        dole stoją DWA słowa — te, którymi ekran nie jest. Zasada bez
-        zmian: górne słowo mówi, gdzie się jest, dolne przenoszą.)
+        Dolne słowa — ODNOŚNIKI do pozostałych trybów, nie przyciski.
+        Zdjęcie właściciela pokazuje dwa napisy, które mają prowadzić
+        do okna: „logowanie” nad tygrysem i „rejestracja” pod nim.
+        Na dole stoją więc te tryby, którymi ekran NIE jest — te same
+        wyrazy, ten sam wygląd, ale jako prawdziwe odnośniki z adresem
+        (`/login#rejestracja`), dzięki czemu mają stan fokusu z klawiatury,
+        pokazują adres po najechaniu i dają się wysłać komuś jako link.
       */}
       <footer className="mt-auto px-5 pb-10 pt-4 text-center">
-        <div className="flex items-center justify-center gap-8">
+        <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
           {GATE_MODES.filter((word) => word !== mode).map((word) => (
-            <button
+            <Link
               key={word}
-              type="button"
+              href={"/login?after=" + encodeURIComponent(safeAfter()) + (word === "logowanie" ? "" : "#" + word)}
               onClick={() => setMode(word)}
               className="bengos-touch-target inline-flex items-center justify-center px-4 text-[var(--bengos-size-title)] font-[var(--bengos-weight-medium)] lowercase tracking-[0.06em] text-[var(--bengos-accent)] [text-shadow:0_0_22px_var(--bengos-glow)]"
             >
-              {word === "menu" ? "menu główne" : word}
-            </button>
+              {modeLabel(word)}
+            </Link>
           ))}
         </div>
       </footer>
     </div>
   );
+}
+
+/**
+ * Adres modułu, do którego użytkownik chciał wejść — z parametru `after`.
+ *
+ * ── DLACZEGO TYLKO ŚCIEŻKA WEWNĘTRZNA ─────────────────────────────────
+ * `after` pochodzi z adresu, więc każdy może w nim wpisać co chce. Gdyby
+ * trafiało do przekierowania bez sprawdzenia, dałoby się z tej strony
+ * zrobić otwarte przekierowanie na obcą domenę — klasyczny błąd, przez
+ * który link wygląda na nasz, a prowadzi gdzie indziej. Dlatego przyjmujemy
+ * WYŁĄCZNIE ścieżkę zaczynającą się od pojedynczego `/`, bez `//`
+ * (protokół względny) i bez schematu. Wszystko inne wraca na pulpit.
+ */
+function safeAfter(): string {
+  if (typeof window === "undefined") return "/";
+  const value = new URLSearchParams(window.location.search).get("after") || "";
+  // Jedno `/`, nie dwa; bez `:` (schemat) i bez `\\` (obejście w niektórych
+  // przeglądarkach). Ścieżka wewnętrzna albo pulpit — nic pomiędzy.
+  if (value.startsWith("/") && !value.startsWith("//") && !value.includes(":") && !value.includes("\\")) {
+    return value;
+  }
+  return "/";
 }
