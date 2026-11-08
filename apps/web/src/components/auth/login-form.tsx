@@ -35,6 +35,31 @@ import { ApiRequestError, apiFetch } from "@/lib/api-client";
  * wiedział, czy konto powstało, ani jakim uchwytem się loguje. Parametr
  * `welcome` uruchamia pasek powitania, który mówi jedno i drugie.
  * Po samym zalogowaniu parametru NIE MA — powitanie jest dla nowego konta.
+ *
+ * ── POZIOM APPLE: FORMULARZ ODPOWIADA, NIE KARZE ────────────────────────
+ * Cztery rzeczy, które odróżniają dopracowany formularz od zwykłego —
+ * żadna nie jest ozdobą, każda oszczędza użytkownikowi jedno nieudane
+ * wysłanie:
+ *
+ * 1. FOKUS STOI NA PIERWSZYM POLU od wejścia na ekran, więc pisze się
+ *    bez dotykania myszy. Po nieudanym wysłaniu fokus przechodzi na
+ *    PIERWSZE pole z błędem — komunikat bez wskazania miejsca zmusza
+ *    do przeszukiwania formularza wzrokiem.
+ * 2. BŁĄD POKAZUJE SIĘ PRZY OPUSZCZENIU POLA, nie dopiero po wysłaniu
+ *    całego formularza. Walidacja przy opuszczeniu nie ma własnej kopii
+ *    reguł — czyta wynik tej samej funkcji, którą liczy wysyłanie.
+ * 3. KLAWIATURA MOBILNA NIE PSUJE DANYCH: identyfikator, nazwa i email
+ *    mają wyłączoną autokapitalizację i słownik. Bez tego iOS dopisuje
+ *    wielką literę i „poprawia” nazwę użytkownika, a użytkownik dowiaduje
+ *    się o tym dopiero z błędu serwera.
+ * 4. CAPS LOCK jest zgłaszany przy polu hasła wprost — to standard
+ *    przeglądarek Apple od lat. Hasło odrzucone przez przypadek na
+ *    klawiaturze wygląda dla użytkownika jak awaria, nie jak literówka.
+ *
+ * Lista wymagań hasła przy rejestracji odhacza się NA ŻYWO. To nie licznik
+ * „siły”, którego nikt nie umie interpretować — to dokładnie te dwie reguły,
+ * które za chwilę sprawdzi serwer, wypisane uczciwie i bez przewidywania,
+ * którego kontrakt nie zna.
  */
 
 type Mode = "login" | "register";
@@ -105,6 +130,8 @@ export function LoginForm() {
 
   const isRegister = mode === "register";
   const configured = providers.filter((provider) => provider.configured);
+  // Druga reguła hasła sprawdzana na zywo — dokladnie ta, ktora policzy serwer.
+  const passwordNotOnlyDigits = form.password.length > 0 && !/^\d+$/.test(form.password);
 
   // Błąd tego żądania NIE jest pokazywany użytkownikowi: formularz z hasłem
   // działa niezależnie, a komunikat o braku listy tylko by go mylił.
@@ -166,12 +193,22 @@ export function LoginForm() {
     };
   }, [form, isRegister]);
 
+  // Walidacja przy opuszczeniu pola: ta sama funkcja co przy wysylaniu, wiec
+  // reguly NIGDY sie nie rozejdja — tu wybieramy tylko blad tego pola.
+  const blurValidate = useCallback(
+    (field: keyof FormState) => {
+      const message = validate()[field];
+      if (message) setFieldErrors((prev) => ({ ...prev, [field]: message }));
+    },
+    [validate],
+  );
+
   async function startOAuth(provider: string) {
     setOauthBusy(provider);
     setOauthError(null);
     try {
       const { authorizeUrl } = await apiFetch<{ authorizeUrl: string }>(
-        `/api/auth/oauth/${provider}/start`,
+        "/api/auth/oauth/" + provider + "/start",
         { method: "POST" },
       );
       // Pełne przejście, nie żądanie w tle: dostawca ustawia własne
@@ -192,7 +229,12 @@ export function LoginForm() {
 
     const errors = validate();
     setFieldErrors(errors);
-    if (Object.values(errors).some(Boolean)) return;
+    if (Object.values(errors).some(Boolean)) {
+      // Fokus na pierwsze pole z bledem — patrz komentarz POZIOM APPLE pkt 1.
+      const firstInvalid = (Object.keys(errors) as Array<keyof FormState>).find((key) => errors[key]);
+      if (firstInvalid) document.getElementById("login-" + firstInvalid)?.focus();
+      return;
+    }
 
     setBusy(true);
     setServerError(null);
@@ -230,6 +272,7 @@ export function LoginForm() {
       setServerError(apiError);
       if (apiError.field && apiError.field in form) {
         setFieldErrors((prev) => ({ ...prev, [apiError.field as keyof FormState]: apiError.message }));
+        document.getElementById("login-" + apiError.field)?.focus();
       }
       setBusy(false);
     }
@@ -266,12 +309,12 @@ export function LoginForm() {
                 type="button"
                 disabled={busy || oauthBusy !== null}
                 onClick={() => void startOAuth(provider.id)}
-                className="bengos-touch-target w-full gap-2 rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] bg-[var(--bengos-surface-sunken)] px-4 font-[var(--bengos-weight-medium)] transition-colors duration-[var(--bengos-motion-fast)] hover:border-[var(--bengos-accent)] disabled:opacity-60"
+                className="bengos-touch-target flex w-full items-center justify-center gap-2 rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] bg-[var(--bengos-surface-sunken)] px-4 font-[var(--bengos-weight-medium)] transition-colors duration-[var(--bengos-motion-fast)] hover:border-[var(--bengos-accent)] disabled:opacity-60"
               >
                 <ProviderMark id={provider.id} />
                 {oauthBusy === provider.id
-                  ? `Przechodzę do ${provider.label}…`
-                  : `Kontynuuj z ${provider.label}`}
+                  ? "Przechodzę do " + provider.label + "…"
+                  : "Kontynuuj z " + provider.label}
               </button>
             </li>
           ))}
@@ -314,11 +357,12 @@ export function LoginForm() {
               aria-selected={active}
               disabled={busy}
               onClick={() => switchMode(value)}
-              className={`min-h-[var(--bengos-touch-target-min)] flex-1 rounded-[var(--bengos-radius-control)] px-4 text-[var(--bengos-size-caption)] transition-colors duration-[var(--bengos-motion-fast)] ${
-                active
+              className={
+                "min-h-[var(--bengos-touch-target-min)] flex-1 rounded-[var(--bengos-radius-control)] px-4 text-[var(--bengos-size-caption)] transition-colors duration-[var(--bengos-motion-fast)] " +
+                (active
                   ? "bg-[var(--bengos-surface-raised)] font-[var(--bengos-weight-medium)] text-[var(--bengos-text)]"
-                  : "text-[var(--bengos-text-muted)] hover:text-[var(--bengos-text)]"
-              }`}
+                  : "text-[var(--bengos-text-muted)] hover:text-[var(--bengos-text)]")
+              }
             >
               {value === "login" ? "Logowanie" : "Rejestracja"}
             </button>
@@ -347,6 +391,10 @@ export function LoginForm() {
               autoComplete="username"
               error={fieldErrors.username}
               disabled={busy}
+              autoFocus={isRegister}
+              autoCapitalize="none"
+              spellCheck={false}
+              onBlur={() => blurValidate("username")}
             />
             <Field
               id="login-email"
@@ -358,6 +406,9 @@ export function LoginForm() {
               autoComplete="email"
               error={fieldErrors.email}
               disabled={busy}
+              autoCapitalize="none"
+              spellCheck={false}
+              onBlur={() => blurValidate("email")}
             />
           </>
         ) : (
@@ -370,6 +421,10 @@ export function LoginForm() {
             autoComplete="username"
             error={fieldErrors.identifier}
             disabled={busy}
+            autoFocus={!isRegister}
+            autoCapitalize="none"
+            spellCheck={false}
+            onBlur={() => blurValidate("identifier")}
           />
         )}
 
@@ -383,6 +438,8 @@ export function LoginForm() {
           autoComplete={isRegister ? "new-password" : "current-password"}
           error={fieldErrors.password}
           disabled={busy}
+          spellCheck={false}
+          onBlur={() => blurValidate("password")}
           trailing={
             <button
               type="button"
@@ -395,12 +452,55 @@ export function LoginForm() {
           }
         />
 
+        {/*
+          Wymagania hasla odhaczaja sie na zywo — ale tylko te, ktorych serwer
+          faktycznie pilnuje. Odhaczka nie obiecuje nic wiecej niz kontrakt.
+        */}
+        {isRegister ? (
+          <ul aria-label="Wymagania hasła" className="space-y-1 text-[var(--bengos-size-caption)]">
+            <li
+              className={
+                form.password.length >= 12
+                  ? "text-[var(--bengos-accent)]"
+                  : "text-[var(--bengos-text-muted)]"
+              }
+            >
+              {form.password.length >= 12 ? "✓" : "•"} Co najmniej 12 znaków
+            </li>
+            <li
+              className={
+                passwordNotOnlyDigits
+                  ? "text-[var(--bengos-accent)]"
+                  : "text-[var(--bengos-text-muted)]"
+              }
+            >
+              {passwordNotOnlyDigits ? "✓" : "•"} Nie może się składać z samych cyfr
+            </li>
+          </ul>
+        ) : null}
+
         <button
           type="submit"
           disabled={busy}
-          className="bengos-touch-target w-full rounded-[var(--bengos-radius-control)] bg-[var(--bengos-accent)] px-5 font-[var(--bengos-weight-medium)] text-[var(--bengos-text-on-accent)] transition-opacity duration-[var(--bengos-motion-fast)] disabled:opacity-60"
+          className="bengos-touch-target flex w-full items-center justify-center gap-2 rounded-[var(--bengos-radius-control)] bg-[var(--bengos-accent)] px-5 font-[var(--bengos-weight-medium)] text-[var(--bengos-text-on-accent)] transition-opacity duration-[var(--bengos-motion-fast)] disabled:opacity-60"
         >
-          {busy ? "Pracuję…" : isRegister ? "Utwórz konto" : "Zaloguj się"}
+          {busy ? (
+            <>
+              {/*
+                Pierscien zamiast paska postepu: dlugosc zadania jest nieznana,
+                a udawany postep bylby oszukiwaniem — patrz zasada briefu.
+              */}
+              <span
+                aria-hidden="true"
+                className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+              />
+              {isRegister ? "Zakładam konto…" : "Wchodzę…"}
+            </>
+          ) : isRegister ? (
+            "Utwórz konto"
+          ) : (
+            "Zaloguj się"
+          )}
         </button>
       </form>
 
@@ -422,6 +522,11 @@ export function LoginForm() {
  * pole i karta dzieliły prawie ten sam kolor i granica była nie do
  * zauważenia. Fokus dostaje `--bengos-focus-ring`, bo brief zabrania
  * `outline: none` bez zamiennika.
+ *
+ * Pole hasła nasłuchuje klawisza Caps Lock w obu kierunkach (naciśnięcie
+ * i zwolnienie) — stan przełączany klawiszem musi być odświeżany przy
+ * każdym zdarzeniu, bo getModifierState mówi tylko o chwili zdarzenia.
+ * Podpowiedź znika przy opuszczeniu pola: poza polem nie ma znaczenia.
  */
 function Field({
   id,
@@ -434,6 +539,10 @@ function Field({
   error,
   disabled,
   trailing,
+  autoFocus = false,
+  autoCapitalize,
+  spellCheck = false,
+  onBlur,
 }: {
   id: string;
   label: string;
@@ -445,9 +554,15 @@ function Field({
   error?: string;
   disabled: boolean;
   trailing?: React.ReactNode;
+  autoFocus?: boolean;
+  autoCapitalize?: "none";
+  spellCheck?: boolean;
+  onBlur?: () => void;
 }) {
-  const hintId = hint ? `${id}-hint` : undefined;
-  const errorId = error ? `${id}-error` : undefined;
+  const hintId = hint ? id + "-hint" : undefined;
+  const errorId = error ? id + "-error" : undefined;
+  const [capsOn, setCapsOn] = useState(false);
+  const passwordLike = type === "password";
 
   return (
     <div>
@@ -465,13 +580,27 @@ function Field({
           type={type}
           value={value}
           onChange={(event) => onChange(event.target.value)}
+          onKeyDown={
+            passwordLike ? (event) => setCapsOn(event.getModifierState("CapsLock")) : undefined
+          }
+          onKeyUp={
+            passwordLike ? (event) => setCapsOn(event.getModifierState("CapsLock")) : undefined
+          }
+          onBlur={() => {
+            setCapsOn(false);
+            onBlur?.();
+          }}
           autoComplete={autoComplete}
+          autoFocus={autoFocus}
+          autoCapitalize={autoCapitalize}
+          spellCheck={spellCheck}
           disabled={disabled}
           aria-invalid={error ? true : undefined}
           aria-describedby={errorId ?? hintId}
-          className={`min-h-[var(--bengos-touch-target-min)] w-full rounded-[var(--bengos-radius-control)] border bg-[var(--bengos-surface-sunken)] px-3 text-[var(--bengos-text)] outline-none transition-colors duration-[var(--bengos-motion-fast)] focus-visible:border-[var(--bengos-focus-ring)] focus-visible:ring-2 focus-visible:ring-[var(--bengos-focus-ring)] disabled:opacity-60 ${
-            error ? "border-[var(--bengos-danger)]" : "border-[var(--bengos-border)]"
-          }`}
+          className={
+            "min-h-[var(--bengos-touch-target-min)] w-full rounded-[var(--bengos-radius-control)] border bg-[var(--bengos-surface-sunken)] px-3 text-[var(--bengos-text)] outline-none transition-colors duration-[var(--bengos-motion-fast)] focus-visible:border-[var(--bengos-focus-ring)] focus-visible:ring-2 focus-visible:ring-[var(--bengos-focus-ring)] disabled:opacity-60 " +
+            (error ? "border-[var(--bengos-danger)]" : "border-[var(--bengos-border)]")
+          }
         />
         {trailing}
       </div>
@@ -482,6 +611,11 @@ function Field({
           className="mt-1 text-[var(--bengos-size-caption)] text-[var(--bengos-danger)]"
         >
           {error}
+        </p>
+      ) : null}
+      {passwordLike && capsOn ? (
+        <p role="status" className="mt-1 text-[var(--bengos-size-caption)] text-[var(--bengos-warning)]">
+          Caps Lock jest włączony.
         </p>
       ) : null}
     </div>
