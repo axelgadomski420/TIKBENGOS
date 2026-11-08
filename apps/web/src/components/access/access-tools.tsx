@@ -65,6 +65,33 @@ function morseToVibrationPattern(morse: string): number[] {
   return pattern;
 }
 
+/**
+ * Wybiera identyfikator głosu do syntezatora mowy.
+ *
+ * ── DLACZEGO OSOBNA FUNKCJA, A NIE `??` W MIEJSCU UŻYCIA ────────────────
+ * Przy włączonym `noUncheckedIndexedAccess` TypeScript traktuje KAŻDY
+ * odczyt z indeksu jako możliwie `undefined` — także `list[0]`. Wyrażenie
+ * `(polish ?? list[0]).voiceURI` przerywało build produkcyjny:
+ *
+ *     Type error: Object is possibly 'undefined'.
+ *
+ * Rzutowanie `!` byłoby obejściem, nie naprawą — lista głosów bywa EMPTY
+ * w przeglądarce, która ma syntezator, ale nie ma jeszcze żadnego głosu
+ * zainstalowanego (świeży system, tryb prywatny). Wtedy `list[0]!`
+ * wybuchłoby w chwili wykonania.
+ *
+ * Dlatego zwracamy `null`, gdy nie ma czego wybrać, i wołający zostawia
+ * identyfikator pusty — pole wyboru pokazuje wtedy „Domyślny”, a syntezator
+ * użyje swojego głosu domyślnego. To poprawny stan, nie brak funkcji.
+ */
+function pickVoiceUri(list: SpeechSynthesisVoice[]): string | null {
+  if (list.length === 0) return null;
+  const polish = list.find((v) => v.lang.toLowerCase().startsWith("pl"));
+  if (polish) return polish.voiceURI;
+  const first = list[0];
+  return first ? first.voiceURI : null;
+}
+
 export function AccessTools() {
   // ── TTS ──────────────────────────────────────────────────────────────
   const [ttsText, setTtsText] = useState("Cześć. To jest test syntezatora mowy TIKBENGOS.");
@@ -74,30 +101,14 @@ export function AccessTools() {
   const [speaking, setSpeaking] = useState(false);
 
   const ttsSupported = typeof window !== "undefined" && "speechSynthesis" in window;
+
   const loadVoices = useCallback(() => {
     if (!ttsSupported) return;
     const list = window.speechSynthesis.getVoices();
-    //
-    // ── DLACZEGO `list[0]` NIE MOŻE TU STAĆ BEZ SPRAWDZENIA ───────────
-    // Przy włączonym `noUncheckedIndexedAccess` TypeScript traktuje KAŻDY
-    // odczyt z indeksu jako możliwie `undefined` — także `list[0]`.
-    // Poprzednia wersja miała `(polish ?? list[0]).voiceURI`, a prawa strona
-    // `??` też jest `Voice | undefined`, więc build produkcyjny przerywał się:
-    //
-    //     Type error: Object is possibly 'undefined'.
-    //
-    // Rzutowanie `!` byłoby obejściem: lista głosów bywa pusta w przeglądarce,
-    // która obsługuje syntezator, ale nie ma jeszcze żadnego głosu
-    // zainstalowanego (zdarza się na świeżym systemie i w trybie prywatnym).
-    // Wtedy `list[0]!` wybuchłoby w chwili wykonania. Dlatego sprawdzamy
-    // długość i wychodzimy — identyfikator głosu zostaje pusty, a pole
-    // wyboru pokazuje „Domyślny”.
-    if (list.length === 0) return;
     setVoices(list);
     setVoiceUri((prev) => {
       if (prev) return prev;
-      const polish = list.find((v) => v.lang.toLowerCase().startsWith("pl"));
-      return (polish ?? list[0]).voiceURI;
+      return pickVoiceUri(list) ?? "";
     });
   }, [ttsSupported]);
 
