@@ -103,6 +103,27 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    # ── PORT W SIECI DOCKERA — BEZ TEGO NIE MA APLIKACJI ────────────────
+    #
+    # ── CO BYŁO NIE TAK ────────────────────────────────────────────────
+    # Gunicorn słuchał na `0.0.0.0:8000` wewnątrz kontenera, ale usługa
+    # nie deklarowała ŻADNEGO portu. Docker Compose nie tworzy wtedy
+    # wpisu w wewnętrznym DNS sieci dla tego portu, a `web` i `proxy`
+    # nie mają jak się do niego dobrać.
+    #
+    # Objaw, linia po linii:
+    #     wget: bad address 'api:8000'
+    #     wget: can't connect to remote host (172.18.0.7): Connection refused
+    # a w interfejsie: `route.ts` łapał wyjątek, zwracał 503 na
+    # `/api/users/me`, `SessionProvider` nie dostawał tożsamości, stan
+    # sesji zostawał na `loading` i brama logowania rysowała w tym stanie
+    # tylko jedno zdanie na pustym tle. Użytkownik widział BIAŁĄ STRONĘ.
+    #
+    # `expose` (a NIE `ports`) jest tu właściwe: otwiera port wyłącznie
+    # w sieci Dockera i NIE publikuje go na hoście, więc zasada
+    # „porty na zewnątrz zamknięte” z nagłówka tego pliku zostaje.
+    expose:
+      - "8000"
 
   realtime:
     build:
@@ -119,6 +140,11 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    # Ten sam powód co przy `api`: Caddy przekazuje `/ws/*` na
+    # `realtime:8001`, więc port musi być zadeklarowany w sieci Dockera.
+    # Bez tego czat po Etapie 4 nie miałby jak się połączyć.
+    expose:
+      - "8001"
 
   web:
     build:
@@ -128,9 +154,14 @@ services:
         NEXT_PUBLIC_REALTIME_URL: ${NEXT_PUBLIC_REALTIME_URL:-}
     restart: unless-stopped
     environment:
+      # Proxy w `apps/web` czyta ten adres po stronie serwera Next.js.
+      # Adres musi być osiągalny w sieci Dockera — patrz `expose` przy `api`.
+      # Ten adres to podstawa, do której `route.ts` dokłada `/v1/...`.
       API_INTERNAL_URL: http://api:8000
       NEXT_PUBLIC_REALTIME_URL: ${NEXT_PUBLIC_REALTIME_URL:-}
       NODE_ENV: production
+    expose:
+      - "3000"
     depends_on:
       - api
 
@@ -138,6 +169,7 @@ services:
     image: caddy:2-alpine
     restart: unless-stopped
     ports:
+      # Jedyne porty wystawione na świat.
       - "80:80"
       - "443:443"
     volumes:
@@ -163,8 +195,9 @@ services:
   #
   # ── DLACZEGO BEZ `ports` ───────────────────────────────────────────────
   # Ollama domyślnie nie ma uwierzytelniania. Wystawiona na świat byłaby
-  # otwartym modelem dla każdego, kto zgadnie adres — więc portu nie ma,
-  # a dostęp ma wyłącznie sieć Dockera. To ta sama zasada co przy bazie.
+  # otwartym modelem dla każdego, kto zgadnie adres — więc portu na hoście
+  # nie ma, a dostęp ma wyłącznie sieć Dockera. To ta sama zasada co przy
+  # bazie. `expose` jest tu nadal potrzebne, bo `ai-worker` woła go po nazwie.
   #
   # ── GDY MODEL NIE JEST POBRANY ─────────────────────────────────────────
   # Obraz startuje z pustym wolumenem. Workera nie obchodzi, jaki model
@@ -172,13 +205,13 @@ services:
   # Pobranie należy do właściciela maszyny, bo to gigabajty i decyzja:
   #     docker compose --env-file .env -f infra/docker-compose.prod.yml \
   #       exec ollama ollama pull qwen2.5:7b
-  # Wariant 7b to rozsądny kompromis na ARM z 24 GB: mieści się w pamięci
-  # i odpowiada w kilka sekund. Większy model zje cały RAM maszyny.
   ollama:
     image: ollama/ollama:latest
     restart: unless-stopped
     volumes:
       - ollama-models:/root/.ollama
+    expose:
+      - "11434"
     healthcheck:
       test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
       interval: 15s
@@ -199,13 +232,12 @@ services:
   # ── PROFIL `worker`, JAK PRZY AGENCIE KODUJĄCYM ────────────────────────
   # Usługa nie startuje przy zwykłym `up -d`, bo bez pobranego modelu nie
   # ma czego robić, a kontener, który stoi i nic nie robi, wygląda na
-  # zepsuty. Włącza się świadomie — patrz komenda `ollama pull` wyżej:
+  # zepsuty. Włącza się świadomie:
   #     docker compose --profile worker up -d ai-worker
   #
   # ── `depends_on` Z `service_healthy`, NIE SAMO `depends_on` ───────────
   # Bez warunku kontener wstaje zanim Ollama zacznie słuchać i pierwsze
-  # pytanie kończy się „connection refused”. Warunek to jedyne miejsce,
-  # w którym ta kolejność jest zapisana.
+  # pytanie kończy się „connection refused”.
   ai-worker:
     build:
       context: ..
@@ -219,13 +251,13 @@ services:
       ASSISTANT_MODEL: ${ASSISTANT_MODEL:?Ustaw ASSISTANT_MODEL w .env}
       API_INTERNAL_URL: http://api:8000
       BENGOS_WORKER_TOKEN: ${BENGOS_WORKER_TOKEN:?Ustaw BENGOS_WORKER_TOKEN w .env}
-      # Model bez limitu potrafi myśleć w nieskończoność. Ten limit jest
-      # w kodzie workera; zostaje tu jako jawny ślad, że jest.
       PYTHONUNBUFFERED: "1"
     volumes:
       # Kod z hosta, żeby poprawka działała bez przebudowy obrazu.
       # `:ro` — worker nie pisze niczego do swojego kodu.
       - ../services/ai-worker:/srv:ro
+    expose:
+      - "8000"
     depends_on:
       ollama:
         condition: service_healthy
@@ -236,8 +268,7 @@ services:
   # AGENT KODUJĄCY — BENGOS Dev
   # ───────────────────────────────────────────────────────────────────────
   # Agent wykonuje polecenia powłoki, więc żyje w OSOBNYM kontenerze,
-  # w innej sieci niż baza. Powód jest bezpieczeństwem, nie wygodą —
-  # szczegóły w komentarzach przy usłudze i w `services/code-worker/`.
+  # w innej sieci niż baza. Powód jest bezpieczeństwem, nie wygodą.
   code-worker:
     build:
       context: ..
