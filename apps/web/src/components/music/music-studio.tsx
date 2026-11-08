@@ -179,6 +179,24 @@ function scheduleCell(ctx: BaseAudioContext, at: number, rowId: string) {
   if (rowId === "hat") playHat(ctx, at);
 }
 
+/**
+ * Renderuje bufor audio do pliku WAV (PCM 16-bit, mono).
+ *
+ * ── DLACZEGO ODCZYT PRÓBKI JEST SPRAWDZANY ──────────────────────────────
+ * `Math.min(1, channel[i])` przerywało build produkcyjny:
+ *
+ *     Type error: Argument of type 'number | undefined' is not assignable
+ *     to parameter of type 'number'.
+ *
+ * Przy `noUncheckedIndexedAccess` TypeScript traktuje KAŻDY odczyt
+ * z indeksu jako możliwie `undefined` — także `channel[i]`.
+ *
+ * Tu rzutowanie `!` byłoby bezpieczne, bo `getChannelData` zwraca bufor
+ * o długości dokładnie `buffer.length`. Ale zostawiam sprawdzenie, bo
+ * gdyby to założenie kiedyś przestało być prawdziwe, `Math.min(1, undefined)`
+ * dałoby `NaN` — a NaN w pliku WAV czyni go nieczytelnym dla odtwarzacza,
+ * bez żadnego błędu przy zapisie. Cisza w jednej próbce jest niesłyszalna.
+ */
 function encodeWav(buffer: AudioBuffer): Blob {
   const view = new DataView(new ArrayBuffer(44 + buffer.length * 2));
   const writeString = (offset: number, text: string) => {
@@ -197,10 +215,17 @@ function encodeWav(buffer: AudioBuffer): Blob {
   view.setUint16(34, 16, true);
   writeString(36, "data");
   view.setUint32(40, buffer.length * 2, true);
+
   const channel = buffer.getChannelData(0);
   let offset = 44;
   for (let i = 0; i < channel.length; i += 1) {
-    const clamped = Math.max(-1, Math.min(1, channel[i]));
+    const sample = channel[i];
+    if (sample === undefined) {
+      view.setInt16(offset, 0, true);
+      offset += 2;
+      continue;
+    }
+    const clamped = Math.max(-1, Math.min(1, sample));
     view.setInt16(offset, clamped < 0 ? clamped * 0x8000 : clamped * 0x7fff, true);
     offset += 2;
   }
