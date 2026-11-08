@@ -1,9 +1,4 @@
 const ALLOWED_PREFIXES = [
-  // `/csrf` jest tu konieczne, a nie ozdobne. `csrfToken()` w
-  // `@/lib/api-client` woła `GET /api/csrf`, żeby dostać ciasteczko, gdy
-  // jeszcze go nie ma — czyli dokładnie przy pierwszym wejściu na stronę.
-  // Bez tej pozycji proxy odpowiadało 404, token nie dochodził, a każde
-  // żądanie zapisujące leciało do Django bez `X-CSRF-Token` i wracało 403.
   "/csrf",
   "/auth",
   "/users",
@@ -15,18 +10,20 @@ const ALLOWED_PREFIXES = [
   "/access",
   "/settings",
   "/jobs",
-];
+] as const;
+
+function isAllowedPath(path: string[]): boolean {
+  const joined = `/${path.join("/")}`;
+  return ALLOWED_PREFIXES.some((prefix) => joined === prefix || joined.startsWith(`${prefix}/`));
+}
 
 /**
  * Proxy do API.
  *
- * Istnieje z jednego powodu: dzięki niemu ciasteczko sesji zostaje w tej samej
- * domenie co interfejs. Bez tego trzeba by włączyć CORS, ustawić politykę
- * `SameSite=None` i pilnować listy dozwolonych źródeł w każdym środowisku —
- * trzy rzeczy, które z czasem rozjeżdżają się niezauważalnie.
- *
- * Lista dozwolonych prefiksów nie jest ozdobą: bez niej to proxy byłoby
- * otwartym przekierowaniem na dowolny adres podany w ścieżce.
+ * Utrzymujemy same-origin sesję i CSRF, więc nie włączamy CORS. Różne HTTP
+ * metody muszą mieć własne handlery, bo eksportowanie `POST = GET` powodowało
+ * błędne przekierowanie wszystkich zapisujących żądań do tej samej ścieżki
+ * i zamydlało problemy z metodą HTTP.
  */
 async function proxy(request: Request, segments: string[]): Promise<Response> {
   const base = process.env.API_INTERNAL_URL;
@@ -37,11 +34,7 @@ async function proxy(request: Request, segments: string[]): Promise<Response> {
     );
   }
 
-  const joined = `/${segments.join("/")}`;
-  const allowed = ALLOWED_PREFIXES.some(
-    (prefix) => joined === prefix || joined.startsWith(`${prefix}/`),
-  );
-  if (!allowed) {
+  if (!isAllowedPath(segments)) {
     return Response.json(
       { code: "not_found", message: "Nieznana ścieżka API." },
       { status: 404 },
@@ -49,35 +42,31 @@ async function proxy(request: Request, segments: string[]): Promise<Response> {
   }
 
   const url = new URL(request.url);
-  const target = `${base}/v1/${segments.join("/")}${url.search}`;
+  const target = new URL(`${base}/v1/${segments.join("/")}${url.search}`);
 
   const headers = new Headers(request.headers);
-  // Nagłówki opisujące połączenie z proxy, a nie z API. Przekazane dalej
-  // wprowadzają serwer w błąd co do prawdziwego pochodzenia żądania.
   headers.delete("host");
   headers.delete("connection");
   headers.delete("content-length");
+
+  const body = ["GET", "HEAD", "OPTIONS"].includes(request.method)
+    ? undefined
+    : await request.clone().arrayBuffer();
 
   try {
     const upstream = await fetch(target, {
       method: request.method,
       headers,
-      body:
-        request.method === "GET" || request.method === "HEAD"
-          ? undefined
-          : await request.arrayBuffer(),
+      body,
       redirect: "manual",
       cache: "no-store",
+      credentials: "same-origin",
     });
 
-    // Przepisz nagłówki jawnie, aby przenosić ciasteczka sesji niezawodnie
     const responseHeaders = new Headers(upstream.headers);
-    
-    // Usuń set-cookie z nagłówków
     responseHeaders.delete("set-cookie");
-    
-    // Dodaj ciasteczka z powrotem z upstream.headers.getSetCookie()
-    const setCookieValues = upstream.headers.getSetCookie();
+
+    const setCookieValues = upstream.headers.getSetCookie?.() ?? [];
     for (const cookie of setCookieValues) {
       responseHeaders.append("set-cookie", cookie);
     }
@@ -101,7 +90,38 @@ export async function GET(request: Request, ctx: RouteContext) {
   return proxy(request, path);
 }
 
-export const POST = GET;
-export const PATCH = GET;
-export const PUT = GET;
-export const DELETE = GET;
+export async function POST(request: Request, ctx: RouteContext) {
+  const { path } = await ctx.params;
+  return proxy(request, path);
+}
+
+export async function PATCH(request: Request, ctx: RouteContext) {
+  const { path } = await ctx.params;
+  return proxy(request, path);
+}
+
+export async function PUT(request: Request, ctx: RouteContext) {
+  const { path } = await ctx.params;
+  return proxy(request, path);
+}
+
+export async function DELETE(request: Request, ctx: RouteContext) {
+  const { path } = await ctx.params;
+  return proxy(request, path);
+}
+
+export async function OPTIONS(request: Request, ctx: RouteContext) {
+  const { path } = await ctx.params;
+  if (!isAllowedPath(path)) {
+    return Response.json({ code: "not_found", message: "Nieznana ścieżka API." }, { status: 404 });
+  }
+
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Methods": "GET, POST, PATCH, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, X-CSRF-Token, x-csrf-token",
+      "Access-Control-Allow-Origin": "*",
+    },
+  });
+}
