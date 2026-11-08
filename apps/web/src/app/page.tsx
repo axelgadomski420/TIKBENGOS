@@ -1,85 +1,76 @@
 import type { Metadata } from "next";
 
-import { UniversalSearch } from "@/components/home/universal-search";
-import { IdentityBar } from "@/components/home/identity-bar";
 import { ModuleBranches } from "@/components/home/module-branches";
-import { WelcomeGate } from "@/components/home/welcome-gate";
 import { BRAND } from "@/lib/brand";
 
-export const metadata: Metadata = { title: "BENGOS — pulpit" };
+export const metadata: Metadata = { title: "BENGOS" };
 
 /**
- * BENGOS Home — pulpit sterowania.
+ * Ekran po zalogowaniu: hologram z odgałęzieniami.
  *
- * ── MENU JEST PIERWSZE, NIE OSTATNIE ────────────────────────────────────
- * Kolejność idzie od intencji do wejścia:
- *   0. powitanie, ale TYLKO zaraz po założeniu konta (`?welcome=1`),
- *   1. nagłówek z grafiką menu jako tłem — nastrój, nie plik do przewijania,
- *   2. wyszukiwarka uniwersalna — jedno pole na wszystko,
- *   3. pasek tożsamości — kim jesteś,
- *   4. DZIEWIĘĆ WEJŚĆ — napisy jako prawdziwy tekst, każdy klikalny.
+ * ── CO TU JEST I NIC WIĘCEJ ─────────────────────────────────────────────
+ * Wielka grafika hologramu (tygrys w kuli z podpisami modułów) jako tło
+ * całego ekranu, a pod nią siatka odgałęzień — każdy podpis klikalny,
+ * z trasą. Żadnej wyszukiwarki, żadnego paska tożsamości, żadnych kart
+ * „Kontynuuj” i „Dla Ciebie” nad siatką. Te rzeczy przeszkadzały w tym,
+ * co ten ekran ma robić: pokazać dziewięć drzwi i pozwolić wejść.
  *
- * ── POWITANIE WIDZI SIĘ RAZ I TYLKO PO REJESTRACJI ──────────────────────
- * `WelcomeGate` czyta `?welcome=1` z adresu, pokazuje pasek i usuwa parametr.
- * Dzięki temu użytkownik dostaje potwierdzenie, że konto powstało, i swój
- * uchwyt — a przy kolejnych wejściach na pulpit nic mu nie zasłania treści.
+ * ── PODPISY SĄ TEKSTEM, NIE OBRAZEM ─────────────────────────────────────
+ * Napisy na grafice są wypalonymi pikselami — przeglądarka widzi jeden
+ * prostokąt, nie dziewięć słów. Nie da się ich kliknąć, nie da się ich
+ * odczytać czytnikiem ekranu. Wersja „obszary klikalne nałożone na obraz”
+ * wyglądałaby tak samo i była nieużywalna dla klawiatury, więc nie weszła.
+ * Grafika daje hologram, a odgałęzienia są prawdziwym tekstem pod nią:
+ * klikalnym, czytanym, dostępnym z `Tab`.
  *
- * ── NAPISY SĄ W KODZIE, NIE W GRAFICE ───────────────────────────────────
- * Grafika menu ma podpisy wypalone w pliku, więc dla przeglądarki jest
- * jednym prostokątem — nie da się z nich zrobić odnośników ani odczytać
- * ich czytnikiem ekranu. Dlatego grafika jest TŁEM (nastrój), a dziewięć
- * napisów stoi pod nią jako prawdziwy tekst w siatce `ModuleBranches`:
- * klikalny, dostępny z klawiatury i czytany przez czytnik.
- *
- * ── GRAFIKA JEST TŁEM, NIE OBRAZEM W TREŚCI ─────────────────────────────
- * Jako element w treści zajmowała kwadrat 1024×1024 i na telefonie zjadała
- * cały pierwszy ekran. Jako tło nagłówka daje nastrój i nie zabiera miejsca
- * temu, co ma działać.
+ * ── WYSOKOŚĆ TŁA USTALONA, NIE LOSOWA ───────────────────────────────────
+ * Hologram zajmuje górne 46% ekranu i ma własne `min-h`, więc na telefonie
+ * nie zjada całego widoku, a na dużym ekranie nie rozciąga się na pół strony.
  */
 export default function HomePage() {
   return (
-    <div className="space-y-6">
-      <h1 className="bengos-visually-hidden">BENGOS — pulpit</h1>
+    <div className="relative isolate min-h-dvh overflow-hidden">
+      {/*
+        Tło: hologram na CAŁYM ekranie, pod nim tło motywu, na wierzchu
+        gradient schodzący w kolor tła — po nim czyta się siatka.
+      */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute inset-0 bg-[var(--bengos-surface)]" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={BRAND.menu}
+          alt=""
+          width={1024}
+          height={1024}
+          fetchPriority="high"
+          className="absolute inset-x-0 top-0 h-[62%] w-full object-cover object-center opacity-55 blur-[1px]"
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,var(--bengos-surface)_0%,transparent_12%,transparent_38%,var(--bengos-surface)_58%,var(--bengos-surface)_100%)]" />
+        <div className="absolute -left-24 top-1/4 size-72 rounded-full bg-[var(--bengos-accent)] opacity-[0.10] blur-3xl" />
+        <div className="absolute -right-20 bottom-8 size-80 rounded-full bg-[var(--bengos-warning)] opacity-[0.08] blur-3xl" />
+      </div>
 
-      <WelcomeGate />
-
-      <section className="bengos-rise bengos-rise-1 relative isolate overflow-hidden rounded-[var(--bengos-radius-card)] border border-[var(--bengos-border)] bg-[var(--bengos-surface-raised)]">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={BRAND.menu}
-            alt=""
-            width={1024}
-            height={1024}
-            fetchPriority="high"
-            className="size-full object-cover object-center opacity-40 blur-[1px]"
-          />
-          <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_0%,var(--bengos-surface-raised)_72%,var(--bengos-surface-raised)_100%)]" />
-        </div>
-
-        <div className="flex min-h-[13rem] flex-col justify-end px-5 pb-5 pt-24">
-          <p className="text-[var(--bengos-size-caption)] uppercase tracking-[0.3em] text-[var(--bengos-text-muted)]">
+      <div className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col px-5 pb-28 pt-10 md:pb-12">
+        <header className="flex flex-col items-center text-center">
+          <span className="flex size-16 items-center justify-center overflow-hidden rounded-full border border-[var(--bengos-border-strong)] bg-[var(--bengos-surface-sunken)] shadow-[0_0_56px_-10px_var(--bengos-glow)] sm:size-20">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={BRAND.logo}
+              alt=""
+              width={1024}
+              height={1024}
+              fetchPriority="high"
+              className="size-full object-cover object-center"
+            />
+          </span>
+          <p className="mt-4 text-[var(--bengos-size-caption)] uppercase tracking-[0.34em] text-[var(--bengos-text-muted)]">
             {BRAND.name}
           </p>
-          <p className="mt-1 text-[var(--bengos-size-title)] font-[var(--bengos-weight-semibold)]">
-            Osiem modułów, jedno konto
-          </p>
-          <p className="mt-1 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
-            Wybierz, gdzie wchodzisz — albo zapytaj w polu poniżej.
-          </p>
+        </header>
+
+        <div className="mt-10">
+          <ModuleBranches />
         </div>
-      </section>
-
-      <div className="bengos-rise bengos-rise-2">
-        <UniversalSearch />
-      </div>
-
-      <div className="bengos-rise bengos-rise-3">
-        <IdentityBar />
-      </div>
-
-      <div className="bengos-rise bengos-rise-4">
-        <ModuleBranches />
       </div>
     </div>
   );
