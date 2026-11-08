@@ -6,38 +6,29 @@ import type { ApiError } from "@bengos/core";
 import { validateEmail, validatePassword, validateUsername } from "@bengos/core";
 
 import { ApiRequestError, apiFetch } from "@/lib/api-client";
-import { BRAND } from "@/lib/brand";
 
 /**
  * Formularz logowania i rejestracji.
  *
- * Mieszka w osobnym pliku, bo `login/page.tsx` musi zostać komponentem
- * serwerowym — eksport `metadata` nie działa w pliku z "use client".
+ * ── ZNAK MARKI JEST NA GÓRZE EKRANU, NIE TUTAJ ──────────────────────────
+ * Ten komponent NIE rysuje znaku. Był tu znak 88 px, a `login/page.tsx`
+ * trzyma drugi nad kartą — dwa znaki marki na jednym ekranie to nie ozdoba,
+ * a powtórzenie: oko nie wie, na co patrzeć. Znak jest jeden i stoi wyżej.
  *
- * Walidacja dzieje się PRZED wysłaniem i używa reguł z `@bengos/core`, tych
- * samych, których pilnuje serwer. Druga kopia reguł rozjechałaby się
- * z pierwszym dniem, więc jej nie ma.
- *
- * Błąd trafia do regionu `role="alert"`, żeby osoba korzystająca
- * z czytnika ekranu dowiedziała się o odrzuceniu — bez tego widzi tylko,
- * że nic się nie stało.
+ * ── WALIDACJA PRZED WYSŁANIEM, REGUŁAMI Z KONTRAKTU ─────────────────────
+ * Reguły pochodzą z `@bengos/core` — tych samych, których pilnuje serwer.
+ * Druga kopia rozjechałaby się z pierwszym dniem, więc jej nie ma.
  *
  * ── NAJPIERW DOSTAWCA, POTEM HASŁO ──────────────────────────────────────
- * Kolejność odzwierciedla to, jak dziś wygląda zakładanie konta: większość
- * osób nie wymyśla nowego hasła, jeśli może kliknąć dwa razy. Przyciski
- * dostawców stoją więc NAD formularzem i są pierwsze w kolejności czytania
- * dla czytnika ekranu — nie schowane pod nim.
+ * Większość osób nie wymyśla nowego hasła, jeśli może kliknąć dwa razy.
+ * Przyciski dostawców stoją NAD formularzem i są pierwsze w kolejności
+ * czytania — nie schowane pod nim.
  *
  * ── DOSTAWCY PRZYCHODZĄ Z SERWERA ───────────────────────────────────────
- * Lista przycisków pochodzi z `GET /api/auth/oauth/providers`. Dzięki temu
- * ekran nie pokazuje przycisku dla dostawcy, którego serwer nie obsługuje.
- * Gdy serwer nie ma kluczy, przycisk JEST widoczny, ale nieaktywny i mówi
- * dlaczego — ukrycie go nie powiedziałoby, że taka droga istnieje.
- *
- * ── PRZYCISK DOSTAWCY MA ZNAK, NIE TYLKO NAPIS ─────────────────────────
- * Rząd przycisków był wcześniej jednolitym prostokątem z tekstem, więc
- * wzrokiem nie dało się odróżnić Google od GitHuba bez czytania. Teraz
- * każdy niesie swój znak rysowany `currentColor`.
+ * Lista pochodzi z `GET /api/auth/oauth/providers`. Ekran nie pokazuje
+ * przycisku dla dostawcy, którego serwer nie obsługuje. Gdy brakuje kluczy,
+ * zamiast martwego przycisku pojawia się zdanie, które mówi dlaczego —
+ * przycisk, który nie reaguje, wygląda na zepsuty, a nie na niegotowy.
  */
 
 type Mode = "login" | "register";
@@ -57,22 +48,6 @@ interface OAuthProvider {
 
 const EMPTY_FORM: FormState = { identifier: "", username: "", email: "", password: "" };
 
-/**
- * Powody odmowy z adresu zwrotnego, zamienione na zdania.
- *
- * ── `Record<string, string>` TO ZA MAŁO DLA TYPESCRIPTU ─────────────────
- * Wcześniejsza wersja miała `const messages: Record<string, string> = {...}`
- * przy indeksowaniu `messages[reason]`, a TypeScript **przy włączonym
- * `noUncheckedIndexedAccess`** traktuje każdy odczyt z indeksu jako
- * `string | undefined`. `?? messages.odmowa` nie naprawiało tego, bo prawa
- * strona też była `string | undefined` z punktu widzenia typów.
- *
- * Build przerywał się dokładnie tam:
- *     Type error: Type 'string | undefined' is not assignable to type 'string'.
- *
- * Rozwiązanie ma dwie części: obiekt jest `as const` z literałami kluczy,
- * a wartość domyślna stoi OSOBNO — żadna ze stron nie jest opcjonalna.
- */
 const OAUTH_FAILURE_DEFAULT =
   "Dostawca nie potwierdził logowania. Możesz spróbować ponownie albo zalogować się hasłem.";
 
@@ -84,7 +59,6 @@ const OAUTH_MESSAGES: Record<string, string> = {
   "blad-sieci": "Nie udało się dokończyć logowania — serwer nie odpowiedział.",
 };
 
-/** Zdanie dla powodu z adresu. Nieznany powód dostaje tekst domyślny. */
 function messageForReason(reason: string): string {
   return OAUTH_MESSAGES[reason] ?? OAUTH_FAILURE_DEFAULT;
 }
@@ -94,35 +68,17 @@ function ProviderMark({ id }: { id: string }) {
   if (id === "google") {
     return (
       <svg viewBox="0 0 24 24" className="size-5" aria-hidden="true">
-        <path
-          fill="currentColor"
-          d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.4Z"
-        />
-        <path
-          fill="currentColor"
-          opacity="0.75"
-          d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1a5.9 5.9 0 0 1-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22Z"
-        />
-        <path
-          fill="currentColor"
-          opacity="0.5"
-          d="M6.4 14a6 6 0 0 1 0-3.9V7.5H3.1a10 10 0 0 0 0 9z"
-        />
-        <path
-          fill="currentColor"
-          opacity="0.85"
-          d="M12 6a5.4 5.4 0 0 1 3.8 1.5l2.8-2.8A9.6 9.6 0 0 0 12 2a10 10 0 0 0-8.9 5.5l3.3 2.6A5.9 5.9 0 0 1 12 6Z"
-        />
+        <path fill="currentColor" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.4Z" />
+        <path fill="currentColor" opacity="0.75" d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1a5.9 5.9 0 0 1-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22Z" />
+        <path fill="currentColor" opacity="0.5" d="M6.4 14a6 6 0 0 1 0-3.9V7.5H3.1a10 10 0 0 0 0 9z" />
+        <path fill="currentColor" opacity="0.85" d="M12 6a5.4 5.4 0 0 1 3.8 1.5l2.8-2.8A9.6 9.6 0 0 0 12 2a10 10 0 0 0-8.9 5.5l3.3 2.6A5.9 5.9 0 0 1 12 6Z" />
       </svg>
     );
   }
   if (id === "github") {
     return (
       <svg viewBox="0 0 24 24" className="size-5" aria-hidden="true">
-        <path
-          fill="currentColor"
-          d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.8c-2.8.6-3.4-1.3-3.4-1.3-.4-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.9.8.1-.6.4-1.1.7-1.4-2.2-.2-4.6-1.1-4.6-5a4 4 0 0 1 1-2.7c-.1-.3-.4-1.3.1-2.6 0 0 .8-.3 2.7 1a9.3 9.3 0 0 1 5 0c1.9-1.3 2.7-1 2.7-1 .5 1.3.2 2.3.1 2.6a4 4 0 0 1 1 2.7c0 3.9-2.3 4.8-4.6 5 .4.3.7.9.7 1.9v2.8c0 .3.2.6.7.5A10 10 0 0 0 12 2Z"
-        />
+        <path fill="currentColor" d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.8c-2.8.6-3.4-1.3-3.4-1.3-.4-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.9.8.1-.6.4-1.1.7-1.4-2.2-.2-4.6-1.1-4.6-5a4 4 0 0 1 1-2.7c-.1-.3-.4-1.3.1-2.6 0 0 .8-.3 2.7 1a9.3 9.3 0 0 1 5 0c1.9-1.3 2.7-1 2.7-1 .5 1.3.2 2.3.1 2.6a4 4 0 0 1 1 2.7c0 3.9-2.3 4.8-4.6 5 .4.3.7.9.7 1.9v2.8c0 .3.2.6.7.5A10 10 0 0 0 12 2Z" />
       </svg>
     );
   }
@@ -142,10 +98,10 @@ export function LoginForm() {
   const [oauthError, setOauthError] = useState<ApiError | null>(null);
 
   const isRegister = mode === "register";
+  const configured = providers.filter((provider) => provider.configured);
 
-  // Lista dostawców. Błąd tego żądania NIE jest pokazywany użytkownikowi:
-  // formularz z hasłem działa niezależnie, a komunikat o braku listy
-  // tylko by go mylił. Zero przycisków jest tu poprawnym stanem.
+  // Błąd tego żądania NIE jest pokazywany: formularz z hasłem działa
+  // niezależnie, a komunikat o braku listy tylko by mylił.
   useEffect(() => {
     let cancelled = false;
     apiFetch<OAuthProvider[]>("/api/auth/oauth/providers")
@@ -160,14 +116,14 @@ export function LoginForm() {
     };
   }, []);
 
-  // Powód odmowy zapisany przez trasę adresu zwrotnego.
+  // Powód odmowy zapisany przez trasę adresu zwrotnego. Jednorazowy — po
+  // odczytaniu znika z adresu, żeby odświeżenie nie pokazywało komunikatu
+  // po zdarzeniu, którego już nie ma.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const reason = params.get("oauth");
     if (!reason) return;
     setOauthError({ code: "bad_request", message: messageForReason(reason) });
-    // Powód jest jednorazowy — po odczytaniu znika z adresu, żeby odświeżenie
-    // nie pokazywało komunikatu po zdarzeniu, którego już nie ma.
     window.history.replaceState({}, "", "/login");
   }, []);
 
@@ -194,9 +150,7 @@ export function LoginForm() {
       };
     }
     return {
-      identifier: form.identifier.trim()
-        ? undefined
-        : "Podaj nazwę użytkownika albo adres email.",
+      identifier: form.identifier.trim() ? undefined : "Podaj nazwę użytkownika albo adres email.",
       password: form.password ? undefined : "Podaj hasło.",
     };
   }, [form, isRegister]);
@@ -268,114 +222,108 @@ export function LoginForm() {
   }
 
   return (
-    <section
-      aria-labelledby="login-heading"
-      className="bengos-surface-card flex flex-col items-center text-center"
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={BRAND.logo}
-        alt=""
-        width={88}
-        height={88}
-        className="size-22 rounded-full object-cover"
-        style={{ boxShadow: "0 0 44px -10px var(--bengos-glow)" }}
-      />
-
+    <section aria-labelledby="login-heading" className="bengos-surface-card w-full text-left">
       <h1
         id="login-heading"
-        className="mt-3 text-[var(--bengos-size-title)] font-[var(--bengos-weight-semibold)] tracking-[0.14em]"
+        className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-semibold)]"
       >
-        {isRegister ? "REJESTRACJA" : "LOGOWANIE"}
+        {isRegister ? "Załóż konto" : "Zaloguj się"}
       </h1>
       <p className="mt-1 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
-        Jedno konto dla wszystkich modułów: feedu, studia, czatu, create, dev i access.
+        {isRegister
+          ? "Jedno konto dla feedu, studia, czatu, asystenta i dev."
+          : "Wejdź do swojego pulpitu — konto masz już założone."}
       </p>
 
       {oauthError ? (
         <p
           role="alert"
-          className="mt-4 w-full rounded-[var(--bengos-radius-control)] border border-[var(--bengos-warning)] px-3 py-2 text-left text-[var(--bengos-size-caption)]"
+          className="mt-4 rounded-[var(--bengos-radius-control)] border border-[var(--bengos-warning)] bg-[var(--bengos-surface-sunken)] px-3 py-2 text-[var(--bengos-size-caption)]"
         >
           {oauthError.message}
         </p>
       ) : null}
 
-      {providers.length > 0 ? (
-        <ul className="mt-5 w-full space-y-2">
-          {providers.map((provider) => (
+      {configured.length > 0 ? (
+        <ul className="mt-5 space-y-2">
+          {configured.map((provider) => (
             <li key={provider.id}>
               <button
                 type="button"
-                disabled={!provider.configured || busy || oauthBusy !== null}
+                disabled={busy || oauthBusy !== null}
                 onClick={() => void startOAuth(provider.id)}
-                className="bengos-touch-target w-full gap-2 rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] px-4 font-[var(--bengos-weight-medium)] transition-colors duration-[var(--bengos-motion-fast)] hover:border-[var(--bengos-border-strong)] disabled:opacity-60"
+                className="bengos-touch-target w-full gap-2 rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] bg-[var(--bengos-surface-sunken)] px-4 font-[var(--bengos-weight-medium)] transition-colors duration-[var(--bengos-motion-fast)] hover:border-[var(--bengos-accent)] disabled:opacity-60"
               >
                 <ProviderMark id={provider.id} />
                 {oauthBusy === provider.id
                   ? `Przechodzę do ${provider.label}…`
                   : `Kontynuuj z ${provider.label}`}
               </button>
-              {!provider.configured ? (
-                <p className="mt-1 text-left text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
-                  Ten serwer nie ma jeszcze kluczy do {provider.label}. Możesz założyć konto
-                  hasłem — dostawcę podłączymy, gdy administrator doda klucze.
-                </p>
-              ) : null}
             </li>
           ))}
         </ul>
       ) : null}
 
-      {providers.length > 0 ? (
-        <p className="my-5 flex w-full items-center gap-3 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
+      {providers.length > 0 && configured.length === 0 ? (
+        <p className="mt-5 rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] bg-[var(--bengos-surface-sunken)] px-3 py-2 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
+          Logowanie przez Google albo GitHuba pojawi się, gdy administrator doda klucze do
+          tego serwera. Na razie konto zakładasz emailem.
+        </p>
+      ) : null}
+
+      {configured.length > 0 ? (
+        <p className="my-5 flex items-center gap-3 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
           <span aria-hidden="true" className="h-px flex-1 bg-[var(--bengos-border)]" />
           albo emailem
           <span aria-hidden="true" className="h-px flex-1 bg-[var(--bengos-border)]" />
         </p>
-      ) : null}
+      ) : (
+        <div className="mt-5" />
+      )}
 
-      <div role="tablist" aria-label="Tryb" className="mt-5 flex w-full gap-2">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={!isRegister}
-          disabled={busy}
-          onClick={() => switchMode("login")}
-          className={`min-h-[var(--bengos-touch-target-min)] flex-1 rounded-[var(--bengos-radius-control)] border px-4 transition-colors duration-[var(--bengos-motion-fast)] ${
-            !isRegister
-              ? "border-[var(--bengos-accent)] bg-[var(--bengos-accent-muted)] font-[var(--bengos-weight-medium)] text-[var(--bengos-accent)]"
-              : "border-[var(--bengos-border)] text-[var(--bengos-text-muted)]"
-          }`}
-        >
-          Logowanie
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={isRegister}
-          disabled={busy}
-          onClick={() => switchMode("register")}
-          className={`min-h-[var(--bengos-touch-target-min)] flex-1 rounded-[var(--bengos-radius-control)] border px-4 transition-colors duration-[var(--bengos-motion-fast)] ${
-            isRegister
-              ? "border-[var(--bengos-accent)] bg-[var(--bengos-accent-muted)] font-[var(--bengos-weight-medium)] text-[var(--bengos-accent)]"
-              : "border-[var(--bengos-border)] text-[var(--bengos-text-muted)]"
-          }`}
-        >
-          Rejestracja
-        </button>
+      {/*
+        Zakładki w jednym pasku z ciemniejszym tłem. Aktywna jest PODNIESIONA
+        na tło karty — widać, która jest wybrana, zanim przeczyta się podpis.
+        Poprzednia wersja miała dwa przyciski o tym samym tle co formularz,
+        więc różnicę niosła tylko barwa tekstu.
+      */}
+      <div
+        role="tablist"
+        aria-label="Tryb"
+        className="flex gap-1 rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] bg-[var(--bengos-surface-sunken)] p-1"
+      >
+        {(["login", "register"] as const).map((value) => {
+          const active = mode === value;
+          return (
+            <button
+              key={value}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              disabled={busy}
+              onClick={() => switchMode(value)}
+              className={`min-h-[var(--bengos-touch-target-min)] flex-1 rounded-[var(--bengos-radius-control)] px-4 text-[var(--bengos-size-caption)] transition-colors duration-[var(--bengos-motion-fast)] ${
+                active
+                  ? "bg-[var(--bengos-surface-raised)] font-[var(--bengos-weight-medium)] text-[var(--bengos-text)]"
+                  : "text-[var(--bengos-text-muted)] hover:text-[var(--bengos-text)]"
+              }`}
+            >
+              {value === "login" ? "Logowanie" : "Rejestracja"}
+            </button>
+          );
+        })}
       </div>
 
       {serverError && !serverError.field ? (
         <p
           role="alert"
-          className="mt-4 w-full rounded-[var(--bengos-radius-control)] border border-[var(--bengos-danger)] px-3 py-2 text-left text-[var(--bengos-size-caption)]"
+          className="mt-4 rounded-[var(--bengos-radius-control)] border border-[var(--bengos-danger)] bg-[var(--bengos-surface-sunken)] px-3 py-2 text-[var(--bengos-size-caption)]"
         >
           {serverError.message}
         </p>
       ) : null}
 
-      <form className="mt-5 w-full space-y-4 text-left" onSubmit={submit} noValidate>
+      <form className="mt-5 space-y-4" onSubmit={submit} noValidate>
         {isRegister ? (
           <>
             <Field
@@ -438,20 +386,32 @@ export function LoginForm() {
         <button
           type="submit"
           disabled={busy}
-          className="bengos-touch-target w-full rounded-[var(--bengos-radius-control)] bg-[var(--bengos-accent)] px-5 font-[var(--bengos-weight-medium)] text-[var(--bengos-text-on-accent)] disabled:opacity-60"
+          className="bengos-touch-target w-full rounded-[var(--bengos-radius-control)] bg-[var(--bengos-accent)] px-5 font-[var(--bengos-weight-medium)] text-[var(--bengos-text-on-accent)] transition-opacity duration-[var(--bengos-motion-fast)] disabled:opacity-60"
         >
           {busy ? "Pracuję…" : isRegister ? "Utwórz konto" : "Zaloguj się"}
         </button>
       </form>
 
       <p className="mt-4 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
-        Hasło jest hashowane na serwerze i nigdy nie wraca w żadnej odpowiedzi. Konto
-        zakładasz jedno — dostawcę możesz podpiąć później.
+        Hasło jest hashowane na serwerze i nigdy nie wraca w żadnej odpowiedzi.
       </p>
     </section>
   );
 }
 
+/**
+ * Pole formularza.
+ *
+ * Etykieta nad polem, podpowiedź pod etykietą, błąd pod polem — tak jak
+ * wymaga brief. Błąd jedzie w `role="alert"` i podnosi `aria-invalid`
+ * na polu, więc czytnik ogłosi go razem z fokusem.
+ *
+ * Tło pola to `surface-sunken`, czyli CIEMNIEJSZE niż karta. Poprzednio
+ * pole i karta dzieliły prawie ten sam kolor i granica była nie do
+ * zauważenia — użytkownik nie widział, gdzie kończy się karta, a zaczyna
+ * pole. Fokus dostaje `--bengos-focus-ring`, bo brief zabrania
+ * `outline: none` bez zamiennika.
+ */
 function Field({
   id,
   label,
@@ -488,7 +448,7 @@ function Field({
           {hint}
         </p>
       ) : null}
-      <div className="mt-1 flex items-center gap-2">
+      <div className="mt-2 flex items-center gap-2">
         <input
           id={id}
           type={type}
@@ -498,14 +458,18 @@ function Field({
           disabled={disabled}
           aria-invalid={error ? true : undefined}
           aria-describedby={errorId ?? hintId}
-          className={`min-h-[var(--bengos-touch-target-min)] w-full rounded-[var(--bengos-radius-control)] border bg-[var(--bengos-surface-sunken)] px-3 disabled:opacity-60 ${
+          className={`min-h-[var(--bengos-touch-target-min)] w-full rounded-[var(--bengos-radius-control)] border bg-[var(--bengos-surface-sunken)] px-3 text-[var(--bengos-text)] outline-none transition-colors duration-[var(--bengos-motion-fast)] focus-visible:border-[var(--bengos-focus-ring)] focus-visible:ring-2 focus-visible:ring-[var(--bengos-focus-ring)] disabled:opacity-60 ${
             error ? "border-[var(--bengos-danger)]" : "border-[var(--bengos-border)]"
           }`}
         />
         {trailing}
       </div>
       {error ? (
-        <p id={errorId} role="alert" className="mt-1 text-[var(--bengos-danger)] text-[var(--bengos-size-caption)]">
+        <p
+          id={errorId}
+          role="alert"
+          className="mt-1 text-[var(--bengos-size-caption)] text-[var(--bengos-danger)]"
+        >
           {error}
         </p>
       ) : null}
