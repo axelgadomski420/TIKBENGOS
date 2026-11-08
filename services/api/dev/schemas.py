@@ -105,6 +105,13 @@ class PlanListOut(Schema):
     items: list[PlanOut]
 
 
+class CreatePlanIn(Schema):
+    # Dokladnie pola, ktore czyta create_plan w api.py: repozytorium z listy
+    # polaczen uzytkownika i opis funkcji. Ksztalt z kontraktu projects.ts.
+    repositoryId: str
+    request: str
+
+
 class ApprovePlanIn(Schema):
     # Pole z kontraktu: zatwierdzenie musi być świadome. Bez DOKŁADNIE
     # tej wartości serwer odmawia — "kliknąłem coś" nie jest zgodą na
