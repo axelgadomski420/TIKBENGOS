@@ -3,31 +3,42 @@ import Link from "next/link";
 /**
  * Rozwidlenia z BENGOS Home.
  *
- * Siedem modułów w jednej siatce, każdy z jednym zdaniem o tym, co tam jest.
- * Użytkownik nie widzi granic między dawnymi aplikacjami — widzi siedem
+ * Dziewięć wejść w jednej siatce, każde z jednym zdaniem o tym, co tam jest.
+ * Użytkownik nie widzi granic między dawnymi aplikacjami — widzi dziewięć
  * drzwi w jednym korytarzu.
+ *
+ * ── PODPISY POCHODZĄ Z GRAFIKI MENU GŁÓWNEGO ───────────────────────────
+ * Etykiety kafli (studio, bridge, dev, profil, chat, ustawienia, asystent,
+ * wyszukiwarka, bengtok) są przepisane z grafiki, którą wskazał właściciel.
+ * To NIE są nazwy wewnętrzne modułów z briefu i to jest celowe: użytkownik
+ * czyta to, co widzi na obrazku marki, a nie nazwę katalogu.
+ *
+ * ── `bridge` TO ACCESS ─────────────────────────────────────────────────
+ * Potwierdzone przez właściciela wprost. Grafika nazywa ten moduł „bridge”,
+ * a brief — „Access” (TIKMIG + TIKMORS: migi, napisy, TTS, Morse, wibracje).
+ * Jedno wejście, dwie nazwy, jedna trasa: `/access`. Kafel bez trasy byłby
+ * przyciskiem, który nic nie robi — a tego brief zabrania wprost.
+ *
+ * ── KAŻDY KAFEL MA DOKĄD PROWADZIĆ ─────────────────────────────────────
+ * „wyszukiwarka” i „asystent” nie mają własnych stron: pierwsza siedzi na
+ * pulpicie jako pole uniwersalne, drugi to moduł Create. Prowadzą tam, gdzie
+ * faktycznie coś jest, zamiast do nieistniejącej trasy.
  *
  * ── OKRĄGŁE KAFLE JAK W ZNAKU MARKI ────────────────────────────────────
  * Grafika pulpitu pokazuje moduły jako koła z podpisem pod nimi. Ten
  * komponent powtarza ten układ jako PRAWDZIWE odnośniki: okrągła tarcza,
  * pod nią nazwa, pod nią jedno zdanie. Kształt jest ten sam, ale każdy
- * element prowadzi do swojego ekranu — nie ma tu nic, co wygląda jak
- * przycisk i nic nie robi.
+ * element prowadzi do swojego ekranu.
  *
  * Każdy kafel ma w tarczy znak rysowany `currentColor`, więc dziedziczy
  * kolor motywu i stanu aktywnego. Tarcza jest okrągła jak w grafice, ale
  * jej wnętrze pochodzi z tokenów — dlatego działa w każdym motywie, także
  * w wysokim kontraście, gdzie grafika nie ma zastosowania.
  *
- * ── ETAP NA KRAWĘDZI, NIE W OPISIE ─────────────────────────────────────
- * Moduł w przygotowaniu ma znak etapu w prawym górnym rogu tarczy. Widać
- * go kątem oka przy skanowaniu siatki i od razu wiadomo, które drzwi są
- * zamknięte, a które nie — bez czytania opisu.
- *
- * ── PROFILE NIE MA ETAPU, MA PODPIS „DOSTĘPNY” ────────────────────────
- * Profil nie jest zamknięty w żadnym etapie — działa i rozbudowuje się
- * razem z resztą. `stage: null` znaczy „brak informacji o etapie”, więc
- * tarcza dostaje podpis „Dostępny”, a nie pustkę czytającą się jak błąd.
+ * ── ZNACZNIK ETAPU NA KRAWĘDZI ─────────────────────────────────────────
+ * Moduł w przygotowaniu ma znak etapu w prawym górnym rogu tarczy. Profile,
+ * ustawienia i wyszukiwarka mają podpis „Gotowe”, a nie pustkę czytającą się
+ * jak błąd.
  */
 
 type IconProps = { className?: string };
@@ -68,7 +79,7 @@ function IconChat({ className }: IconProps) {
   );
 }
 
-function IconCreate({ className }: IconProps) {
+function IconAssistant({ className }: IconProps) {
   return (
     <svg {...ICON_PROPS} className={className}>
       <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" />
@@ -86,7 +97,7 @@ function IconDev({ className }: IconProps) {
   );
 }
 
-function IconAccess({ className }: IconProps) {
+function IconBridge({ className }: IconProps) {
   return (
     <svg {...ICON_PROPS} className={className}>
       <path d="M12 4v8" />
@@ -106,23 +117,46 @@ function IconProfile({ className }: IconProps) {
   );
 }
 
+function IconSettings({ className }: IconProps) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
+      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2 2 2 0 1 1-4 0 1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 15a2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 10 4.6a2 2 0 1 1 4 0 1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.7 1.7 0 0 0 21 11a2 2 0 1 1 0 4Z" />
+    </svg>
+  );
+}
+
+function IconSearch({ className }: IconProps) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <circle cx="11" cy="11" r="6" />
+      <path d="m20 20-4.5-4.5" />
+    </svg>
+  );
+}
+
 type Branch = {
   href: string;
   label: string;
-  short: string;
   description: string;
   stage: number | null;
   Icon: (p: IconProps) => React.JSX.Element;
 };
 
+/**
+ * Dziewięć wejść. Kolejność idzie za grafiką menu: moduły pracy są pierwsze,
+ * potem tożsamość i ustawienia, na końcu narzędzia globalne.
+ */
 const BRANCHES: Branch[] = [
-  { href: "/feed", label: "BENGOS Feed", short: "Feed", description: "Krótkie wideo, dźwięki, posty, twórcy.", stage: 2, Icon: IconFeed },
-  { href: "/studio", label: "BENGOS Studio", short: "Studio", description: "Tworzenie wideo, muzyki AI, postów i projektów kodu.", stage: 2, Icon: IconStudio },
-  { href: "/chat", label: "BENGOS Chat", short: "Chat", description: "Wiadomości, grupy, tłumaczenia, tryby dostępności.", stage: 4, Icon: IconChat },
-  { href: "/create", label: "BENGOS Create", short: "Create", description: "Asystent AI, pomysły, scenariusze, muzyka, kod.", stage: 5, Icon: IconCreate },
-  { href: "/dev", label: "BENGOS Dev", short: "Dev", description: "Repozytoria, issue, pull requesty, agent kodujący.", stage: 5, Icon: IconDev },
-  { href: "/access", label: "BENGOS Access", short: "Access", description: "Język migowy, napisy, TTS, Morse, wibracje.", stage: 4, Icon: IconAccess },
-  { href: "/profile", label: "BENGOS Profile", short: "Profile", description: "Tożsamość, twórczość, projekty, ustawienia.", stage: null, Icon: IconProfile },
+  { href: "/studio", label: "studio", description: "Wideo, muzyka AI, posty, projekty kodu.", stage: 2, Icon: IconStudio },
+  { href: "/feed", label: "bengtok", description: "Krótkie wideo, dźwięki, posty, twórcy.", stage: 2, Icon: IconFeed },
+  { href: "/chat", label: "chat", description: "Wiadomości, grupy, tłumaczenia, dostępność.", stage: 4, Icon: IconChat },
+  { href: "/create", label: "asystent", description: "Asystent AI, pomysły, scenariusze, muzyka, kod.", stage: 5, Icon: IconAssistant },
+  { href: "/dev", label: "dev", description: "Repozytoria, issue, pull requesty, agent kodujący.", stage: 5, Icon: IconDev },
+  { href: "/access", label: "bridge", description: "Język migowy, napisy, TTS, Morse, wibracje.", stage: 4, Icon: IconBridge },
+  { href: "/profile", label: "profil", description: "Tożsamość, twórczość, projekty, ustawienia asystenta.", stage: null, Icon: IconProfile },
+  { href: "/settings", label: "ustawienia", description: "Język, wygląd, dostępność, klucze API, zgody.", stage: null, Icon: IconSettings },
+  { href: "/", label: "wyszukiwarka", description: "Jedno pole na pytanie, tworzenie, szukanie i kod.", stage: null, Icon: IconSearch },
 ];
 
 export function ModuleBranches() {
@@ -163,12 +197,12 @@ export function ModuleBranches() {
                 ) : null}
               </span>
 
-              <span className="font-[var(--bengos-weight-medium)]">{branch.short}</span>
+              <span className="font-[var(--bengos-weight-medium)]">{branch.label}</span>
               <span className="text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
                 {branch.description}
               </span>
               <span className="bengos-eyebrow mt-auto pt-1 text-[var(--bengos-text-muted)]">
-                {branch.stage ? `Etap ${branch.stage}` : "Dostępny"}
+                {branch.stage ? `Etap ${branch.stage}` : "Gotowe"}
               </span>
             </Link>
           </li>
