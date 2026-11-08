@@ -1,4 +1,4 @@
-"use client";
+successfully downloaded text file (SHA: 5c5898190417363b31220131959838c2d831c59d)"use client";
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -142,6 +142,14 @@ export function LoginForm() {
     setServerError(null);
     setShowPassword(false);
   }, []);
+
+  // Odnośnik „rejestracja” na dole bramy logowania prowadzi na
+  // /login#rejestracja — pełna trasa montuje formularz od nowa, więc skrót
+  // czytamy PRZY MONTAŻU i włączamy zakładkę rejestracji. Jedna
+  // implementacja formularza, dwa wejścia.
+  useEffect(() => {
+    if (window.location.hash === "#rejestracja") switchMode("register");
+  }, [switchMode]);
 
   const validate = useCallback((): Partial<Record<keyof FormState, string>> => {
     if (isRegister) {

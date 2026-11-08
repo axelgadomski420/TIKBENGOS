@@ -1,4 +1,4 @@
-"use client";
+successfully downloaded text file (SHA: ac14cbf756f61f13a16366fc0b725f66f4ee60bc)"use client";
 
 import Link from "next/link";
 import Image from "next/image";
@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 
 import { can, type Permission } from "@bengos/core";
 
+import { LoginGate } from "@/components/auth/login-gate";
 import { BottomNavigation } from "@/components/bottom-navigation";
 import { SkipLink } from "@/components/skip-link";
 import { useSession } from "@/lib/session-context";
@@ -20,15 +21,22 @@ import { BRAND } from "@/lib/brand";
  * prawa, nie pojawiało się wcale. Ukrywanie go wizualnie i zostawianie
  * klikalnego jest najgorszym z wariantów: wprowadza w błąd i ujawnia
  * istnienie czegoś, do czego i tak nie ma dostępu.
+  *
+ * ── PODPISY Z GRAFIKI MENU, JEDEN ZESTAW W CAŁEJ APLIKACJI ─────────────
+ * Pasek górny mówił „Feed”, „Create”, „Access”, a kaflę pulpitu i nawigacja
+ * dolna mówią „bengtok”, „asystent”, „bridge” — tak podpisał grafikę
+ * właściciel. Dwa języki dla tych samych drzwi to niespójność, więc od dziś
+ * wszędzie stoi jeden zestaw podpisów: ten z grafiki marki. Trasy zostają
+ * bez zmian — to podpis się zmienia, nie adres.
  */
 const BRANCHES: { href: string; label: string; description: string; permission?: Permission }[] = [
-  { href: "/feed", label: "Feed", description: "Krótkie wideo, dźwięki, twórcy" },
-  { href: "/studio", label: "Studio", description: "Wideo, muzyka, posty, projekty" },
-  { href: "/chat", label: "Chat", description: "Wiadomości, grupy, tłumaczenia" },
-  { href: "/create", label: "Create", description: "Asystent, pomysły, scenariusze" },
-  { href: "/dev", label: "Dev", description: "Repozytoria, issue, agent kodujący", permission: "repo.connect" },
-  { href: "/access", label: "Access", description: "Język migowy, napisy, Morse" },
-  { href: "/profile", label: "Profile", description: "Tożsamość, twórczość, ustawienia" },
+  { href: "/feed", label: "bengtok", description: "Krótkie wideo, dźwięki, twórcy" },
+  { href: "/studio", label: "studio", description: "Wideo, muzyka, posty, projekty" },
+  { href: "/chat", label: "chat", description: "Wiadomości, grupy, tłumaczenia" },
+  { href: "/create", label: "asystent", description: "Asystent, pomysły, scenariusze" },
+  { href: "/dev", label: "dev", description: "Repozytoria, issue, agent kodujący", permission: "repo.connect" },
+  { href: "/access", label: "bridge", description: "Język migowy, napisy, Morse" },
+  { href: "/profile", label: "profil", description: "Tożsamość, twórczość, ustawienia" },
 ];
 
 /**
@@ -139,22 +147,50 @@ const ICONS: Record<string, (p: IconProps) => React.JSX.Element> = {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { theme, accessibility } = usePreferences();
-  const { identity } = useSession();
+  const { identity, status } = useSession();
   const pathname = usePathname();
 
   const visibleBranches = BRANCHES.filter(
     (branch) => !branch.permission || (identity && can(identity, branch.permission)),
   );
 
+  const shellStyle = tokensToStyle(
+    theme,
+    accessibility.accessibilityMode,
+    accessibility.reducedMotion,
+    accessibility.highContrast,
+  );
+  const shellAttributes = themeAttributes(
+    theme,
+    accessibility.accessibilityMode,
+    accessibility.reducedMotion,
+  );
+
+  /*
+   ── BRAMA: BEZ SESJI NIC NIE WIDAĆ ─────────────────────────────────────
+   Decyzja właściciela: aplikacja pokazuje treść wyłącznie zalogowanym.
+   Brama stoi w powłoce, a nie w pojedynczych stronach — jedna brama,
+   zero szczelin. W stanie „loading” krótko stoi zasłona (odpowiedź
+   /users/me musi dociągnąć), po niej brama logowania albo aplikacja.
+   Tokeny motywu trzymają OBA widoki: brama też mówi kolorami marki.
+  */
+  if (status !== "authenticated") {
+    return (
+      <div
+        style={shellStyle}
+        {...shellAttributes}
+        className="min-h-dvh bg-[var(--bengos-surface)] text-[var(--bengos-text)]"
+      >
+        <SkipLink />
+        <LoginGate />
+      </div>
+    );
+  }
+
   return (
     <div
-      style={tokensToStyle(
-        theme,
-        accessibility.accessibilityMode,
-        accessibility.reducedMotion,
-        accessibility.highContrast,
-      )}
-      {...themeAttributes(theme, accessibility.accessibilityMode, accessibility.reducedMotion)}
+      style={shellStyle}
+      {...shellAttributes}
       className="min-h-dvh bg-[var(--bengos-surface)] text-[var(--bengos-text)]"
     >
       <SkipLink />

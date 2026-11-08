@@ -1,4 +1,4 @@
-/*
+successfully downloaded text file (SHA: e25e1355c1bd8a717c34dafaf55394da9ff3ff41)/*
  * BENGOS — style dodatkowe dla interfejsu.
  *
  * Ten plik zbiera to, czego NIE DA SIĘ wyrazić tokenami ani klasami Tailwinda:
@@ -110,4 +110,62 @@ body {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/*
+ * ── PIERŚCIENIE HUD WOKÓŁ ZNAKU MARKI ──────────────────────────────────
+ * Ekran logowania stawia tygrysa w świecącym okręgu — dokładnie jak na
+ * grafice marki. Pierścienie są rysowane CSS-em, a nie obrazem: skalują
+ * się w trybie dostępności razem z typografią i działają w motywie
+ * wysokim kontrastie, gdzie grafika JPEG nie jest używana.
+ *
+ * KOLORY I CZASY pochodzą wyłącznie z tokenów — to warunek tego pliku:
+ * cyjan z --bengos-accent, a obroty liczone mnożnikiem --bengos-motion-smooth
+ * (320 ms × 60 ≈ 19 s), więc zmiana motywu zmienia pierścienie razem z resztą.
+ */
+@keyframes bengos-hud-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.bengos-hud {
+  position: relative;
+}
+
+.bengos-hud__ring {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+}
+
+/* Podziałka: kreskowane obramowanie czyta się jak znaczniki cyfrowego okręgu. */
+.bengos-hud__ring--ticks {
+  border: 1px dashed var(--bengos-accent);
+  opacity: 0.55;
+  animation: bengos-hud-spin calc(var(--bengos-motion-smooth) * 60) linear infinite;
+}
+
+/* Łuk: dwa jasne boki obramowania dają wrażenie skanera w ruchu. */
+.bengos-hud__ring--arc {
+  border: 2px solid transparent;
+  border-top-color: var(--bengos-accent);
+  border-right-color: var(--bengos-accent);
+  animation: bengos-hud-spin calc(var(--bengos-motion-smooth) * 24) linear infinite;
+}
+
+/* Pierścień statyczny — trzyma kompozycję, także gdy ruch jest wyłączony. */
+.bengos-hud__ring--static {
+  border: 1px solid var(--bengos-border-strong);
+}
+
+/*
+ * Ograniczenie ruchu: pierścienie STAJĄ, ale nie znikają — ta sama zasada
+ * co w REDUCED_MOTION z tokens.ts (zachowanie zostaje, ruch schodzi).
+ */
+@media (prefers-reduced-motion: reduce) {
+  .bengos-hud__ring--ticks,
+  .bengos-hud__ring--arc {
+    animation: none;
+  }
 }
