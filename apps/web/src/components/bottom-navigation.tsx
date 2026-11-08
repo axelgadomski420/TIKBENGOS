@@ -6,9 +6,18 @@ import { usePathname } from "next/navigation";
 /**
  * Miejsca docelowe w dolnej nawigacji.
  *
- * Pięć, nie siedem. Rozwidlenia z BENGOS Home to siedem modułów, ale
+ * Pięć, nie dziewięć. Rozwidlenia z BENGOS Home to dziewięć wejść, ale
  * nawigacja dolna pokazuje pięć miejsc, w których użytkownik bywa stale —
- * Studio, Dev i Access są celami, do których się wchodzi z pulpitu.
+ * studio, dev, bridge, ustawienia i wyszukiwarka są celami, do których
+ * wchodzi się z pulpitu.
+ *
+ * ── PODPISY Z GRAFIKI MENU, NIE Z BRIEFU ───────────────────────────────
+ * Ten pasek mówił wcześniej „Feed”, „Create”, „Profile” — nazwami modułów
+ * z briefu. Siatka na pulpicie mówi „bengtok”, „asystent”, „profil”, bo
+ * właściciel podpisał tak grafikę menu głównego. Dwa języki na jednym
+ * ekranie to nie styl, to niespójność: użytkownik widzi „Feed” w pasku
+ * i „bengtok” na kaflu, który prowadzi dokładnie tam. Teraz jest jeden
+ * zestaw podpisów — ten z grafiki.
  *
  * ── IKONY, NIE SAME NAPISY ─────────────────────────────────────────────
  * Na telefonie pasek jest czytany w ruchu, kątem oka, a sam wyraz trzeba
@@ -16,8 +25,7 @@ import { usePathname } from "next/navigation";
  * — dlatego każdy cel ma znak nad napisem.
  *
  * Ikony są napisane jako `path` w tym samym pliku, a nie pobierane z paczki:
- * pięć znaków to mniej kodu niż zależność, a zależność na ikony ciągnie
- * za sobą cały zestaw, z którego używalibyśmy pięciu. Każda jest rysowana
+ * pięć znaków to mniej kodu niż zależność. Każda jest rysowana
  * `currentColor`, więc dziedziczy kolor stanu aktywnego i motyw — nie ma
  * tu ani jednej wartości koloru.
  *
@@ -25,13 +33,12 @@ import { usePathname } from "next/navigation";
  * Klasa `bengos-nav-mark` (w `globals.css`) dorysowuje kreskę nad aktywną
  * pozycją, a tarcza dostaje jaśniejszą krawędź. Kolor ikony działa tylko
  * dla kogoś, kto odróżnia akcent od tła; kształt i krawędź działają
- * niezależnie od tego — i to jest ta sama zasada, którą stosuje
- * podświetlona powierzchnia w pasku górnym.
+ * niezależnie od tego.
  *
  * ── TARCZE JAK W MENU GŁÓWNYM ──────────────────────────────────────────
  * Kształt jest ten sam co na pulpicie: okrągła tarcza z podpisem. Dzięki
  * temu przejście między pulpitem a paskiem dolnym nie zmienia języka
- * interfejsu — użytkownik widzi te same znaki w obu miejscach.
+ * interfejsu.
  */
 type IconProps = { className?: string };
 
@@ -63,7 +70,7 @@ function IconFeed({ className }: IconProps) {
   );
 }
 
-function IconCreate({ className }: IconProps) {
+function IconAssistant({ className }: IconProps) {
   return (
     <svg {...ICON_PROPS} className={className}>
       <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />
@@ -91,10 +98,10 @@ function IconProfile({ className }: IconProps) {
 
 const DESTINATIONS: { href: string; label: string; hint: string; Icon: (p: IconProps) => React.JSX.Element }[] = [
   { href: "/", label: "Home", hint: "Pulpit", Icon: IconHome },
-  { href: "/feed", label: "Feed", hint: "Wideo i posty", Icon: IconFeed },
-  { href: "/create", label: "Create", hint: "Asystent i tworzenie", Icon: IconCreate },
-  { href: "/chat", label: "Chat", hint: "Rozmowy", Icon: IconChat },
-  { href: "/profile", label: "Profile", hint: "Twoja tożsamość", Icon: IconProfile },
+  { href: "/feed", label: "bengtok", hint: "Wideo i posty", Icon: IconFeed },
+  { href: "/create", label: "asystent", hint: "Asystent i tworzenie", Icon: IconAssistant },
+  { href: "/chat", label: "chat", hint: "Rozmowy", Icon: IconChat },
+  { href: "/profile", label: "profil", hint: "Twoja tożsamość", Icon: IconProfile },
 ];
 
 export function BottomNavigation() {
