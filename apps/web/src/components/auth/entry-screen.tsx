@@ -27,25 +27,25 @@ export function EntryScreen() {
   const otherMode = isRegister ? "logowanie" : "rejestracja";
 
   return (
-    <div className="relative flex min-h-dvh flex-col items-center justify-center bg-[var(--bengos-surface)] px-4 py-6 overflow-hidden">
+    <div className="relative flex min-h-dvh w-full flex-col items-center justify-center bg-[var(--bengos-surface)] px-4 py-6 overflow-x-hidden">
       {/* Poświaty w tle */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute left-1/2 top-[40%] size-[50rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--bengos-accent)] opacity-[0.07] blur-3xl" />
-        <div className="absolute -right-32 bottom-16 size-[28rem] rounded-full bg-[var(--bengos-warning)] opacity-[0.05] blur-3xl" />
+        <div className="absolute left-1/2 top-[38%] size-[48rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--bengos-accent)] opacity-[0.07] blur-3xl" />
+        <div className="absolute -right-32 bottom-16 size-[26rem] rounded-full bg-[var(--bengos-warning)] opacity-[0.05] blur-3xl" />
       </div>
 
-      {/* 1. Słowo trybu — nad znakiem, duże, cyjan, glow */}
-      <h1 className="mb-2 text-center text-5xl font-[var(--bengos-weight-semibold)] lowercase tracking-[0.1em] text-[var(--bengos-accent)] drop-shadow-[0_0_32px_var(--bengos-glow)] sm:text-6xl">
+      {/* 1. Słowo trybu — nad znakiem */}
+      <h1 className="mb-3 text-center text-4xl font-[var(--bengos-weight-semibold)] lowercase tracking-[0.1em] text-[var(--bengos-accent)] drop-shadow-[0_0_28px_var(--bengos-glow)] sm:text-5xl">
         {mode}
       </h1>
 
-      {/* 2. Znak marki w HUD — duży, dominujący */}
-      <div className="relative size-72 shrink-0 sm:size-96">
+      {/* 2. Znak marki w HUD — ograniczony tak, żeby formularz zmieścił się pod spodem */}
+      <div className="relative size-60 shrink-0 sm:size-80">
         <div className="bengos-hud flex size-full items-center justify-center">
           <span className="bengos-hud__ring bengos-hud__ring--static inset-0" />
-          <span className="bengos-hud__ring bengos-hud__ring--ticks -inset-4 sm:-inset-5" />
-          <span className="bengos-hud__ring bengos-hud__ring--arc -inset-8 sm:-inset-10" />
-          <span className="flex h-[80%] w-[80%] items-center justify-center overflow-hidden rounded-full border border-[var(--bengos-border-strong)] bg-[var(--bengos-surface-sunken)] shadow-[0_0_160px_-24px_var(--bengos-glow)]">
+          <span className="bengos-hud__ring bengos-hud__ring--ticks -inset-3 sm:-inset-4" />
+          <span className="bengos-hud__ring bengos-hud__ring--arc -inset-6 sm:-inset-8" />
+          <span className="flex h-[78%] w-[78%] items-center justify-center overflow-hidden rounded-full border border-[var(--bengos-border-strong)] bg-[var(--bengos-surface-sunken)] shadow-[0_0_140px_-20px_var(--bengos-glow)]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={BRAND.logo}
@@ -59,19 +59,21 @@ export function EntryScreen() {
         </div>
       </div>
 
-      {/* 3. Drugie słowo — pod znakiem, duże, jako przełącznik */}
+      {/* 3. Drugie słowo — pod znakiem */}
       <button
         type="button"
         onClick={() => setMode(isRegister ? "logowanie" : "rejestracja")}
-        className="mt-2 text-center text-4xl font-[var(--bengos-weight-semibold)] lowercase tracking-[0.1em] text-[var(--bengos-accent)] drop-shadow-[0_0_24px_var(--bengos-glow)] underline-offset-8 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bengos-focus-ring)] sm:text-5xl"
+        className="mt-3 text-center text-3xl font-[var(--bengos-weight-semibold)] lowercase tracking-[0.1em] text-[var(--bengos-accent)] drop-shadow-[0_0_20px_var(--bengos-glow)] underline-offset-8 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bengos-focus-ring)] sm:text-4xl"
         aria-label={`Przełącz na ${otherMode}`}
       >
         {otherMode}
       </button>
 
-      {/* 4. Formularz — pod spodem, mniejszy wizualnie */}
-      <div className="mt-6 w-full max-w-xs sm:max-w-sm">
-        <LoginForm registerMode={isRegister} />
+      {/* 4. Formularz — wymuszona pełna szerokość, wyśrodkowany, bez paska z lewej */}
+      <div className="mt-6 flex w-full max-w-sm flex-col items-center self-center px-2">
+        <div className="w-full">
+          <LoginForm registerMode={isRegister} />
+        </div>
       </div>
 
       <p className="mt-6 text-center text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
