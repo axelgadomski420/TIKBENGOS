@@ -77,14 +77,28 @@ export function AccessTools() {
   const loadVoices = useCallback(() => {
     if (!ttsSupported) return;
     const list = window.speechSynthesis.getVoices();
-    if (list.length > 0) {
-      setVoices(list);
-      setVoiceUri((prev) => {
-        if (prev) return prev;
-        const polish = list.find((v) => v.lang.toLowerCase().startsWith("pl"));
-        return (polish ?? list[0]).voiceURI;
-      });
-    }
+    //
+    // ── DLACZEGO `list[0]` NIE MOŻE TU STAĆ BEZ SPRAWDZENIA ───────────
+    // Przy włączonym `noUncheckedIndexedAccess` TypeScript traktuje KAŻDY
+    // odczyt z indeksu jako możliwie `undefined` — także `list[0]`.
+    // Poprzednia wersja miała `(polish ?? list[0]).voiceURI`, a prawa strona
+    // `??` też jest `Voice | undefined`, więc build produkcyjny przerywał się:
+    //
+    //     Type error: Object is possibly 'undefined'.
+    //
+    // Rzutowanie `!` byłoby obejściem: lista głosów bywa pusta w przeglądarce,
+    // która obsługuje syntezator, ale nie ma jeszcze żadnego głosu
+    // zainstalowanego (zdarza się na świeżym systemie i w trybie prywatnym).
+    // Wtedy `list[0]!` wybuchłoby w chwili wykonania. Dlatego sprawdzamy
+    // długość i wychodzimy — identyfikator głosu zostaje pusty, a pole
+    // wyboru pokazuje „Domyślny”.
+    if (list.length === 0) return;
+    setVoices(list);
+    setVoiceUri((prev) => {
+      if (prev) return prev;
+      const polish = list.find((v) => v.lang.toLowerCase().startsWith("pl"));
+      return (polish ?? list[0]).voiceURI;
+    });
   }, [ttsSupported]);
 
   useEffect(() => {
@@ -127,12 +141,18 @@ export function AccessTools() {
     // Web Speech Recognition nie istnieje w Safari/Firefox na desktopie —
     // wykrywanie w efekcie, nie przy renderze, żeby strona działała
     // także przy wyłączonym JS po stronie serwera renderującego.
-    const w = window as unknown as { SpeechRecognition?: SpeechRecognitionCtor; webkitSpeechRecognition?: SpeechRecognitionCtor };
+    const w = window as unknown as {
+      SpeechRecognition?: SpeechRecognitionCtor;
+      webkitSpeechRecognition?: SpeechRecognitionCtor;
+    };
     setSttSupported(Boolean(w.SpeechRecognition ?? w.webkitSpeechRecognition));
   }, []);
 
   const startListening = useCallback(() => {
-    const w = window as unknown as { SpeechRecognition?: SpeechRecognitionCtor; webkitSpeechRecognition?: SpeechRecognitionCtor };
+    const w = window as unknown as {
+      SpeechRecognition?: SpeechRecognitionCtor;
+      webkitSpeechRecognition?: SpeechRecognitionCtor;
+    };
     const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
     if (!Ctor) return;
     const recognition = new Ctor();
@@ -150,7 +170,7 @@ export function AccessTools() {
       setSttError(
         event.error === "not-allowed"
           ? "Dostęp do mikrofonu został odrzucony. Zezwól na mikrofon w ustawieniach przeglądarki."
-          : "Rozpoznawanie mowy przerwało się z błędem."
+          : "Rozpoznawanie mowy przerwało się z błędem.",
       );
       setListening(false);
     };
