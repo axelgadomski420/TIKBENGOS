@@ -14,20 +14,28 @@ import { useSession } from "@/lib/session-context";
  * Właściciel postanowił, że aplikacja nie pokazuje niczego przed wejściem:
  * feed, studio, chat, asystent — to treść konta, więc osoba bez sesji
  * widzi tylko wejście. Brama stoi w POWŁOCE (AppShell), a nie w pojedynczych
- * stronach: jedna brama, zero szczelin. Gdyby każda strona pilnowała sama,
- * jedna zapomniana pokazałaby treść bez zalogowania.
+ * stronach: jedna brama, zero szczelin.
  *
- * ── MENU GŁÓWNE TYLKO PO ZALOGOWANIU (korekta 2026-11-08) ──────────────
- * Brama miała kiedyś TRZECI tryb — „menu główne” z podpisami modułów
- * dookoła koła. Był to błąd interpretacji: menu główne to ekran PULPITU
- * (`/`, rysowany przez `app-shell.tsx` i `module-branches.tsx`), a nie
- * widok dla przybysza. Pokazywanie go osobie bez konta obiecywało dostęp,
- * którego ta osoba nie ma — a każdy podpis i tak prowadził z powrotem
- * do rejestracji.
+ * ── JEDEN TYGRYS NA EKRAN, NIE DWA (naprawa 2026-11-08, wieczorem) ─────
+ * Właściciel pokazał zrzut z telefonu: na ekranie startowym stały DWIE
+ * kopie tygrysa jedna nad drugą, a formularz był przycięty na dole.
+ * Przyczyna była w `brand.ts` — wszystkie trzy pola (`logo`, `login`,
+ * `menu`) wskazywały na TEN SAM plik, więc `BRAND.login` jako pełnoekranowe
+ * tło rysowało tę samą grafikę, którą `BRAND.logo` rysowało w okręgu.
+ * Na desktopie tło było przygaszone i rozmyte, więc dublowanie nie rzucało
+ * się w oczy; na telefonie grafika 1024×1024 rozciągnięta na cały pionowy
+ * ekran dominowała mimo `blur-[2px]` i `opacity-60`.
  *
- * Teraz brama ma DWA tryby i nic więcej: `logowanie` i `rejestracja`.
- * Menu główne widzi wyłącznie użytkownik zalogowany — bo `AppShell` przy
- * braku sesji nie renderuje pulpitu w ogóle, tylko tę bramę.
+ * Tło z tygrysem zniknęło z tego ekranu. Zostaje JEDEN znak — ten w okręgu,
+ * bo to on jest osią kompozycji z grafiki właściciela. Tło robią poświaty
+ * z tokenów, tak samo jak na pulpicie: dzięki temu oba ekrany mówią jednym
+ * językiem, a żadna grafika nie jest rysowana dwa razy.
+ *
+ * ── MENU GŁÓWNE TYLKO PO ZALOGOWANIU ───────────────────────────────────
+ * Brama ma DWA tryby i nic więcej: `logowanie` i `rejestracja`.
+ * Menu główne to ekran PULPITU (`/`, rysowany przez `app-shell.tsx`
+ * i `module-branches.tsx`), a nie widok dla przybysza — `AppShell` przy
+ * braku sesji nie renderuje pulpitu wcale, tylko tę bramę.
  *
  * ── NAPISY SĄ KLIKALNE ────────────────────────────────────────────────
  * Na grafice właściciela napisy to WYPALONE PIKSELI — nie da się ich
@@ -56,13 +64,10 @@ function modeHref(mode: GateMode): string {
 /**
  * Adres modułu, do którego użytkownik chciał wejść — z parametru `after`.
  *
- * ── DLACZEGO TYLKO ŚCIEŻKA WEWNĘTRZNA ─────────────────────────────────
  * `after` pochodzi z adresu, więc każdy może w nim wpisać co chce. Gdyby
  * trafiało do przekierowania bez sprawdzenia, dałoby się z tej strony
- * zrobić otwarte przekierowanie na obcą domenę — link wyglądałby na nasz,
- * a prowadził gdzie indziej. Dlatego przyjmujemy WYŁĄCZNIE ścieżkę
- * zaczynającą się od pojedynczego `/`, bez `//` (protokół względny)
- * i bez schematu.
+ * zrobić otwarte przekierowanie na obcą domenę. Dlatego przyjmujemy
+ * WYŁĄCZNIE ścieżkę wewnętrzną: jedno `/`, bez `//` i bez schematu.
  */
 function safeAfter(): string {
   if (typeof window === "undefined") return "/";
@@ -78,16 +83,13 @@ export function LoginGate() {
   const [mode, setModeState] = useState<GateMode>("logowanie");
 
   // Głęboki odnośnik /login#rejestracja (zapisana zakładka, odnośnik
-  // z innego ekranu) ma od razu właściwy tryb. Pierwsza klatka pokaże
-  // „logowanie” — uniknięcie tego błysku wymagałoby czytania hasha poza
-  // Reactem, a koszt obejścia byłby większy niż ta niespójność.
+  // z innego ekranu) ma od razu właściwy tryb.
   useEffect(() => {
     if (window.location.hash === "#rejestracja") setModeState("rejestracja");
   }, []);
 
   // Zmiana trybu idzie TAKŻE w adres (replaceState, nie przypisanie do
-  // hash — przypisanie odpala hashchange i skok do kotwicy), żeby
-  // odświeżenie strony i zapisana zakładka pamiętały tryb.
+  // hash — przypisanie odpala hashchange i skok do kotwicy).
   const setMode = (next: GateMode) => {
     setModeState(next);
     window.history.replaceState({}, "", modeHref(next));
@@ -131,23 +133,16 @@ export function LoginGate() {
   return (
     <div className="relative isolate flex min-h-dvh flex-col overflow-hidden">
       {/*
-        Tło: znak marki na CAŁYM ekranie, przygaszony i rozmyty — daje
-        nastrój marki, a napisy i formularz czytają się NA nim, nie obok.
+        Tło: TYLKO poświaty z tokenów. Grafika z tygrysem zniknęła stąd
+        celowo — powód jest w nagłówku pliku (dwa tygrysy na jednym ekranie,
+        bo `brand.ts` wskazywał tym samym adresem na wszystkie trzy pola).
+        Poświaty dają nastrój marki bez rysowania drugiego znaku.
       */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-[var(--bengos-surface)]" />
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={BRAND.login}
-          alt=""
-          width={1024}
-          height={1024}
-          fetchPriority="high"
-          className="absolute inset-0 size-full object-cover object-center opacity-60 blur-[2px]"
-        />
-        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,var(--bengos-surface)_0%,transparent_20%,transparent_64%,var(--bengos-surface)_100%)]" />
         <div className="absolute -left-24 top-1/4 size-72 rounded-full bg-[var(--bengos-accent)] opacity-[0.12] blur-3xl" />
         <div className="absolute -right-20 bottom-8 size-80 rounded-full bg-[var(--bengos-warning)] opacity-[0.10] blur-3xl" />
+        <div className="absolute left-1/2 top-0 size-[24rem] -translate-x-1/2 -translate-y-1/3 rounded-full bg-[var(--bengos-accent)] opacity-[0.07] blur-3xl" />
       </div>
 
       {/* Górne słowo — wielki cyjan trybu, jak na grafice marki. */}
@@ -159,12 +154,12 @@ export function LoginGate() {
       </header>
 
       {/*
-        ── ZNAK NAD FORMULARZEM ────────────────────────────────────────
-        Średnica liczona od WYSOKOŚCI (`dvh`) i `vw` naraz, z sufitem
-        220 px. Przy rejestracji (trzy pola, lista wymagań, przycisk)
-        wszystko mieści się nad zgięciem, a na desktopie tygrys nie rośnie
-        w nieskończoność. `aria-hidden`: tryb niosą napisy, obraz jest
-        czystym znakiem marki z pustym altem.
+        ── JEDEN ZNAK, W OKRĘGU ────────────────────────────────────────
+        To jest jedyna grafika na tym ekranie. Średnica liczona od
+        WYSOKOŚCI (`dvh`) i `vw` naraz, z sufitem 220 px — przy rejestracji
+        (trzy pola, lista wymagań, przycisk) wszystko mieści się nad
+        zgięciem. `aria-hidden`: tryb niosą napisy, obraz jest znakiem
+        marki z pustym altem.
       */}
       <div
         className="relative mx-auto mt-3 flex size-[min(34dvh,52vw,220px)] items-center justify-center sm:mt-5"
