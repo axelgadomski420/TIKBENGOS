@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     # BENGOS Beat, zadania generacji z limitem dziennym. Montowana pod
     # prefiks /music z kontraktu API.music.
     "music",
+    "market",
     # Asystent od Etapu 5: pytania z odpowiedziami modelu LLM i historia
     # rozmowy. Montowany pod prefiks /ai z kontraktu API.ai; bez endpointu
     # modelu pytanie dostaje 503 z wyjaśnieniem, a nie zmyśloną odpowiedź.

@@ -49,6 +49,7 @@ from chat.api import router as chat_router
 from dev.api import router as dev_router
 from feed.api import router as feed_router
 from music.api import router as music_router
+from market.api import router as market_router
 
 api = NinjaAPI(
     title="TIKBENGOS API",
@@ -164,6 +165,7 @@ api.add_router("/music", music_router)
 # (asynchroniczne jak generacja muzyki), odpowiedź oddaje worker LLM
 # przez endpoint zwrotny z sekretem BENGOS_WORKER_TOKEN.
 api.add_router("/ai", ai_router)
+api.add_router("/market", market_router)
 
 urlpatterns = [
     path("v1/csrf", csrf_view, name="csrf_view"),

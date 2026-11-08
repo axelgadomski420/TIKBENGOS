@@ -135,6 +135,16 @@ function IconSearch({ className }: IconProps) {
   );
 }
 
+function IconMarket({ className }: IconProps) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <path d="M6 6h12l1 4H5l1-4Z" />
+      <path d="M6 10v8h12v-8" />
+      <path d="M9 14h6" />
+    </svg>
+  );
+}
+
 export type Branch = {
   href: string;
   label: string;
@@ -155,6 +165,7 @@ export const BRANCHES: Branch[] = [
   { href: "/settings", label: "ustawienia", description: "Język, wygląd, dostępność, klucze API, zgody.", stage: null, Icon: IconSettings },
   { href: "/create", label: "asystent", description: "Asystent AI, pomysły, scenariusze, muzyka, kod.", stage: 5, Icon: IconAssistant },
   { href: "/feed", label: "bengtok", description: "Krótkie wideo, dźwięki, posty, twórcy.", stage: 2, Icon: IconFeed },
+  { href: "/market", label: "market", description: "Presety, dźwięki, szablony i modele od twórców.", stage: null, Icon: IconMarket },
   { href: "/#wyszukiwarka", label: "wyszukiwarka", description: "Jedno pole na pytanie, tworzenie, szukanie i kod.", stage: null, Icon: IconSearch },
 ];
 

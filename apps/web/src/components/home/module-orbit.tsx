@@ -39,6 +39,7 @@ const ORBIT_ORDER = [
   "bridge",
   "dev",
   "profil",
+  "market",
   "wyszukiwarka",
   "bengtok",
   "asystent",
