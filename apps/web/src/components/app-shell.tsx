@@ -32,7 +32,7 @@ const BRANCHES: { href: string; label: string; description: string; permission?:
 ];
 
 /**
- * Nagłówek powłoki.
+ * Nagłówek powłoki — pasek przyklejony u góry.
  *
  * ── NAZWA: `BENGOS`, NIE `TIKBENGOS` ────────────────────────────────────
  * Interfejs mówi „BENGOS” — tak nazywają się moduły (`BENGOS Home`,
@@ -40,22 +40,103 @@ const BRANCHES: { href: string; label: string; description: string; permission?:
  * `TIKBENGOS` zostaje wyłącznie jako nazwa repozytorium i pakietów w kodzie;
  * użytkownik nie ma powodu jej oglądać.
  *
- * ── ZNAK JEST ZAOKRĄGLONY MOCNIEJ NIŻ KARTA ────────────────────────────
- * Logo jest kwadratowe z ciemnym tłem, a napis „BENGOS” siedzi w górnej
- * części grafiki. Przy pełnym kadrowaniu w kwadracie 40 px napis stawał się
- * nieczytelnym szumem i zabierał miejsce samemu tygrysowi. Dlatego obraz
- * dostaje `object-cover object-top` i pełny promień — widać wtedy głowę,
- * a nazwa obok mówi to, czego sygnet nie powie.
- *
- * ├─ `unoptimized` JEST WYMAGANE PRZY ZEWNĘTRZNYM ADRESIE ────────────────
+ * ── `unoptimized` JEST WYMAGANE PRZY ZEWNĘTRZNYM ADRESIE ────────────────
  * Next.js optymalizuje obrazy na żądanie — pobiera plik i przetwarza go
  * po stronie serwera. Przy adresie z zewnętrznego hostingu bez wpisu
  * w `next.config.ts` ta optymalizacja kończy się błędem, a na ekranie
  * zostaje puste miejsce. `unoptimized` bierze plik wprost, tak jak leży.
  *
- * Cena: obraz idzie z serwera zewnętrznego bez pośrednictwa. Dlatego adres
- * pochodzi z `@/lib/brand` — jedno miejsce, w którym wskazujemy znak.
+ * ── KONIEC Z SAMYMI NAPISAMI W NAWIGACJI ───────────────────────────────
+ * Siedem pozycji to za dużo na same litery: przy 12 px pasek staje się
+ * ścianą tekstu, w której nie ma czego zaczepić wzrokiem. Każda pozycja
+ * ma teraz małą tarczę ze znakiem obok nazwy — ten sam język, którego
+ * używa menu główne i dolna nawigacja. Znak jest dekoracją (`aria-hidden`),
+ * bo to samo mówi etykieta obok.
  */
+
+type IconProps = { className?: string };
+
+const ICON_PROPS = {
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.75,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+  "aria-hidden": true,
+};
+
+function IconFeed({ className }: IconProps) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <rect x="3" y="5" width="18" height="14" rx="3" />
+      <path d="m10.5 9.5 5.5 2.5-5.5 2.5z" />
+    </svg>
+  );
+}
+
+function IconStudio({ className }: IconProps) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <path d="M4 7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
+      <path d="m16 10 4-2.5v9L16 14" />
+    </svg>
+  );
+}
+
+function IconChat({ className }: IconProps) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <path d="M20 12a7 7 0 0 1-7 7H8l-4 3v-5.5A7 7 0 0 1 11 5h2a7 7 0 0 1 7 7Z" />
+    </svg>
+  );
+}
+
+function IconCreate({ className }: IconProps) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />
+      <circle cx="12" cy="12" r="3.5" />
+    </svg>
+  );
+}
+
+function IconDev({ className }: IconProps) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <path d="m8.5 8.5-4 3.5 4 3.5M15.5 8.5l4 3.5-4 3.5" />
+      <path d="m13.5 5.5-3 13" />
+    </svg>
+  );
+}
+
+function IconAccess({ className }: IconProps) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <path d="M12 4v8M8 12h8m-7 8 3-6 3 6" />
+    </svg>
+  );
+}
+
+function IconProfile({ className }: IconProps) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <circle cx="12" cy="9" r="3.25" />
+      <path d="M5.5 20a6.5 6.5 0 0 1 13 0" />
+    </svg>
+  );
+}
+
+const ICONS: Record<string, (p: IconProps) => React.JSX.Element> = {
+  "/feed": IconFeed,
+  "/studio": IconStudio,
+  "/chat": IconChat,
+  "/create": IconCreate,
+  "/dev": IconDev,
+  "/access": IconAccess,
+  "/profile": IconProfile,
+};
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { theme, accessibility } = usePreferences();
   const { identity } = useSession();
@@ -110,21 +191,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             na telefonie. Tam nawigacja jest na dole (`BottomNavigation`),
             a pasek zostaje przy znaku, nazwie i ustawieniach.
           */}
-          <nav aria-label="Moduły" className="ml-auto hidden gap-0.5 md:flex">
+          <nav aria-label="Moduły" className="ml-auto hidden items-center gap-0.5 md:flex">
             {visibleBranches.map((branch) => {
               const active = pathname === branch.href || pathname.startsWith(`${branch.href}/`);
+              const Icon = ICONS[branch.href];
               return (
                 <Link
                   key={branch.href}
                   href={branch.href}
                   aria-current={active ? "page" : undefined}
                   title={branch.description}
-                  className={`bengos-touch-target rounded-[var(--bengos-radius-control)] px-3 text-[var(--bengos-size-body)] transition-colors duration-[var(--bengos-motion-fast)] ${
+                  className={`bengos-touch-target gap-1.5 rounded-[var(--bengos-radius-control)] px-2.5 text-[var(--bengos-size-caption)] transition-colors duration-[var(--bengos-motion-fast)] ${
                     active
                       ? "bg-[var(--bengos-accent-muted)] font-[var(--bengos-weight-medium)] text-[var(--bengos-accent)]"
                       : "text-[var(--bengos-text-muted)] hover:bg-[var(--bengos-surface-sunken)] hover:text-[var(--bengos-text)]"
                   }`}
                 >
+                  {Icon ? <Icon className="size-4" /> : null}
                   {branch.label}
                 </Link>
               );
