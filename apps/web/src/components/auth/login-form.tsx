@@ -19,16 +19,18 @@ import { ApiRequestError, apiFetch } from "@/lib/api-client";
  * Reguły pochodzą z `@bengos/core` — tych samych, których pilnuje serwer.
  * Druga kopia rozjechałaby się z pierwszym dniem, więc jej nie ma.
  *
- * ── NAJPIERW DOSTAWCA, POTEM HASŁO ──────────────────────────────────────
- * Większość osób nie wymyśla nowego hasła, jeśli może kliknąć dwa razy.
- * Przyciski dostawców stoją NAD formularzem i są pierwsze w kolejności
- * czytania — nie schowane pod nim.
- *
  * ── DOSTAWCY PRZYCHODZĄ Z SERWERA ───────────────────────────────────────
  * Lista pochodzi z `GET /api/auth/oauth/providers`. Ekran nie pokazuje
  * przycisku dla dostawcy, którego serwer nie obsługuje. Gdy brakuje kluczy,
  * zamiast martwego przycisku pojawia się zdanie, które mówi dlaczego —
  * przycisk, który nie reaguje, wygląda na zepsuty, a nie na niegotowy.
+ *
+ * ── PO REJESTRACJI WCHODZI SIĘ Z `?welcome=1` ───────────────────────────
+ * Samo przeładowanie na pulpit niczego nie potwierdzało: użytkownik nie
+ * wiedział, czy konto powstało, ani jakim uchwytem się loguje. Parametr
+ * `welcome` uruchamia na pulpicie pasek powitania, który mówi jedno i drugie.
+ * Po zalogowaniu parametru NIE MA — powitanie jest dla nowego konta, a nie
+ * dla każdego wejścia.
  */
 
 type Mode = "login" | "register";
@@ -196,12 +198,16 @@ export function LoginForm() {
             password: form.password,
           },
         });
-      } else {
-        await apiFetch("/api/auth/login", {
-          method: "POST",
-          body: { identifier: form.identifier.trim().toLowerCase(), password: form.password },
-        });
+        // `?welcome=1` pokazuje na pulpicie pasek powitania z uchwytem —
+        // potwierdzenie, że konto powstało, i informacja, jak się logować.
+        window.location.assign("/?welcome=1");
+        return;
       }
+
+      await apiFetch("/api/auth/login", {
+        method: "POST",
+        body: { identifier: form.identifier.trim().toLowerCase(), password: form.password },
+      });
 
       // Pełne przejście, nie zmiana stanu: tożsamość czyta się przy pierwszym
       // renderze, więc tylko przeładowanie daje spójny widok bez migotania
@@ -284,8 +290,6 @@ export function LoginForm() {
       {/*
         Zakładki w jednym pasku z ciemniejszym tłem. Aktywna jest PODNIESIONA
         na tło karty — widać, która jest wybrana, zanim przeczyta się podpis.
-        Poprzednia wersja miała dwa przyciski o tym samym tle co formularz,
-        więc różnicę niosła tylko barwa tekstu.
       */}
       <div
         role="tablist"
@@ -364,7 +368,7 @@ export function LoginForm() {
         <Field
           id="login-password"
           label="Hasło"
-          hint={isRegister ? "Co najmniej 12 znaków." : ""}
+          hint={isRegister ? "Co najmniej 12 znaków. Unikaj samego ciągu cyfr." : ""}
           type={showPassword ? "text" : "password"}
           value={form.password}
           onChange={(value) => update("password", value)}
@@ -393,7 +397,8 @@ export function LoginForm() {
       </form>
 
       <p className="mt-4 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
-        Hasło jest hashowane na serwerze i nigdy nie wraca w żadnej odpowiedzi.
+        Hasło jest hashowane na serwerze i nigdy nie wraca w żadnej odpowiedzi. Każde konto
+        ma własny uchwyt, własną sesję i własne dane.
       </p>
     </section>
   );
