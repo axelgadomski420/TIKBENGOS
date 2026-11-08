@@ -1,14 +1,23 @@
-successfully downloaded text file (SHA: 5bb2bb8d51383e15e886c76914a428ce7ab877e9)# Interfejs TIKBENGOS — obraz produkcyjny.
+# Interfejs TIKBENGOS — obraz produkcyjny.
 #
 # Trzy etapy, celowo: zależności, budowanie, uruchomienie. Jednoetapowy obraz
 # z całym `node_modules` i źródłami waży kilkaset megabajtów więcej, a na
 # darmowej maszynie Oracle (2 rdzenie, 12 GB) to nie jest szczegół.
+#
+# ── UWAGA O PIERWSZEJ LINII ───────────────────────────────────────────────
+# Ten plik zaczynał się kiedyś od tekstu:
+#
+#     successfully downloaded text file (SHA: 5bb2bb8d…)# Interfejs…
+#
+# Docker czytał to jako instrukcję i przerywał budowę komunikatem
+# `unknown instruction: successfully`. Pierwsza linia MUSI być komentarzem
+# (`#`) albo instrukcją (`FROM`, `ARG`, `ENV`…).
 
 FROM node:20-alpine AS deps
 WORKDIR /app
 
 # Workspace'y są potrzebne w całości, bo `apps/web` zależy od `@bengos/core`
-# i `@bengos/ui` jako źródła TypeScript, nie jako zbudowane paczki.
+# i `@bengos/ui` jako źródła TypeScript, nie jako zbudowane pakiety.
 COPY package.json package-lock.json* ./
 COPY apps/web/package.json ./apps/web/
 COPY packages/core/package.json ./packages/core/
@@ -28,6 +37,7 @@ COPY . .
 # Adres wskazuje usługę w sieci Dockera: w czasie budowania odpowiada na
 # niego nic, ale `readSession()` traktuje nieosiągalne API jako brak
 # tożsamości, więc build tego nie wywala.
+#
 # NEXT_PUBLIC_* trafia do paczki klienta W CZASIE BUDOWY, nie w runtime.
 # Bez tego ARG wartość z compose (sekcja "args") nie dotarłaby do kodu
 # przeglądarki — ENV podany w runtime nie nadpisze już zbudowanego klienta.
@@ -38,7 +48,7 @@ RUN npm run build -w apps/web
 
 # ⚠ TU NIE MA WYNIKU `standalone` — i to jest celowe.
 #
-# Sprawdziliśmy to na działającym obrazie: `find / -name server.js` zwracał
+# Sprawdzone na działającym obrazie: `find / -name server.js` zwracał
 # DOKŁADNIE JEDEN plik, `/app/server.js`, a kontener i tak padał. Powód jest
 # inny niż sama ścieżka: przy `transpilePackages` z pakietami workspace na
 # źródłach `.ts` Next traktuje `@bengos/core` i `@bengos/ui` jako zależności
