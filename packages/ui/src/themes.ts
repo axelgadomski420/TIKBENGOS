@@ -11,62 +11,67 @@ import {
 /**
  * Ciemny motyw jest domyślny — brief tak stanowi i tak zostaje.
  *
- * ── PALETA: GRANAT, CYJAN, POMARAŃCZ, ALE NIE CZERŃ ─────────────────────
- * Odcienie pochodzą ze znaku marki: tło jest granatowe (nie czarne),
- * akcent cyjanowy, a pomarańcz występuje w roli ostrzeżenia — tak samo jak
- * na grafice, gdzie świeci przy krawędzi kuli.
+ * ── PALETA PROSTO Z GRAFIK MARKI ────────────────────────────────────────
+ * Wartości pochodzą z grafik właściciela: tło ekranu logowania to granat
+ * #0A0E18, świeżący cyjan to #00F7FF, a złoto-pomarańcz tygrysa (#FFAB4D)
+ * pracuje w roli ostrzeżenia — tak samo jak na obrazku, gdzie pomarańcz
+ * świeci przy krawędzi okręgu. Właściciel wskazał ten zestaw jako motyw
+ * główny; motyw jasny i kontrastowy zostają przy swoich zadaniach.
  *
- * ── DLACZEGO WARSTWY POSZŁY W GÓRĘ ──────────────────────────────────────
- * Poprzednie `surface` (#05070D) było tak blisko czerni, że grafika marki
- * — która ma czarne tło WYPALONE w pliku — zlewała się z ekranem. Właściciel
- * nazwał to „czarnym na czarnym” i miał rację: dwa prawie identyczne czernie
- * dają obraz bez krawędzi, czyli plamę, a nie element interfejsu.
- *
- * Nowy `surface` (#0A1020) jest granatem WIDOCZNYM jako granat, a karty
- * (#121A2E) i obramowania (#243049) odcinają się od tła. Czarny prostokąt
- * grafiki ma teraz na czym siedzieć.
+ * ── DLACZEGO WARSTW SĄ TRZY ─────────────────────────────────────────────
+ * Tło, karta (#131C2E) i pole (#060A12) różnią się na tyle, żeby czarny
+ * prostokąt grafiki marki miał na czym siedzieć — ale nie na tyle, żeby
+ * rozbić ciemny charakter ekranu z grafiki. Granat jest WIDOCZNY jako
+ * granat, a nie prawie-czerń zlewająca się z obrazkiem.
  *
  * ── WARTOŚCI SĄ POLICZONE, NIE WYBRANE NA OKO ───────────────────────────
- * Każda para tekstu i tła została policzona metodą WCAG 2.1 przed wpisaniem,
+ * Każda para tekstu i tła została policzona metodą WCAG 2.2 przed wpisaniem,
  * a `contrast.test.ts` liczy je ponownie przy każdym uruchomieniu testów.
- * Ciemny motyw: tekst 16,83; drugorzędny 8,62; akcent jako tekst 10,49;
- * błąd 6,85 — wszystko powyżej progu 4,5:1, najniższy wynik ma zapas.
+ * Ciemny motyw: tekst 17,23; drugorzędny 9,16; akcent jako tekst 14,46;
+ * ostrzeżenie 10,27; błąd 6,97; obramowanie aktywne 3,49 (próg UI 3:1);
+ * obramowanie subtelne 1,53 (próg widoczności 1,4). Poświata (4,24) celowo
+ * NIE przechodzi progu tekstu 4,5:1 — poświata jest dekoracją, nie kolorem
+ * napisu, i test „poświata nigdy nie jest tekstem" tego pilnuje.
  */
 const DARK: Palette = {
-  surface: "#0A1020",
-  surfaceRaised: "#121A2E",
-  surfaceSunken: "#070C18",
-  border: "#243049",
-  borderStrong: "#35486E",
-  text: "#EAF2FF",
-  textMuted: "#9DB0D0",
-  textOnAccent: "#04121A",
-  accent: "#22D3EE",
-  accentMuted: "#123043",
-  glow: "#5FF0FF",
+  surface: "#0A0E18",
+  surfaceRaised: "#131C2E",
+  surfaceSunken: "#060A12",
+  border: "#26334D",
+  borderStrong: "#51689B",
+  text: "#EAF3FF",
+  textMuted: "#9FB4D6",
+  textOnAccent: "#031318",
+  accent: "#00F7FF",
+  accentMuted: "#0D3440",
+  glow: "#14809F",
   success: "#4ADE80",
-  warning: "#FB923C",
+  warning: "#FFAB4D",
   danger: "#F87171",
 };
 
 /**
  * Motyw jasny zachowuje ten sam charakter: chłodne tło i cyjanowy akcent,
- * tylko odwrócone. Akcent jest ciemniejszy, bo na jasnym tle cyjan z ciemnego
- * motywu (#22D3EE) daje kontrast 1,9:1 — czyli nieczytelny.
+ * tylko odwrócone. Akcent jest ciemniejszy, bo na jasnym tle jasny cyjan
+ * byłby nieczytelny.
  *
- * `textOnAccent` jest tu #04121A, nie białe. Białe dawało 3,54:1, czyli pod
- * progiem 4,5:1 — a ten kolor pojawia się na akcencie w każdym przycisku
- * głównym, więc musi przechodzić z zapasem.
+ * `textOnAccent` jest tu #FFFFFF, nie ciemny granat. Ciemne dawało na
+ * akcencie 3,54:1 — poniżej progu 4,5:1 — a ten kolor pojawia się na akcencie
+ * w każdym przycisku głównym, więc musi przechodzić z zapasem. Białe daje
+ * 5,36:1.
+ *
+ * `borderStrong` to #6480B8, bo jaśniejszy odcień dawał na tle 2,2:1 —
+ * poniżej progu 3:1 dla elementów interfejsu. Obecny daje 3,71:1.
  */
 const LIGHT: Palette = {
   surface: "#F5F8FF",
   surfaceRaised: "#FFFFFF",
   surfaceSunken: "#E7EEFB",
   border: "#C6D3EC",
-  borderStrong: "#94A9CE",
+  borderStrong: "#6480B8",
   text: "#0A1020",
   textMuted: "#4A5A78",
-  textOnAccent: "#04121A",
+  textOnAccent: "#FFFFFF",
   accent: "#0E7490",
   accentMuted: "#CDE9F2",
   glow: "#0891B2",
@@ -76,13 +81,17 @@ const LIGHT: Palette = {
 };
 
 /**
- * Motyw o wysokim kontraście nie jest „ciemnym z mocniejszym tekstem”.
+ * Motyw o wysokim kontraście nie jest „ciemnym z mocniejszym tekstem".
  * Ma własne tło, własne obramowania i własny akcent, bo jego zadaniem jest
  * przekroczenie progu AA z zapasem, także dla tekstu drugorzędnego.
  *
  * Tu warstwy NIE idą w górę: czysta czerń i czysta biel są tym, czego ten
- * tryb wymaga. Rozjaśnianie tła „dla epickości” byłoby tu błędem, nie
+ * tryb wymaga. Rozjaśnianie tła „dla epickości" byłoby tu błędem, nie
  * ulepszeniem — i dlatego te wartości zostają.
+ *
+ * `glow` to #1E7086, nie jasny cyjan: poświata jest dekoracją i NIE MOŻE
+ * przechodzić progu tekstu (test „poświata nigdy nie jest tekstem").
+ * #1E7086 daje na czerni 3,72:1 — widoczna dekoracja poniżej progu 4,5:1.
  */
 const HIGH_CONTRAST: Palette = {
   surface: "#000000",
@@ -95,7 +104,7 @@ const HIGH_CONTRAST: Palette = {
   textOnAccent: "#000000",
   accent: "#7FF0FF",
   accentMuted: "#0B2A33",
-  glow: "#B8F7FF",
+  glow: "#1E7086",
   success: "#7DFFA8",
   warning: "#FFC078",
   danger: "#FF9A9A",
