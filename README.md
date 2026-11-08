@@ -1,140 +1,98 @@
-# TIKBENGOS — jeden społecznościowy system operacyjny
+# BENGOS
 
-Siedem dawnych aplikacji staje się modułami, ale użytkownik nie widzi między
-nimi granicy.
+> **Jedna aplikacja. Wszystkie możliwości.**  
+> Wideo, czat, muzyka AI, asystent, kod i pełna dostępność — w jednym, ultra-nowoczesnym produkcie webowym.
 
-Ten dokument opisuje **stan po Etapie 1**. Wszystko, co nie działa, jest tu
-opisane jako niedziałające — nie ma w tym repozytorium funkcji udających,
-że istnieją. Stan szczegółowy jest w [`docs/stage-1.md`](docs/stage-1.md).
+![status](https://img.shields.io/badge/status-MVP--in--progress-blue)
+![license](https://img.shields.io/badge/license-TBD-lightgrey)
+![stack](https://img.shields.io/badge/stack-Next.js%20%2B%20Django-blue)
+![accessibility](https://img.shields.io/badge/accessibility-WCAG%202.2%20AA-green)
+![i18n](https://img.shields.io/badge/i18n-multi--language-blueviolet)
 
-## Moduły
+---
 
-| Moduł | Dawna aplikacja | Zakres | Stan |
-| --- | --- | --- | --- |
-| BENGOS Home | — (nowy) | Pulpit sterowania, wyszukiwarka uniwersalna, karty Stwórz teraz / Kontynuuj / Dla Ciebie / Dostępność | **działa** |
-| BENGOS Feed | TIKTAK | Krótkie wideo, dźwięki, posty, twórcy | Etap 2 |
-| BENGOS Studio | TIKTAK + TIKMUSIC | Tworzenie wideo, muzyki AI, postów, projektów kodu | Etap 2 |
-| BENGOS Chat | TIKMESS | Wiadomości, grupy, tłumaczenia | Etap 4 — kanał czasu rzeczywistego **gotowy** |
-| BENGOS Create | TIKAL | Asystent AI | Etap 5 |
-| BENGOS Dev | TIKGIT | GitHub, repozytoria, agent kodujący | Etap 5 |
-| BENGOS Access | TIKMIG + TIKMORS | Język migowy, napisy, TTS, Morse, wibracje | Etap 4 |
-| BENGOS Profile | TIKTAK | Tożsamość, twórczość, ustawienia | Etap 2 — edycja tożsamości **działa** |
+## Co to jest
 
-## Struktura monorepo
+**BENGOS** to nie kolejna aplikacja społecznościowa.
 
-```
-apps/web                  Next.js 15 PWA — cały interfejs użytkownika
-packages/ui               design system: bengos-surface, bengos-accent, bengos-glow, …
-packages/core             typy, kontrakty API, walidacja, katalog dostawców
-packages/accessibility    TTS, STT, napisy, Morse, wibracje (przenoszone z TIKMORS/TIKMIG)
-packages/i18n             katalogi tłumaczeń — na razie tylko .gitkeep
-services/api              Django 5 + django-ninja — tożsamość, sesje, klucze, kanał WebSocket
-services/realtime         ta sama aplikacja ASGI na daphne/uvicorn (port 8001)
-services/ai-worker        asystent (django-ai-assistant jako zależność)
-services/sign-worker      rozpoznawanie migów (FastAPI + MediaPipe)
-services/music-worker     generacja muzyki (Audiocraft, osobny GPU)
-services/code-worker      agent kodujący (Aider w sandboxie)
-infra                     Compose, Caddy, CI/CD
-scripts                   deploy.sh, dev.sh, napraw.sh, sprawdz.py, audyt.py, generate-icons.py
-```
+To **system operacyjny dla twórczości, społeczności i kodu**:
 
-## Zasady, które ten kod respektuje
+- krótkie wideo i dźwięki,
+- czat w czasie rzeczywistym,
+- muzyka generowana AI,
+- inteligentny asystent,
+- agent kodujący zintegrowany z GitHubem,
+- pełna dostępność: napisy, TTS, STT, język migowy, wibracje Morse’a.
 
-- **Jedno konto, jedna tożsamość, jeden system uprawnień.** Nie ma drugiego modelu użytkownika.
-- **Żaden moduł nie importuje kodu innego dawnego repozytorium.** Komunikacja przez API, zdarzenie albo kolejkę.
-- **Sekrety nigdy w repozytorium.** Klucze API wpisywane w ustawieniach aplikacji, szyfrowane, pokazywane raz.
-- **Długie operacje są asynchroniczne.** Zadanie → identyfikator → stan → powiadomienie.
-- **Dostępność nie jest dodatkiem.** Każdy ekran przechodzi WCAG 2.2 AA.
+Wszystko w jednej, spójnej aplikacji webowej typu PWA.
 
-## Jak uruchomić
+---
 
-### Krok 0 — sprawdź, czy niczego nie brakuje
+## Dlaczego BENGOS
 
-```bash
-python3 scripts/audyt.py
-```
+| Problem | Rozwiązanie BENGOS |
+|---|---|
+| Osobne aplikacje na wideo, czat, muzykę i kod | Jeden pulpit, jedna tożsamość, jedna baza |
+| AI tylko jako chatbot | AI jako aktywny asystent w całym produkcie |
+| Dostępność jako dodatek | Dostępność jako fundament |
+| Wolne, ciężkie aplikacje | PWA, offline-first, szybki frontend |
+| Trudne wdrożenie | Docker + darmowy stack startowy |
+| Brak integracji z kodem | GitHub + agent kodujący w aplikacji |
+| Tylko jeden język | Pełne i18n: UI, treści, SEO, dostępność |
 
-Wypisze, czego brakuje i co to blokuje. Nie uruchamia niczego i nie łączy
-się z siecią — tylko sprawdza pliki i kilka niezmienników treści.
+---
 
-### Lokalnie, bez Dockera
+## Główne funkcje
 
-```bash
-bash scripts/dev.sh
-```
+- **BENGOS Feed** — krótkie wideo, profile, lajki, komentarze, udostępnienia.
+- **BENGOS Studio** — tworzenie wideo, muzyki i postów.
+- **BENGOS Music** — generowanie muzyki AI z promptu.
+- **BENGOS Chat** — czat 1:1 i grupowy w czasie rzeczywistym.
+- **BENGOS Assistant** — globalny asystent AI z kontekstem aplikacji.
+- **BENGOS Dev** — GitHub, issues, pull requesty, agent kodujący.
+- **BENGOS Access** — napisy, TTS, STT, język migowy, wibracje Morse’a.
+- **BENGOS Profile** — tożsamość, projekty, ustawienia, historia AI.
 
-Skrypt tworzy środowisko Pythona, instaluje zależności, generuje klucze, robi
-migracje na SQLite (bez PostgreSQL), uruchamia testy i podnosi API oraz
-interfejs. Wymaga tylko Pythona 3.12 i Node 20+.
+---
 
-### Produkcyjnie, na Oracle Cloud
+## Motywy
 
-```bash
-bash scripts/deploy.sh
-```
+BENGOS ma **trzy motywy**, przełączalne w ustawieniach i zapisywane per użytkownik.
 
-Skrypt pyta o domenę (albo publiczne IP) i e-mail do certyfikatu, a resztę —
-Docker, kod, sekrety, ikony, zaporę, migracje, certyfikat — robi sam.
-Przed startem uruchamia audyt, a po starcie test dymny.
+| Motyw | Charakter | Zastosowanie |
+|---|---|---|
+| **Dark Nebula** | Ciemny, głęboki, premium | Domyślny, wieczorne używanie |
+| **Aurora Light** | Jasny, czysty, minimalny | Praca w dzień, czytelność |
+| **Solar Flux** | Energetyczny, wyrazisty | Kreatywność, streaming, live |
 
-Pełny opis: [`docs/deploy-oracle.md`](docs/deploy-oracle.md).
+### Design tokens
 
-### Weryfikacja i naprawa
+```css
+:root {
+  --bengos-surface: #0B0B0F;
+  --bengos-surface-raised: #15151C;
+  --bengos-accent: #7C5CFF;
+  --bengos-glow: rgba(124, 92, 255, 0.35);
+  --bengos-text-primary: #F5F5F7;
+  --bengos-text-muted: #9A9AA5;
+  --bengos-radius-card: 20px;
+  --bengos-focus-ring: #7C5CFF;
+  --bengos-motion-fast: 150ms;
+  --bengos-motion-smooth: 300ms;
+}
 
-```bash
-python3 scripts/sprawdz.py https://twojadomena.pl   # sprawdzenie z zewnątrz
-bash scripts/napraw.sh                              # stan i diagnoza
-bash scripts/napraw.sh klucz                        # poprawność klucza szyfrowania
-bash scripts/napraw.sh kopia                        # zrzut bazy do pliku
-```
+[data-theme="aurora-light"] {
+  --bengos-surface: #FFFFFF;
+  --bengos-surface-raised: #F5F5F7;
+  --bengos-accent: #0066FF;
+  --bengos-text-primary: #0B0B0F;
+  --bengos-text-muted: #5A5A66;
+}
 
-W kontenerze, bez sieci:
-
-```bash
-docker compose -f infra/docker-compose.prod.yml exec api python manage.py sprawdz
-```
-
-### Ręcznie
-
-Wymagania: Python **3.12** (nie 3.13 — MediaPipe i TensorFlow nie mają
-wydania dla 3.13, a Aider wymaga poniżej 3.13), Node.js 20+, PostgreSQL 16+,
-Redis 7+.
-
-```bash
-# API
-cd services/api
-python3.12 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py runserver 8000
-
-# Interfejs (drugi terminal)
-cd apps/web
-cp .env.local.example .env.local
-npm install
-npm run dev                   # http://localhost:3000
-```
-
-## Status etapów
-
-| Etap | Zakres | Stan |
-| --- | --- | --- |
-| 0 | Audyt siedmiu repozytoriów, licencje, ryzyka | **Zamknięty** |
-| 1 | Monorepo, tożsamość, design system, BENGOS Home, klucze dostawców, kanał WebSocket | **Zamknięty** — patrz `docs/stage-1.md` |
-| 2 | Feed i Studio | Nierozpoczęty |
-| 3 | Muzyka AI | Nierozpoczęty |
-| 4 | Czat i dostępność | Nierozpoczęty |
-| 5 | Asystent i GitHub | Nierozpoczęty |
-| 6 | Dopracowanie i wydanie 1.0 | Nierozpoczęty |
-
-## Dokumentacja
-
-- [`docs/stage-1.md`](docs/stage-1.md) — co dokładnie jest w tym etapie zrobione, a co nie
-- [`docs/licensing.md`](docs/licensing.md) — stan licencji siedmiu repozytoriów
-- [`docs/accessibility.md`](docs/accessibility.md) — wymagania dostępności i jak są egzekwowane
-- [`docs/deploy-oracle.md`](docs/deploy-oracle.md) — wdrożenie na Oracle Cloud krok po kroku
-
-## Licencja
-
-MIT — zobacz [`LICENSE`](LICENSE). Zależności zewnętrzne i ich licencje:
-[`THIRD_PARTY.md`](THIRD_PARTY.md). Nie jest to porada prawna.
+[data-theme="solar-flux"] {
+  --bengos-surface: #12060A;
+  --bengos-surface-raised: #1E0A12;
+  --bengos-accent: #FF3D6E;
+  --bengos-text-primary: #FFF5F7;
+  --bengos-text-muted: #B98A94;
+}
