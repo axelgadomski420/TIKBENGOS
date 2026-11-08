@@ -8,6 +8,7 @@ import { can, type Permission } from "@bengos/core";
 
 import { EntryScreen } from "@/components/auth/entry-screen";
 import { BottomNavigation } from "@/components/bottom-navigation";
+import { HomeDashboard } from "@/components/home/home-dashboard";
 import { SkipLink } from "@/components/skip-link";
 import { useSession } from "@/lib/session-context";
 import { usePreferences } from "@/lib/preferences-context";
@@ -118,21 +119,29 @@ const ICONS: Record<string, (p: IconProps) => React.JSX.Element> = {
 /**
  * Powłoka aplikacji.
  *
- * ── BRAMA LOGOWANIA: `EntryScreen`, NIE `LoginGate` (zmiana 2026-11-08) ─
- * Powłoka renderowała wcześniej `LoginGate` — plik, który przeszedł przez
- * kilkanaście wersji i przestał być przewidywalny. Zrzuty z telefonu
- * pokazywały ekran, którego ten kod nie zawierał (ogromny tygrys na 55%
- * wysokości, formularz wciśnięty w pasek po lewej), a każda poprawka na
- * starym pliku dokładała kolejną warstwę do odkręcania.
+ * ── PULPIT RYSUJE POWŁOKA, NIE STRONA (naprawa 2026-11-08, noc) ──────────
+ * To jest ostatnia i najważniejsza poprawka w tej sprawie.
  *
- * `EntryScreen` jest napisany od zera i nie dziedziczy niczego: cztery
- * elementy, jeden obraz, stałe wymiary. Stary `login-gate.tsx` ZOSTAJE
- * w repozytorium (nie kasujemy plików), ale nikt go już nie importuje —
- * więc nie ma jak wpłynąć na to, co widać na ekranie.
+ * `apps/web/src/app/page.tsx` renderował CAŁY pulpit (`WelcomeBanner`,
+ * `ModuleOrbit` z tygrysem pośrodku, `ModuleBranches` z siatką kafli).
+ * Next.js wysyłał go jako `{children}` do każdego wejścia — także dla osoby
+ * bez sesji. Dowód z `curl` po wdrożeniu, OBA napisy w jednym dokumencie:
  *
- * ── BRAMA STOI W POWŁOCE, NIE W STRONACH ───────────────────────────────
- * Jedna brama, zero szczelin. Gdyby każda strona pilnowała sama, jedna
- * zapomniana pokazałaby treść bez zalogowania.
+ *     Gdzie chcesz wejść        ← h2 siatki, treść PULPITU
+ *     Nie masz jeszcze konta    ← zdanie z BRAMY wejścia
+ *
+ * Właściciel widział na telefonie ogromnego tygrysa i wąski pasek obok.
+ * Tygrys pochodził z `ModuleOrbit`, a „pasek formularza” był fragmentem
+ * siatki — nie bramą. Wszystkie wcześniejsze poprawki (wymiary znaku,
+ * zasłona startowa, cache) leczyły objaw.
+ *
+ * Teraz `page.tsx` nie renderuje nic, a ten plik podmienia `{children}`
+ * na `HomeDashboard` WYŁĄCZNIE przy `status === "authenticated"`. Nie
+ * istnieje droga, którą przybysz dostanie treść konta.
+ *
+ * ── BRAMA: JEDEN PUNKT KONTROLNY ────────────────────────────────────────
+ * Przy braku sesji renderuje się `EntryScreen` — i nic więcej. Jedna brama
+ * dla wszystkich tras, zero szczelin.
  */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { theme, accessibility } = usePreferences();
@@ -155,6 +164,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     accessibility.reducedMotion,
   );
 
+  /*
+    ── BRAMA ──────────────────────────────────────────────────────────────
+    Bez sesji: `EntryScreen` i koniec. Strona `/` też nic nie rysuje, więc
+    w HTML-u nie ma ani pulpitowej orbity, ani siatki kafli — a to właśnie
+    one wyglądały na zrzutach jak „ekran logowania” przez pomyłkę.
+  */
   if (status !== "authenticated") {
     return (
       <div
@@ -167,6 +182,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
+
+  /*
+    ── PULPIT ─────────────────────────────────────────────────────────────
+    Trasa `/` nie dostarcza już treści (`page.tsx` zwraca `HomeDashboard`,
+    ale ta sama treść jest tu, w powłoce). Zeby nie rysowac jej dwa razy,
+    na trasie `/` powłoka wstawia `HomeDashboard` zamiast `children`.
+    Na pozostałych trasach `children` to ekran modułu — bez zmian.
+  */
+  const isHome = pathname === "/";
 
   return (
     <div
@@ -230,7 +254,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       <main id="bengos-main" className="mx-auto max-w-5xl px-4 pb-28 pt-6">
-        {children}
+        {isHome ? <HomeDashboard /> : children}
       </main>
 
       <BottomNavigation />
