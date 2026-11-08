@@ -2,9 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { LoginForm } from "@/components/auth/login-form";
-import { BRAND } from "@/lib/brand";
 
-export const metadata: Metadata = { title: "Zaloguj się" };
+export const metadata: Metadata = { title: "Logowanie" };
 
 /**
  * Ekran logowania i rejestracji — pierwszy ekran, jaki widzi nowy użytkownik.
@@ -15,24 +14,29 @@ export const metadata: Metadata = { title: "Zaloguj się" };
  * formularza mieszka w `@/components/auth/login-form`, a tutaj zostaje
  * tylko to, co serwerowe.
  *
- * ── GRAFIKA EKRANU JEST CZĘŚCIĄ KOMPOZYCJI, NIE OZDOBĄ ─────────────────
- * Ekran logowania ma własną grafikę (`BRAND.login`) — tygrys w kuli
- * z podpisami „logowanie” i „rejestracja”. Stoi na samej górze, nad
- * formularzem, i jest jedynym elementem bez ramki: reszta ekranu to karty
- * i pola, więc obraz bez krawędzi czyta się jako tło kompozycji.
+ * ── GRAFIKA JEST NA GÓRZE, ALE NIE JEST JEDYNYM ZNAKIEM ─────────────────
+ * Na samej górze stoi kompozycja z podpisami „logowanie” i „rejestracja”.
+ * Pod nią — już wewnątrz karty formularza — jest znak prosty, obok
+ * prawdziwego nagłówka. To nie jest powtórzenie: grafika ustawia nastrój
+ * i mówi, gdzie użytkownik trafił, a znak w karcie jest punktem odniesienia
+ * dla samego formularza. Czytnik ekranu dostaje z tego tylko jedno:
+ * oba obrazy mają `alt=""`, bo napisy i nagłówki są prawdziwym tekstem.
  *
- * ── TEKST OBCY W GRAFICE NIE JEST ODCZYTYWANY ─────────────────────────
- * Napisy „logowanie” i „rejestracja” są WYPALONE w obrazie, więc nie
- * istnieją dla czytnika ekranu ani dla wyszukiwarki. To akceptowalne
- * tylko dlatego, że prawdziwe nagłówki i przyciski stoją pod obrazem:
- * funkcja nie zależy od grafiki. Obraz ma `alt=""`, bo prawdziwy `h1`
- * mówi to samo, a powtórzenie dałoby „Utwórz konto” dwa razy.
+ * ── WSZYSTKO ZWRÓCONE DO CZYTNIKA JEST PRAWDZIWE ────────────────────────
+ * Napisy „logowanie” i „rejestracja” są WYPALONE w grafice, więc nie istnieją
+ * dla czytnika ekranu ani dla wyszukiwarki. To akceptowalne tylko dlatego,
+ * że prawdziwe nagłówki i przyciski stoją pod obrazem: funkcja nie zależy
+ * od grafiki. Obraz ma `alt=""`, a prawdziwy `h1` mówi to samo.
  *
- * ── PEŁNOEKRANOWY UKŁAD Z TŁEM ──────────────────────────────────────────
+ * ── PEŁNOEKRANOWY UKŁAD Z TŁEM Z TOKENÓW ────────────────────────────────
  * Logowanie jest jedynym ekranem bez nagłówka powłoki, więc jako jedyny
  * może wziąć cały ekran. Tło to gradient z tokenów motywu i dwie rozmyte
  * plamy — cyjanowa i pomarańczowa. Ten sam motyw co w znaku, więc ekran
  * czyta się jako jego przedłużenie, a nie jako osobna strona.
+ *
+ * Wysokość `min-h-dvh` zamiast `min-h-screen`: `dvh` liczy się od realnie
+ * widocznego obszaru, więc na telefonie z paskiem adresu treść nie ucieka
+ * pod krawędź.
  */
 export default function LoginPage() {
   return (
@@ -45,19 +49,14 @@ export default function LoginPage() {
       </div>
 
       <div className="bengos-rise mx-auto flex max-w-md flex-col px-4 py-8">
-        <div className="mb-6 flex flex-col items-center">
-          {/*
-            `priority` nie jest tu potrzebne (to zwykły `img`, nie `next/image`),
-            ale grafika stoi nad zgięciem — więc ładujemy ją od razu, bez
-            leniwego wczytywania, żeby nie wskoczyła po chwili jako przeskok.
-          */}
+        <div className="mb-5 flex justify-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={BRAND.login}
+            src={BRAND_LOGIN}
             alt=""
             width={1024}
             height={1024}
-            className="w-full max-w-sm rounded-[var(--bengos-radius-card)] object-contain"
+            className="w-full max-w-xs rounded-[var(--bengos-radius-card)] object-contain"
           />
         </div>
 
