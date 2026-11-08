@@ -1,17 +1,17 @@
 """Kanał WebSocket — szkielet czasu rzeczywistego.
 
-Etap 1 celowo nie ma czatu. Ten consumer robi dokładnie jedną rzecz:
-ustala tożsamość z sesji Django i utrzymuje połączenie otwarte, odpowiadając
-na `ping`. Nie ma tu wiadomości, obecności ani statusów zadań — te pojawią
-się w Etapie 4, razem z protokołem z `packages/core/src/chat.ts`.
-
-Zasada, która obowiązuje już teraz i później: tożsamość pochodzi WYŁĄCZNIE
+Zasada, która obowiązuje od początku: tożsamość pochodzi WYŁĄCZNIE
 z ciasteczka sesji. Nic, co przychodzi w payloadzie, nie może jej zmienić —
 inaczej dowolny klient podałby cudze `userId`.
 
-Wiadomości wychodzące mają stały kopertę: `{"type": ..., ...}`. Interfejs
+Wiadomości wychodzące mają stałą kopertę: `{"type": ..., ...}`. Interfejs
 czyta `type` i ignoruje nieznane rodzaje, więc dołożenie nowego typu
-w Etapie 4 nie zepsuje starszego klienta.
+nie zepsuje starszego klienta.
+
+Etap 4 dołącza tu OSOBISTĄ SKRZYNKĘ: po połączeniu klient dołącza do grupy
+`chat.{userId}`, do której REST (`chat/api.py`) pucha zdarzenia o nowych
+wiadomościach. Kanał nie zapisuje nic — zapis idzie przez API z pełną
+walidacją, CSRF i audytem. Kanał DOSTARCZA.
 """
 
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
@@ -35,13 +35,7 @@ class BaseConsumer(AsyncJsonWebsocketConsumer):
         await self.send_json({"type": "ready", "userId": self.user_id})
 
     async def disconnect(self, code: int) -> None:
-        """Sprzątanie po rozłączeniu.
-
-        Etap 1 nie ma grup ani subskrypcji, więc nie ma czego sprzątać.
-        Metoda istnieje, bo Etap 4 dołoży tu wyjście z grup rozmów — a brak
-        tej metody wtedy oznaczałby, że rozłączony użytkownik zostaje
-        w grupie i dostaje wiadomości, których nie powinien.
-        """
+        """Sprzątanie po rozłączeniu. Klasy pochodne opuszczają tu swoje grupy."""
 
     async def receive_json(self, content: dict, **kwargs) -> None:
         kind = content.get("type")
@@ -59,15 +53,36 @@ class BaseConsumer(AsyncJsonWebsocketConsumer):
 
 
 class ChatConsumer(BaseConsumer):
-    """Kanał czatu. Zarejestrowany i połączony, ale bez logiki do Etapu 4.
+    """Kanał czatu — osobista skrzynka zdarzeń od Etapu 4.
 
-    Świadomie nie ma tu nawet szkieletu wysyłania wiadomości. Wiadomość
-    wymaga modelu uczestnika, uprawnień do rozmowy i kolejności — wszystko
-    to jest w kontrakcie `packages/core/src/chat.ts`, ale nic z tego nie ma
-    jeszcze tabeli. Zrobienie tu „na razie prosto” dałoby drugi protokół
-    obok docelowego, a ten trzeba by potem usuwać.
+    Zapis wiadomości idzie przez REST (`chat/api.py`) — tam są walidacja,
+    CSRF i dziennik audytu. Ten kanał robi jedną rzecz: dołącza do grupy
+    `chat.{userId}` i przekazuje dalej to, co serwer do niej wrzuci.
+    Nic, co przychodzi od klienta, nie jest tu zapisywane.
+
+    Protokół wychodzący: `{"type": "message.new", "message": {...}}`.
+    Typ zdarzenia z `group_send` (`chat.message`) mapuje się na metodę
+    `chat_message` — kropka zamienia się w podkreślenie, to konwencja
+    Channels, nie nasz wybór.
     """
+
+    async def connect(self) -> None:
+        await super().connect()
+        # Grupa doklejana TYLKO po udanym accept: bez sesji baza zamyka
+        # połączenie i grupa nie powstaje.
+        if getattr(self, "user_id", None):
+            await self.channel_layer.group_add("chat." + self.user_id, self.channel_name)
+
+    async def disconnect(self, code: int) -> None:
+        # Bez tego rozłączony użytkownik zostawałby w grupie i dostawał
+        # zdarzenia, których nikt nie odbiera.
+        if getattr(self, "user_id", None):
+            await self.channel_layer.group_discard("chat." + self.user_id, self.channel_name)
+
+    async def chat_message(self, event: dict) -> None:
+        """Zdarzenie z REST: nowa wiadomość w jednej z rozmów odbiorcy."""
+        await self.send_json({"type": "message.new", "message": event["message"]})
 
 
 class PresenceConsumer(BaseConsumer):
-    """Kanał obecności. Zarejestrowany, ale bez logiki do Etapu 4."""
+    """Kanał obecności. Zarejestrowany, ale bez logiki do końca Etapu 4."""

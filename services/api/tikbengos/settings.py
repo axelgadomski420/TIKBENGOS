@@ -50,13 +50,17 @@ INSTALLED_APPS = [
     # Brak tej pozycji nie wywala serwera — dawałby tylko 404 na wpisach
     # i brak tabeli w migracjach, co jest trudniejsze do zauważenia.
     "feed",
+    # Czat od Etapu 4 (tekst): rozmowy, wiadomości, nieprzeczytane.
+    # Bez tej pozycji migracje czatu by nie istniały dla Django, a router
+    # w `tikbengos/urls.py` nie miałby tabel pod sobą.
+    "chat",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
 ]
 
@@ -156,7 +160,7 @@ else:
                 # tej samej bazy Redis.
                 "prefix": "tikbengos",
             },
-        },
+        }
     }
 
 # ── Uwierzytelnianie ─────────────────────────────────────────────────────

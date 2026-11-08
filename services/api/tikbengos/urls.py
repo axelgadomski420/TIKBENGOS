@@ -14,6 +14,10 @@ django-ninja NIE POZWALA zamontować tego samego routera dwa razy bez podania
 i Django nie potrafi wczytać adresów. To nie jest ostrzeżenie: bez tego pada
 każde polecenie `manage.py`, łącznie z `migrate`, a serwer nie wstaje.
 Prefiksy nazw są więc wymagane, nie opcjonalne.
+
+Router czatu jest OSOBNY i podpięty pod `/chat` — prefiks jest na liście
+dozwolonych w proxy interfejsu (`apps/web/src/app/api/[...path]/route.ts`),
+więc bez zmian w proxy ścieżka `/api/chat/...` działa od razu.
 """
 
 from django.http import JsonResponse
@@ -27,6 +31,7 @@ from accounts.api import router as accounts_router
 from accounts.keys_api import router as keys_router
 from accounts.oauth import router as oauth_router
 from accounts.providers_api import router as providers_router
+from chat.api import router as chat_router
 from feed.api import router as feed_router
 
 api = NinjaAPI(
@@ -72,7 +77,7 @@ def health_view(request):
     wersji bibliotek ani konfiguracji, tylko to, że odpowiedź dochodzi.
 
     Nie sprawdza bazy ani Redisa. Gdyby sprawdzał, kolejność startu
-    w compose musiałaby być jeszcze bardziej skomplikowana, a i tak
+    w compose musiała być jeszcze bardziej skomplikowana, a i tak
     najczęstsza awaria to zły `DATABASE_URL`, który wyjdzie przy `migrate`.
     """
     return JsonResponse({"status": "ok"})
@@ -117,6 +122,7 @@ api.add_router("/auth", oauth_router, url_name_prefix="oauth")
 api.add_router("/settings", keys_router)
 api.add_router("/settings", providers_router)
 api.add_router("/feed", feed_router)
+api.add_router("/chat", chat_router)
 
 urlpatterns = [
     path("v1/csrf", csrf_view, name="csrf_view"),
