@@ -3,42 +3,35 @@ import Link from "next/link";
 /**
  * Rozwidlenia z BENGOS Home.
  *
- * Dziewięć wejść w jednej siatce, każde z jednym zdaniem o tym, co tam jest.
- * Użytkownik nie widzi granic między dawnymi aplikacjami — widzi dziewięć
- * drzwi w jednym korytarzu.
+ * ── NAPISY SĄ TEKSTEM, NIE OBRAZEM ──────────────────────────────────────
+ * Podpisy (studio, bengtok, chat, asystent, dev, bridge, profil, ustawienia,
+ * wyszukiwarka) są tu prawdziwym tekstem w kodzie, nie fragmentem grafiki.
  *
- * ── PODPISY POCHODZĄ Z GRAFIKI MENU GŁÓWNEGO ───────────────────────────
- * Etykiety kafli (studio, bridge, dev, profil, chat, ustawienia, asystent,
- * wyszukiwarka, bengtok) są przepisane z grafiki, którą wskazał właściciel.
- * To NIE są nazwy wewnętrzne modułów z briefu i to jest celowe: użytkownik
- * czyta to, co widzi na obrazku marki, a nie nazwę katalogu.
+ * To nie jest wybór estetyczny, a jedyny sposób, żeby spełnić trzy warunki
+ * naraz:
+ *   1. napis JEST odnośnikiem — kliknięcie w słowo prowadzi do jego trasy,
+ *   2. napis jest dostępny z klawiatury — `Tab` przechodzi po kolei,
+ *      a `Enter` wchodzi; obszar klikalny nałożony na obraz tego nie daje,
+ *   3. napis jest czytany przez czytnik ekranu — obraz z napisami jest
+ *      dla czytnika jednym prostokątem, więc dziewięć słów z grafiki
+ *      byłoby dla niego niewidzialne.
  *
- * ── `bridge` TO ACCESS ─────────────────────────────────────────────────
- * Potwierdzone przez właściciela wprost. Grafika nazywa ten moduł „bridge”,
- * a brief — „Access” (TIKMIG + TIKMORS: migi, napisy, TTS, Morse, wibracje).
- * Jedno wejście, dwie nazwy, jedna trasa: `/access`. Kafel bez trasy byłby
- * przyciskiem, który nic nie robi — a tego brief zabrania wprost.
+ * Brief nazywa dostępność warunkiem odbioru każdego ekranu, więc wersja
+ * z przezroczystymi obszarami nałożonymi na grafikę nie wchodzi: wyglądałaby
+ * tak samo i byłaby nieużywalna dla kogoś, kto nie używa myszy.
+ *
+ * ── UKŁAD ODTWARZA GRAFIKĘ ──────────────────────────────────────────────
+ * Grafika menu ma moduły rozłożone wokół kuli: studio i bridge u góry,
+ * dev i profil po prawej, chat i ustawienia po lewej, asystent, bengtok
+ * i wyszukiwarka u dołu. Siatka poniżej zachowuje tę KOLEJNOŚĆ, ale nie
+ * pozycje — na telefonie układ po okręgu byłby nieczytelny, a odległości
+ * między napisami mniejsze niż 44 px, czyli poniżej progu celu dotykowego.
  *
  * ── KAŻDY KAFEL MA DOKĄD PROWADZIĆ ─────────────────────────────────────
- * „wyszukiwarka” i „asystent” nie mają własnych stron: pierwsza siedzi na
- * pulpicie jako pole uniwersalne, drugi to moduł Create. Prowadzą tam, gdzie
- * faktycznie coś jest, zamiast do nieistniejącej trasy.
- *
- * ── OKRĄGŁE KAFLE JAK W ZNAKU MARKI ────────────────────────────────────
- * Grafika pulpitu pokazuje moduły jako koła z podpisem pod nimi. Ten
- * komponent powtarza ten układ jako PRAWDZIWE odnośniki: okrągła tarcza,
- * pod nią nazwa, pod nią jedno zdanie. Kształt jest ten sam, ale każdy
- * element prowadzi do swojego ekranu.
- *
- * Każdy kafel ma w tarczy znak rysowany `currentColor`, więc dziedziczy
- * kolor motywu i stanu aktywnego. Tarcza jest okrągła jak w grafice, ale
- * jej wnętrze pochodzi z tokenów — dlatego działa w każdym motywie, także
- * w wysokim kontraście, gdzie grafika nie ma zastosowania.
- *
- * ── ZNACZNIK ETAPU NA KRAWĘDZI ─────────────────────────────────────────
- * Moduł w przygotowaniu ma znak etapu w prawym górnym rogu tarczy. Profile,
- * ustawienia i wyszukiwarka mają podpis „Gotowe”, a nie pustkę czytającą się
- * jak błąd.
+ * Żaden nie jest atrapą. „wyszukiwarka” prowadzi na pulpit, bo tam stoi
+ * pole uniwersalne; „asystent” do modułu Create, bo to dawny TIKAL;
+ * „bengtok” do feedu, bo to dawny TIKTAK; „bridge” do Access, bo tak
+ * potwierdził właściciel projektu.
  */
 
 type IconProps = { className?: string };
@@ -53,46 +46,11 @@ const ICON_PROPS = {
   "aria-hidden": true,
 };
 
-function IconFeed({ className }: IconProps) {
-  return (
-    <svg {...ICON_PROPS} className={className}>
-      <rect x="3" y="5" width="18" height="14" rx="3" />
-      <path d="m10.5 9.5 5.5 2.5-5.5 2.5z" />
-    </svg>
-  );
-}
-
 function IconStudio({ className }: IconProps) {
   return (
     <svg {...ICON_PROPS} className={className}>
       <path d="M4 7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
       <path d="m16 10 4-2.5v9L16 14" />
-    </svg>
-  );
-}
-
-function IconChat({ className }: IconProps) {
-  return (
-    <svg {...ICON_PROPS} className={className}>
-      <path d="M20 12a7 7 0 0 1-7 7H8l-4 3v-5.5A7 7 0 0 1 11 5h2a7 7 0 0 1 7 7Z" />
-    </svg>
-  );
-}
-
-function IconAssistant({ className }: IconProps) {
-  return (
-    <svg {...ICON_PROPS} className={className}>
-      <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" />
-      <circle cx="12" cy="12" r="3.5" />
-    </svg>
-  );
-}
-
-function IconDev({ className }: IconProps) {
-  return (
-    <svg {...ICON_PROPS} className={className}>
-      <path d="m8.5 8.5-4 3.5 4 3.5M15.5 8.5l4 3.5-4 3.5" />
-      <path d="m13.5 5.5-3 13" />
     </svg>
   );
 }
@@ -108,6 +66,15 @@ function IconBridge({ className }: IconProps) {
   );
 }
 
+function IconDev({ className }: IconProps) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <path d="m8.5 8.5-4 3.5 4 3.5M15.5 8.5l4 3.5-4 3.5" />
+      <path d="m13.5 5.5-3 13" />
+    </svg>
+  );
+}
+
 function IconProfile({ className }: IconProps) {
   return (
     <svg {...ICON_PROPS} className={className}>
@@ -117,11 +84,37 @@ function IconProfile({ className }: IconProps) {
   );
 }
 
+function IconChat({ className }: IconProps) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <path d="M20 12a7 7 0 0 1-7 7H8l-4 3v-5.5A7 7 0 0 1 11 5h2a7 7 0 0 1 7 7Z" />
+    </svg>
+  );
+}
+
 function IconSettings({ className }: IconProps) {
   return (
     <svg {...ICON_PROPS} className={className}>
       <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
       <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2 2 2 0 1 1-4 0 1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 15a2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 10 4.6a2 2 0 1 1 4 0 1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.7 1.7 0 0 0 21 11a2 2 0 1 1 0 4Z" />
+    </svg>
+  );
+}
+
+function IconAssistant({ className }: IconProps) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" />
+      <circle cx="12" cy="12" r="3.5" />
+    </svg>
+  );
+}
+
+function IconFeed({ className }: IconProps) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <rect x="3" y="5" width="18" height="14" rx="3" />
+      <path d="m10.5 9.5 5.5 2.5-5.5 2.5z" />
     </svg>
   );
 }
@@ -143,19 +136,17 @@ type Branch = {
   Icon: (p: IconProps) => React.JSX.Element;
 };
 
-/**
- * Dziewięć wejść. Kolejność idzie za grafiką menu: moduły pracy są pierwsze,
- * potem tożsamość i ustawienia, na końcu narzędzia globalne.
- */
+/** Kolejność idzie za grafiką: moduły pracy u góry, tożsamość po prawej,
+ * narzędzia u dołu. */
 const BRANCHES: Branch[] = [
   { href: "/studio", label: "studio", description: "Wideo, muzyka AI, posty, projekty kodu.", stage: 2, Icon: IconStudio },
-  { href: "/feed", label: "bengtok", description: "Krótkie wideo, dźwięki, posty, twórcy.", stage: 2, Icon: IconFeed },
-  { href: "/chat", label: "chat", description: "Wiadomości, grupy, tłumaczenia, dostępność.", stage: 4, Icon: IconChat },
-  { href: "/create", label: "asystent", description: "Asystent AI, pomysły, scenariusze, muzyka, kod.", stage: 5, Icon: IconAssistant },
-  { href: "/dev", label: "dev", description: "Repozytoria, issue, pull requesty, agent kodujący.", stage: 5, Icon: IconDev },
   { href: "/access", label: "bridge", description: "Język migowy, napisy, TTS, Morse, wibracje.", stage: 4, Icon: IconBridge },
+  { href: "/dev", label: "dev", description: "Repozytoria, issue, pull requesty, agent kodujący.", stage: 5, Icon: IconDev },
   { href: "/profile", label: "profil", description: "Tożsamość, twórczość, projekty, ustawienia asystenta.", stage: null, Icon: IconProfile },
+  { href: "/chat", label: "chat", description: "Wiadomości, grupy, tłumaczenia, dostępność.", stage: 4, Icon: IconChat },
   { href: "/settings", label: "ustawienia", description: "Język, wygląd, dostępność, klucze API, zgody.", stage: null, Icon: IconSettings },
+  { href: "/create", label: "asystent", description: "Asystent AI, pomysły, scenariusze, muzyka, kod.", stage: 5, Icon: IconAssistant },
+  { href: "/feed", label: "bengtok", description: "Krótkie wideo, dźwięki, posty, twórcy.", stage: 2, Icon: IconFeed },
   { href: "/", label: "wyszukiwarka", description: "Jedno pole na pytanie, tworzenie, szukanie i kod.", stage: null, Icon: IconSearch },
 ];
 
@@ -172,21 +163,26 @@ export function ModuleBranches() {
         Moduły z etapem w przygotowaniu otwierają ekran, który mówi wprost, co jest
         zaplanowane. Żaden z nich nie udaje działającej funkcji.
       </p>
-      <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
+      {/*
+        Siatka 2 → 3 kolumny. Na telefonie dwa kafle w rzędzie dają cel
+        dotykowy szerszy ni¿ 44 px, a trzy w rzędzie spadłyby poniżej progu.
+      */}
+      <ul className="mt-5 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
         {BRANCHES.map((branch) => (
-          <li key={branch.href}>
+          <li key={branch.label}>
             <Link
               href={branch.href}
-              className="group flex min-h-[var(--bengos-touch-target-min)] flex-col items-center gap-2 rounded-[var(--bengos-radius-card)] border border-[var(--bengos-border)] bg-[var(--bengos-surface-raised)] px-3 py-4 text-center transition-colors duration-[var(--bengos-motion-fast)] hover:border-[var(--bengos-border-strong)]"
+              className="group flex h-full min-h-[var(--bengos-touch-target-min)] flex-col items-center gap-2 rounded-[var(--bengos-radius-card)] border border-[var(--bengos-border)] bg-[var(--bengos-surface-raised)] px-3 py-4 text-center transition-colors duration-[var(--bengos-motion-fast)] hover:border-[var(--bengos-accent)] focus-visible:border-[var(--bengos-focus-ring)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bengos-focus-ring)]"
             >
               {/*
-                Tarcza modułu. Okrągła jak w znaku marki, ale zbudowana
-                z tokenów — dzięki temu działa także w trybie wysokiego
-                kontrastu, gdzie grafika nie jest używana.
+                Tarcza modułu: okrągła jak w znaku marki, ale zbudowana
+                z tokenów. Dzięki temu działa w motywie wysokiego kontrastu,
+                gdzie grafika nie jest używana.
 
-                `aria-hidden` na tarczy, bo znak jest dekoracją: nazwę
-                modułu niesie tekst pod nim, a powtórzenie jej w opisie
-                ikony dałoby czytnikowi to samo dwa razy.
+                `aria-hidden` na tarczy, bo znak jest dekoracją: nazwę modułu
+                niesie tekst pod nim — prawdziwy, klikalny, czytany przez
+                czytnik.
               */}
               <span className="relative flex size-14 shrink-0 items-center justify-center rounded-full border border-[var(--bengos-border)] bg-[var(--bengos-surface-sunken)] text-[var(--bengos-accent)] transition-colors duration-[var(--bengos-motion-fast)] group-hover:border-[var(--bengos-accent)]">
                 <branch.Icon className="size-7" />
@@ -197,7 +193,9 @@ export function ModuleBranches() {
                 ) : null}
               </span>
 
-              <span className="font-[var(--bengos-weight-medium)]">{branch.label}</span>
+              <span className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-medium)]">
+                {branch.label}
+              </span>
               <span className="text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
                 {branch.description}
               </span>
