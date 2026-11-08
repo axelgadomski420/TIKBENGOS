@@ -1,31 +1,30 @@
 /**
  * Znak marki BENGOS — jedno miejsce, w którym wskazujemy grafikę.
  *
- * ── PLIKI SĄ LOKALNE, NIE Z ZEWNĘTRZNEGO HOSTINGU ──────────────────────
- * Grafiki leżały wcześniej na `i.ibb.co` i to było źródłem trzech kosztów
- * naraz: dodatkowego połączenia TLS przy każdym wejściu (LCP), braku
- * zarezerwowanego miejsca (CLS) i zależności od serwisu, który może zniknąć
- * razem z logo. Teraz pliki są w `public/brand/` i jadą z tej samej domeny.
+ * ── TU TRAFIAJĄ WSZYSTKIE ODWOŁANIA DO GRAFIK ───────────────────────────
+ * Pliki leżą w `public/brand/` i jadą z tej samej domeny co aplikacja.
+ * Wcześniej stały na `i.ibb.co`, a to kosztowało trzy rzeczy naraz:
+ * dodatkowe połączenie TLS przy każdym wejściu (LCP), brak zarezerwowanego
+ * miejsca na obraz (CLS) i możliwość, że serwis zniknie razem z logo.
+ *
+ * ── TRZY GRAFIKI ────────────────────────────────────────────────────────
+ * 1. `logo`  — tygrys w kuli z napisem BENGOS, BEZ podpisów modułów. Znak
+ *    w nagłówku powłoki i w kole na ekranie startowym. Wersja bez podpisów
+ *    jest tu konieczna: w kole o średnicy 80 px napisy obcięte do połowy
+ *    wyglądają jak uszkodzony obraz.
+ * 2. `login` — kompozycja z napisami „logowanie" i „rejestracja". Należy do
+ *    ekranu startowego i tylko tam.
+ * 3. `menu`  — kompozycja z podpisami modułów. Tło nagłówka na pulpicie;
+ *    prawdziwe, klikalne wejścia stoją pod nią jako siatka.
  *
  * ── FORMAT DO ZROBIENIA ─────────────────────────────────────────────────
  * Pliki są JPEG. Docelowo AVIF i WebP — przy 1024×1024 różnica to setki
- * kilobajtów, a to bezpośrednio przekłada się na LCP. Konwersja wymaga
- * narzędzia, którego nie było w środowisku budującym, więc zostaje jako
- * świadome zadanie, a nie zapomnienie.
- *
- * ── TRZY GRAFIKI, TRZY ZASTOSOWANIA ─────────────────────────────────────
- * 1. `logo`  — znak: głowa tygrysa w kuli z napisem BENGOS. Nagłówek powłoki,
- *    koło nad kartą logowania, ikona instalowanej aplikacji.
- * 2. `login` — kompozycja z podpisami „logowanie" i „rejestracja". Należy do
- *    ekranu startowego i TYLKO tam: w nagłówku te napisy są szumem, a obok
- *    prawdziwego przycisku myliłyby użytkownika.
- * 3. `menu`  — kompozycja z podpisami modułów. Tło nagłówka na pulpicie;
- *    prawdziwe, klikalne wejścia stoją pod nią jako siatka.
+ * kilobajtów, co przekłada się wprost na LCP. Zostaje jako świadome zadanie.
  */
 export const BRAND = {
-  /** Znak: głowa w kuli z napisem BENGOS. */
-  logo: "/brand/menu.jpg",
-  /** Kompozycja logowania z podpisami „logowanie" i „rejestracja". */
+  /** Tygrys w kuli, bez podpisów. Znak powłoki i koło na logowaniu. */
+  logo: "/brand/logo.jpg",
+  /** Kompozycja logowania z napisami „logowanie" i „rejestracja". */
   login: "/brand/login.jpg",
   /** Kompozycja pulpitu z podpisami modułów. */
   menu: "/brand/menu.jpg",
