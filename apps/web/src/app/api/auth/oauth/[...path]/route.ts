@@ -28,13 +28,38 @@ import { NextResponse } from "next/server";
  * `src/app/api/[...path]/route.ts` i próbowało wymienić kod drugi raz.
  * Kolejność w Next.js rozstrzyga na korzyść trasy bardziej szczegółowej,
  * więc `POST` trafia tutaj.
+ *
+ * (Aktualizacja 2026-11-08: dwa błędy tej trasy wyszły na produkcji.)
+ * Po pierwsze: trasa jest bardziej szczegółowa niż proxy, więc łapie
+ * KAŻDE `GET /api/auth/oauth/*` — również `GET providers`, którego
+ * formularz logowania używa po listę dostawców. Żądanie nie ma `code`
+ * ani `state`, więc warunek niżej odsyłał je na `/login?oauth=brak-danych`,
+ * a formularz nie dostawał listy dostawców w ogóle. Teraz `providers`
+ * bez parametrów callbacku jedzie wprost do Django i wraca jako JSON.
+ * Po drugie: `request.url` za Caddy widział origin jako `localhost:3000`
+ * (wewnętrzny adres Nexta), więc każde przekierowanie z tej trasy
+ * prowadziło przeglądarkę na localhost użytkownika. Origin stavania
+ * budowany z nagłówków, które Caddy przekazuje: `x-forwarded-host`
+ * i `x-forwarded-proto`.
  */
 const API_INTERNAL_URL = process.env.API_INTERNAL_URL;
 
 type RouteContext = { params: Promise<{ path: string[] }> };
 
-function backToLogin(url: URL, reason: string) {
-  const back = new URL("/login", url.origin);
+/*
+ * Origin publiczny z nagłówków żądania, nie z `request.url`. Caddy
+ * przekazuje `Host` bez zmian i dokłada `X-Forwarded-Proto`; URL wewnętrzny
+ * Nexta nic o tym nie wie. Kolejność nagłówków celowo taka: forwarded
+ * pierwszy (docelowo więcej niż jeden proxy), potem zwykły `host`.
+ */
+function publicOrigin(request: Request, url: URL): string {
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? url.host;
+  const proto = request.headers.get("x-forwarded-proto") ?? "http";
+  return proto + "://" + host;
+}
+
+function backToLogin(request: Request, url: URL, reason: string) {
+  const back = new URL("/login", publicOrigin(request, url));
   back.searchParams.set("oauth", reason);
   return NextResponse.redirect(back);
 }
@@ -46,7 +71,7 @@ async function exchange(
   code: string,
   state: string,
 ) {
-  if (!API_INTERNAL_URL) return backToLogin(url, "brak-konfiguracji");
+  if (!API_INTERNAL_URL) return backToLogin(request, url, "brak-konfiguracji");
 
   const target = `${API_INTERNAL_URL}/v1/auth/oauth/${encodeURIComponent(provider)}/callback?${new URLSearchParams({ code, state }).toString()}`;
 
@@ -68,10 +93,10 @@ async function exchange(
     });
 
     if (!response.ok) {
-      return backToLogin(url, response.status === 400 ? "stan" : "odmowa");
+      return backToLogin(request, url, response.status === 400 ? "stan" : "odmowa");
     }
 
-    const result = NextResponse.redirect(new URL("/", url.origin));
+    const result = NextResponse.redirect(new URL("/", publicOrigin(request, url)));
     // Ciasteczka sesji i CSRF muszą wrócić do przeglądarki — bez tego
     // użytkownik jest zalogowany po stronie serwera, a przeglądarka o tym nie wie.
     for (const cookie of response.headers.getSetCookie()) {
@@ -79,7 +104,7 @@ async function exchange(
     }
     return result;
   } catch {
-    return backToLogin(url, "blad-sieci");
+    return backToLogin(request, url, "blad-sieci");
   }
 }
 
@@ -90,8 +115,32 @@ export async function GET(request: Request, ctx: RouteContext) {
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
 
-  if (url.searchParams.get("error")) return backToLogin(url, "odmowa");
-  if (!provider || !code || !state) return backToLogin(url, "brak-danych");
+  /*
+   * `GET /api/auth/oauth/providers` to NIE callback — to prośba formularza
+   * logowania o listę skonfigurowanych dostawców (patrz aktualizacja
+   * w docblocku na górze). Bez tego rozgałęzienia wpadało w warunek
+   * `brak-danych` i wracało przekierowaniem zamiast listy.
+   */
+  if (provider === "providers" && !code && !state) {
+    if (!API_INTERNAL_URL) return backToLogin(request, url, "brak-konfiguracji");
+    try {
+      const response = await fetch(`${API_INTERNAL_URL}/v1/auth/oauth/providers`, {
+        headers: { host: url.host },
+        cache: "no-store",
+      });
+      return new NextResponse(response.body, {
+        status: response.status,
+        headers: {
+          "content-type": response.headers.get("content-type") ?? "application/json",
+        },
+      });
+    } catch {
+      return backToLogin(request, url, "blad-sieci");
+    }
+  }
+
+  if (url.searchParams.get("error")) return backToLogin(request, url, "odmowa");
+  if (!provider || !code || !state) return backToLogin(request, url, "brak-danych");
 
   return exchange(request, url, provider, code, state);
 }
@@ -120,7 +169,7 @@ export async function POST(request: Request, ctx: RouteContext) {
     }
   }
 
-  if (!provider || !code || !state) return backToLogin(url, "brak-danych");
+  if (!provider || !code || !state) return backToLogin(request, url, "brak-danych");
 
   return exchange(request, url, provider, code, state);
 }

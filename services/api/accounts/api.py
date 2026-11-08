@@ -15,7 +15,6 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from ninja import Router
-from ninja.errors import HttpError
 
 from .audit import record
 from .models import User
@@ -38,11 +37,31 @@ USERNAME_PATTERN = re.compile(r"^[a-z0-9_]{3,30}$")
 MIN_PASSWORD_LENGTH = 12
 
 
+class ApiErrorPayload(Exception):
+    """Błąd API w kształcie kontraktu `ApiError` — patrz handler w urls.py.
+
+    ── DLACZEGO NIE `ninja.errors.HttpError` ─────────────────────────────
+    (Aktualizacja 2026-11-08) `HttpError` przyjmuje WYŁĄCZNIE string lub
+    bajty — w środku stoi `assert isinstance(message, (str, bytes))`.
+    Poprzednia wersja `_error` podawała dicta, więc KAŻDY błąd API —
+    401 dla niezalogowanego przy `/users/me`, 400 przy rejestracji,
+    409 przy zajętej nazwie — wybuchał `AssertionError` w chwili rzucenia
+    i wracał do przeglądarki jako 500. Biała strona. Ten wyjątek niesie
+    payload w całości, a handler w `tikbengos/urls.py` oddaje go jako JSON
+    bez angażowania asercji ninja.
+    """
+
+    def __init__(self, status: int, payload: dict):
+        super().__init__(payload.get("message", ""))
+        self.status = status
+        self.payload = payload
+
+
 def _error(code: str, message: str, status: int, field: str | None = None):
     payload = {"code": code, "message": message}
     if field:
         payload["field"] = field
-    raise HttpError(status, payload)
+    raise ApiErrorPayload(status, payload)
 
 
 # EPOCH liczymy RAZ, na poziomie modułu, i z `datetime.timezone.utc`.
@@ -57,9 +76,9 @@ def _error(code: str, message: str, status: int, field: str | None = None):
 # Skutek był widoczny dopiero na produkcji i tylko na jednej ścieżce.
 # `_consents()` woła tę gałąź wyłącznie wtedy, gdy `consents_updated_at`
 # jest puste — a puste jest dokładnie u ŚWIEŻO UTWORZONEGO konta. Konto,
-# które raz zapisało zgody, ma datę ustawioną i ten kod nigdy się nie
-# wykonuje. Dlatego `POST /api/auth/register` wracał `500`, gdy `GET /api/csrf`
-# dawał `200` — i dlatego nic tego nie wykryło wcześniej.
+# które raz zapisało zgody, ma datę ustawioną i ten kod nigdy się
+# nie wykonuje. Dlatego `POST /api/auth/register` wracał `500`, gdy
+# `GET /api/csrf` dawał `200` — i dlatego nic tego nie wykryło wcześniej.
 EPOCH = datetime(1970, 1, 1, tzinfo=dt_timezone.utc)
 
 
@@ -91,7 +110,7 @@ def serialize(user: User) -> dict:
 
 
 def _check_password_strength(password: str, user: User | None = None) -> None:
-    """Walidatory Django na haśle. Rzuca `HttpError` z powodem, albo nie robi nic.
+    """Walidatory Django na haśle. Rzuca błąd z powodem, albo nie robi nic.
 
     ── DLACZEGO TO JEST TU, A NIE TYLKO W USTAWIENIACH ─────────────────────
     `AUTH_PASSWORD_VALIDATORS` w `settings.py` ma trzy wpisy:

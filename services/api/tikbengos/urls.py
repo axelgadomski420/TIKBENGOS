@@ -39,6 +39,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET
 from ninja import NinjaAPI
 
+from accounts.api import ApiErrorPayload
 from ai.api import router as ai_router
 from accounts.api import router as accounts_router
 from accounts.keys_api import router as keys_router
@@ -54,6 +55,20 @@ api = NinjaAPI(
     version="1.0.0",
     urls_namespace="v1",
 )
+
+
+# ── BŁĘDY KONTRAKTU `ApiError` IDĄ PRZEZ WŁASNY WYJĄTEK ───────────────
+# (Aktualizacja 2026-11-08) `_error` w `accounts/api.py` podawał dicta do
+# `ninja.errors.HttpError`, który w konstruktorze robi `assert isinstance(
+# message, (str, bytes))` — asercja wybuchała i KAŻDY błąd API wracał
+# jako 500 (najgłośniej: 401 na `/v1/users/me` dla niezalogowanego, czyli
+# pierwsze żądanie każdego wejścia na stronę — stąd biała strona).
+# `ApiErrorPayload` niesie payload `{"code", "message", "field"?}` w całości,
+# a ten handler oddaje go 1:1. django-ninja wybiera handler po typie w MRO,
+# więc ten wygrywa z ogólnym `Exception` poniżej — bez zmiany tamtego.
+@api.exception_handler(ApiErrorPayload)
+def handle_api_error(request, exc):
+    return api.create_response(request, exc.payload, status=exc.status)
 
 
 @api.exception_handler(Exception)
@@ -103,7 +118,7 @@ def config_view(request):
     """Kontrakt widoczny z zewnątrz — bez niczego wrażliwego.
 
     `realtimePath` i `csrfPath` są tu po to, żeby interfejs i skrypty nie
-    musiały znać tych ścieżek na sztywno. Rozjazd między klientem a serwera
+    musiiały znać tych ścieżek na sztywno. Rozjazd między klientem a serwera
     w tych dwóch miejscach był już raz błędem w tym projekcie.
 
     `oauthPaths` dołączyły z tego samego powodu: adresy callbacku są
