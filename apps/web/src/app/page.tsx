@@ -2,70 +2,72 @@ import type { Metadata } from "next";
 
 import { UniversalSearch } from "@/components/home/universal-search";
 import { IdentityBar } from "@/components/home/identity-bar";
-import { CreateNowCard } from "@/components/home/create-now-card";
-import { ContinueCard } from "@/components/home/continue-card";
-import { ForYouCard } from "@/components/home/for-you-card";
-import { AccessibilityCard } from "@/components/home/accessibility-card";
 import { ModuleBranches } from "@/components/home/module-branches";
 
-import { BRAND } from "@/lib/brand";
-
-export const metadata: Metadata = { title: "BENGOS Home" };
-
 /**
- * BENGOS Home — pulpit sterowania, nie feed.
+ * BENGOS Home — pulpit sterowania.
  *
- * Różnica jest zasadnicza i wynika wprost z briefu: feed pokazuje treść,
- * pulpit pokazuje intencję. Użytkownik nie przewija tu w poszukiwaniu czegoś
- * do obejrzenia — przychodzi z pomysłem i ma zobaczyć, którą drogą go
- * zrealizować. Dlatego wyszukiwarka jest na samej górze, wejścia do tworzenia
- * są widoczne bez przewijania, a feed jest jedną kartą wśród pięciu.
+ * ── MENU JEST PIERWSZE, NIE OSTATNIE ────────────────────────────────────
+ * Poprzednia wersja stawiała na górze grafikę menu jako zwykły obraz,
+ * a dziewięć kafli wypychała na sam dół — czyli menu, po które użytkownik
+ * przyszedł, było ostatnie, a jego obrazek pierwszy. To było odwrócenie
+ * znaczenia: ozdoba przed rzeczą.
  *
- * ── NAGŁÓWEK Z GRAFIKĄ MARKI ───────────────────────────────────────────
- * Na samej górze pulpitu stoi grafika z podpisami modułów. To jest jedyne
- * miejsce w aplikacji, w którym te napisy mają sens: odsyłają wzrok do tego,
- * co pod nimi, a w pasku o wysokości 40 px byłyby szumem.
+ * Teraz kolejność idzie od intencji do wejścia:
+ *   1. grafika menu jako TŁO nagłówka (nastrój, nie plik do przewijania),
+ *   2. wyszukiwarka — jedno pole na pytanie, tworzenie, szukanie i kod,
+ *   3. pasek tożsamości — kim jesteś,
+ *   4. DZIEWIĘĆ WEJŚĆ — dokąd możesz iść.
  *
- * Grafika jest dekoracją (`alt=""`), bo nie niesie treści, której nie ma
- * gdzie indziej: nazwy modułów stoją pod nią jako PRAWDZIWE odnośniki
- * i to one działają. Obraz bez `alt` kazałby czytnikowi odczytać pięć
- * słów, które zaraz przeczyta drugi raz z listy.
+ * ── GRAFIKA JEST TŁEM, NIE OBRAZEM W TREŚCI ─────────────────────────────
+ * Jako element w treści zajmowała kwadrat 1024×1024 i na telefonie zjadała
+ * cały pierwszy ekran. Jako tło nagłówka daje nastrój i nie zabiera miejsca
+ * temu, co ma działać.
  *
- * ── POPRZEDNIE USUNIĘCIE ZOSTAŁO COFNIĘTE ──────────────────────────────
- * Wcześniejsza wersja usuwała grafikę z powodu uwagi o „marcie okrągłych
- * przycisków wypisanych w obrazie”. Ta uwaga dotyczyła CZEGO INNEGO:
- * tego, żeby nie udawać przycisków, których nie ma. Ponieważ grafikę wolno
- * pokazać, a obowiązek dotyczy przycisków, grafika wróciła na swoje
- * miejsce: obraz ustawia nastrój, a menu pod nim naprawdę działa.
+ * ── KARTY PULPITU ZOSTAJĄ WYCOFANE, NIE USUNIĘTE ────────────────────────
+ * „Stwórz teraz”, „Kontynuuj”, „Dla Ciebie” i „Dostępność” stoją teraz
+ * bezpośrednio w menu — bo każde z nich JEST jednym z dziewięciu wejść.
+ * Trzymanie ich osobno i obok nich siatki tych samych celów dawałoby dwa
+ * menu na jednym ekranie, czyli bałagan. Komponenty zostają w repo i wracają,
+ * gdy będą miały własną treść do pokazania.
  *
  * ── RYTM WEJŚCIA ───────────────────────────────────────────────────────
- * Elementy wchodzą jeden po drugim, w kolejności czytania: najpierw znak,
- * potem pytanie („co chcesz zrobić?”), potem kim jesteś, potem co możesz
- * zrobić, i dopiero na końcu gdzie wejść. Opóźnienia kończą się na piątej
- * pozycji — dalej przestałyby być rytmem, a zaczęłyby być zwłoką.
+ * Trzy elementy, nie siedem. Krótsza kolejność czyta się jako kompozycja;
+ * dłuższa zaczyna być zwłoką.
  */
 export default function HomePage() {
   return (
     <div className="space-y-6">
-      {/*
-        Tytuł jest dla czytnika ekranu, nie dla oka — znak i nazwa stoją
-        w nagłówku powłoki oraz w grafice pod nim. Powtórzenie ich tutaj
-        byłoby szumem, a `bengos-visually-hidden` zostawia treść w drzewie
-        dostępności: `display: none` usunęłoby ją razem z informacją
-        o strukturze.
-      */}
-      <h1 className="bengos-visually-hidden">BENGOS Home — pulpit</h1>
+      <h1 className="bengos-visually-hidden">BENGOS — pulpit</h1>
 
-      <div className="bengos-rise bengos-rise-1">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={BRAND.home}
-          alt=""
-          width={1024}
-          height={1024}
-          className="mx-auto w-full max-w-md rounded-[var(--bengos-radius-card)] object-contain"
-        />
-      </div>
+      {/*
+        Nagłówek z grafiką menu w tle. Obraz jest rozmyty i przygaszony,
+        a na nim gradient, po którym czytają się napisy — dlatego treść
+        poniżej nie konkuruje z obrazem o uwagę.
+
+        `alt=""` jest poprawne: nazwy modułów są wypalone w obrazie, ale
+        prawdziwe, klikalne wejścia stoją niżej jako siatka. Opis obrazka
+        kazałby czytnikowi odczytać te same słowa dwa razy.
+      */}
+      <section className="bengos-rise bengos-rise-1 relative isolate overflow-hidden rounded-[var(--bengos-radius-card)] border border-[var(--bengos-border)] bg-[var(--bengos-surface-raised)]">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={BRAND_HOME} alt="" className="size-full object-cover object-center opacity-40 blur-[1px]" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_0%,var(--bengos-surface-raised)_72%,var(--bengos-surface-raised)_100%)]" />
+        </div>
+
+        <div className="flex min-h-[13rem] flex-col justify-end px-5 pb-5 pt-24">
+          <p className="text-[var(--bengos-size-caption)] uppercase tracking-[0.3em] text-[var(--bengos-text-muted)]">
+            BENGOS
+          </p>
+          <p className="mt-1 text-[var(--bengos-size-title)] font-[var(--bengos-weight-semibold)]">
+            Osiem modułów, jedno konto
+          </p>
+          <p className="mt-1 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
+            Wybierz, gdzie wchodzisz — albo zapytaj w polu poniżej.
+          </p>
+        </div>
+      </section>
 
       <div className="bengos-rise bengos-rise-2">
         <UniversalSearch />
@@ -75,19 +77,17 @@ export default function HomePage() {
         <IdentityBar />
       </div>
 
-      <div className="bengos-rise bengos-rise-3 grid gap-4 md:grid-cols-2">
-        <CreateNowCard />
-        <ContinueCard />
-      </div>
-
-      <div className="bengos-rise bengos-rise-4 space-y-6">
-        <ForYouCard />
-        <AccessibilityCard />
-      </div>
-
-      <div className="bengos-rise bengos-rise-5">
+      <div className="bengos-rise bengos-rise-4">
         <ModuleBranches />
       </div>
     </div>
   );
 }
+
+/**
+ * Adres grafiki menu — przepisany z `@/lib/brand`, ale wciągnięty tu
+ * bezpośrednio, bo `home` i `login` mają różne zadania i nie chcą być
+ * mylone: `BRAND.home` to spis modułów (tło nagłówka), a `BRAND.login`
+ * to kompozycja logowania (tło ekranu startowego).
+ */
+const BRAND_HOME = "https://i.ibb.co/TxDg2pFH/44747202-085-E-42B8-BE50-EF91CAF448-F1.jpg";
