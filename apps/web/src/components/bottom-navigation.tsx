@@ -21,11 +21,17 @@ import { usePathname } from "next/navigation";
  * `currentColor`, więc dziedziczy kolor stanu aktywnego i motyw — nie ma
  * tu ani jednej wartości koloru.
  *
- * ── AKTYWNY CEL MA TEZ KRESKE, NIE TYLKO KOLOR ─────────────────────────
+ * ── AKTYWNY CEL MA TEZ KRESKE I OBRAMOWANIE ────────────────────────────
  * Klasa `bengos-nav-mark` (w `globals.css`) dorysowuje kreskę nad aktywną
- * pozycją. Kolor ikony działa tylko dla kogoś, kto odróżnia akcent od tła;
- * kreska działa niezależnie od tego — i to jest ta sama zasada, którą
- * stosuje podświetlona powierzchnia w pasku górnym.
+ * pozycją, a tarcza dostaje jaśniejszą krawędź. Kolor ikony działa tylko
+ * dla kogoś, kto odróżnia akcent od tła; kształt i krawędź działają
+ * niezależnie od tego — i to jest ta sama zasada, którą stosuje
+ * podświetlona powierzchnia w pasku górnym.
+ *
+ * ── TARCZE JAK W MENU GŁÓWNYM ──────────────────────────────────────────
+ * Kształt jest ten sam co na pulpicie: okrągła tarcza z podpisem. Dzięki
+ * temu przejście między pulpitem a paskiem dolnym nie zmienia języka
+ * interfejsu — użytkownik widzi te same znaki w obu miejscach.
  */
 type IconProps = { className?: string };
 
@@ -51,8 +57,8 @@ function IconHome({ className }: IconProps) {
 function IconFeed({ className }: IconProps) {
   return (
     <svg {...ICON_PROPS} className={className}>
-      <rect x="4" y="5" width="16" height="14" rx="3" />
-      <path d="m10.5 9.5 5 2.5-5 2.5z" />
+      <rect x="3" y="5" width="18" height="14" rx="3" />
+      <path d="m10.5 9.5 5.5 2.5-5.5 2.5z" />
     </svg>
   );
 }
@@ -60,7 +66,8 @@ function IconFeed({ className }: IconProps) {
 function IconCreate({ className }: IconProps) {
   return (
     <svg {...ICON_PROPS} className={className}>
-      <path d="M12 4v16M4 12h16" />
+      <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />
+      <circle cx="12" cy="12" r="3.5" />
     </svg>
   );
 }
@@ -109,13 +116,21 @@ export function BottomNavigation() {
               <Link
                 href={destination.href}
                 aria-current={active ? "page" : undefined}
-                className={`bengos-touch-target bengos-nav-mark w-full flex-col gap-0.5 !min-w-0 text-[var(--bengos-size-caption)] transition-colors duration-[var(--bengos-motion-fast)] ${
+                className={`bengos-touch-target bengos-nav-mark w-full flex-col gap-1 !min-w-0 py-1.5 text-[var(--bengos-size-caption)] transition-colors duration-[var(--bengos-motion-fast)] ${
                   active
                     ? "font-[var(--bengos-weight-medium)] text-[var(--bengos-accent)]"
                     : "text-[var(--bengos-text-muted)]"
                 }`}
               >
-                <destination.Icon className="size-6" />
+                <span
+                  className={`flex size-9 items-center justify-center rounded-full border transition-colors duration-[var(--bengos-motion-fast)] ${
+                    active
+                      ? "border-[var(--bengos-accent)] bg-[var(--bengos-accent-muted)]"
+                      : "border-[var(--bengos-border)]"
+                  }`}
+                >
+                  <destination.Icon className="size-5" />
+                </span>
                 {/*
                   Napis jest widoczny, ale jego treść powtarza `hint` dla
                   czytnika — dlatego sam napis jest ukryty przed czytnikiem,
