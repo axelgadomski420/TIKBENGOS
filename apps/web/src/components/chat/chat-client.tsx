@@ -49,7 +49,7 @@ interface RealtimeEvent {
 
 // Design system projektu: klasy bengos-* i tokeny --bengos-*. Żadnych
 // własnych nazw ani zmiennych CSS spoza tego zestawu — to nie dekoracja,
- tylko spójność: przycisk czatu ma wyglądać jak przycisk feedu.
+// tylko spójność: przycisk czatu ma wyglądać jak przycisk feedu.
 const BTN =
   "bengos-touch-target inline-flex items-center rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] px-4 text-[var(--bengos-size-caption)]";
 const BTN_PRIMARY =
