@@ -7,6 +7,10 @@ przy `Page<T>` w `packages/core/src/api.ts`.
 Kursor jest nieprzezroczysty dla klienta i koduje moment oraz identyfikator
 ostatniego wpisu. Dzięki temu dwa wpisy o tym samym znaczniku czasu nie
 gubią się nawzajem.
+
+Etap 2 dla tekstu zamykają obserwacje i podniesienia. Oba działają na
+modelach, które istniały od początku (`Follow`, pola podniesienia w `Post`),
+więc ta zmiana nie wprowadza żadnej migracji.
 """
 
 import base64
@@ -32,9 +36,11 @@ from .schemas import (
     CountersOut,
     CreateCommentIn,
     CreatePostIn,
+    FollowOut,
     LikeOut,
     PostListOut,
     PostOut,
+    RepostOut,
 )
 
 router = Router(tags=["feed"])
@@ -82,17 +88,25 @@ def _author(user: User) -> dict:
 
 
 def _serialize(post: Post, viewer_id: uuid.UUID | None = None) -> dict:
+    """Wpis w postaci kontraktu.
+
+    Podniesienie niesie treść ORYGINAŁU: feed czyta się od treści, a licznik
+    podniesień mówi, że ktoś ją podniósł. `authorId` to autor oryginału,
+    `repostedBy` — kto podniósł, `createdAt` — czas podniesienia (tak mówi
+    kontrakt: feed sortuje podniesienia po czasie podniesienia).
+    """
+    origin = post.repost_of or post
     return {
         "id": str(post.id),
-        "authorId": str(post.reposted_by_id or post.author_id),
+        "authorId": str(origin.author_id),
         # Puste `body` oddajemy jako `null`, bo tak mówi kontrakt: brak tekstu
         # to brak, a nie pusty łańcuch do wyświetlenia.
-        "body": post.body or None,
+        "body": origin.body or None,
         "media": None,
-        "tags": post.tags or [],
+        "tags": origin.tags or [],
         "audioDescription": None,
         "trackId": None,
-        "counters": _counters(post),
+        "counters": _counters(origin),
         "repostedBy": str(post.reposted_by_id) if post.reposted_by_id else None,
         "createdAt": post.created_at,
     }
@@ -121,7 +135,7 @@ def _viewer_id(request) -> uuid.UUID | None:
 
 
 def _post_queryset():
-    return Post.objects.select_related("author", "reposted_by")
+    return Post.objects.select_related("author", "reposted_by", "repost_of", "repost_of__author")
 
 
 def _comment_queryset():
@@ -193,7 +207,7 @@ def list_posts(
         if viewer_id is None:
             # Bez sesji nie ma kogo obserwować. Pusta lista jest tu poprawną
             # odpowiedzią — a nie 401, bo czytanie feedu nie wymaga konta.
-            return 200, {"items": [], "nextCursor": None, "authors": {}}
+            return 200, {"items": [], "nextCursor": None, "authors": {}, "following": []}
         followed_ids = list(
             Follow.objects.filter(follower_id=viewer_id).values_list("followed_id", flat=True)
         )
@@ -232,16 +246,35 @@ def list_posts(
 
     # Autorzy tej strony, zebrani raz. Bez tego interfejs musiałby albo
     # dociągnąć każdego osobno, albo pokazać sam identyfikator.
-    author_ids = {post.reposted_by_id or post.author_id for post in page}
+    # Przy podniesieniu zbieramy DWÓCH: autora oryginału i podnoszącego —
+    # interfejs pokazuje „kto napisał” i „kto podniósł”.
+    author_ids: set = set()
+    for post in page:
+        origin = post.repost_of or post
+        author_ids.add(origin.author_id)
+        if post.reposted_by_id:
+            author_ids.add(post.reposted_by_id)
     authors = {
         str(user.id): _author(user)
         for user in User.objects.filter(id__in=author_ids)
     }
 
+    # Kogo z tej strony czytelnik już obserwuje — jedno zapytanie, zero
+    # dodatkowych żądań z interfejsu. Bez sesji lista jest pusta, jak autorzy.
+    followed_on_page: list[str] = []
+    if viewer_id is not None and author_ids:
+        followed_on_page = [
+            str(followed_id)
+            for followed_id in Follow.objects.filter(
+                follower_id=viewer_id, followed_id__in=author_ids
+            ).values_list("followed_id", flat=True)
+        ]
+
     return 200, {
         "items": [_serialize(post, viewer_id) for post in page],
         "nextCursor": _encode_cursor(page[-1]) if has_more and page else None,
         "authors": authors,
+        "following": followed_on_page,
     }
 
 
@@ -329,6 +362,163 @@ def unlike_post(request, post_id: str):
         post.refresh_from_db()
 
     return 200, {"liked": False, "counters": _counters(post)}
+
+
+@router.post(
+    "/users/{user_id}/follow",
+    response={200: FollowOut, 400: ErrorOut, 401: ErrorOut, 404: ErrorOut},
+)
+def follow_user(request, user_id: str):
+    """Obserwacja autora.
+
+    Idempotentna: para (obserwujący, obserwowany) jest unikalna w modelu,
+    więc powtórne żądanie nie tworzy duplikatu i nie jest błędem. Filtr
+    „obserwowani” czyta dokładnie tę tabelę — bez tego endpointu filtr
+    istniał, ale nie było jak go napełnić.
+    """
+    user = current_user(request)
+
+    try:
+        target_id = uuid.UUID(user_id)
+    except ValueError:
+        raise HttpError(
+            400,
+            {
+                "code": "bad_request",
+                "message": "Identyfikator użytkownika jest nieprawidłowy.",
+                "field": "user_id",
+            },
+        )
+
+    if target_id == user.id:
+        raise HttpError(
+            400,
+            {
+                "code": "bad_request",
+                "message": "Nie możesz obserwować samego siebie.",
+                "field": "user_id",
+            },
+        )
+
+    target = User.objects.filter(id=target_id).first()
+    if target is None:
+        raise HttpError(404, {"code": "not_found", "message": "Nie znaleziono tego użytkownika."})
+
+    with transaction.atomic():
+        try:
+            Follow.objects.create(follower=user, followed=target)
+        except IntegrityError:
+            pass
+        else:
+            record(user, "feed.follow.create", resource=str(target.id))
+
+    return 200, {"following": True}
+
+
+@router.delete(
+    "/users/{user_id}/follow",
+    response={200: FollowOut, 400: ErrorOut, 401: ErrorOut, 404: ErrorOut},
+)
+def unfollow_user(request, user_id: str):
+    """Cofnięcie obserwacji. Idempotentne jak polubienie: brak obserwacji
+    nie jest błędem, tylko stanem docelowym."""
+    user = current_user(request)
+
+    try:
+        target_id = uuid.UUID(user_id)
+    except ValueError:
+        raise HttpError(
+            400,
+            {
+                "code": "bad_request",
+                "message": "Identyfikator użytkownika jest nieprawidłowy.",
+                "field": "user_id",
+            },
+        )
+
+    target = User.objects.filter(id=target_id).first()
+    if target is None:
+        raise HttpError(404, {"code": "not_found", "message": "Nie znaleziono tego użytkownika."})
+
+    deleted, _ = Follow.objects.filter(follower=user, followed=target).delete()
+    if deleted:
+        record(user, "feed.follow.delete", resource=str(target.id))
+
+    return 200, {"following": False}
+
+
+@router.post(
+    "/posts/{post_id}/repost",
+    response={200: RepostOut, 401: ErrorOut, 403: ErrorOut, 404: ErrorOut},
+)
+def repost_post(request, post_id: str):
+    """Podniesienie wpisu.
+
+    Podniesienie jest NOWYM wpisem, który wskazuje oryginał: `reposted_by`
+    mówi kto podniósł, a `created_at` podniesienia decyduje o miejscu
+    w feedzie. Idempotentne — warunek unikalny (podnoszący, oryginał) stoi
+    w modelu, więc drugie podniesienie nie liczy się ani nie jest błędem.
+
+    Podniesienie podniesienia podnosi ORYGINAŁ: łańcucha podnieść się nie
+    da, bo feed czyta się od treści, a nie od historii podnoszeń.
+    """
+    user = current_user(request)
+
+    if not can(user.effective_roles(), "post.create"):
+        raise HttpError(
+            403,
+            {"code": "forbidden", "message": "Twoja rola nie pozwala podnosić wpisów."},
+        )
+
+    post = Post.objects.filter(id=post_id).first()
+    if post is None:
+        raise HttpError(404, {"code": "not_found", "message": "Nie znaleziono tego wpisu."})
+
+    origin = post.repost_of or post
+
+    with transaction.atomic():
+        try:
+            # `author` oryginału, nie podnoszącego: autor treści nie zmienia
+            # się przez to, że ktoś ją podniósł. Filtr „obserwowani” widzi
+            # podniesienia obserwowanych autorów dzięki temu bez wyjątku.
+            Post.objects.create(
+                author=origin.author, reposted_by=user, repost_of=origin, body=""
+            )
+        except IntegrityError:
+            pass
+        else:
+            Post.objects.filter(id=origin.id).update(repost_count=F("repost_count") + 1)
+        origin.refresh_from_db()
+
+    return 200, {"reposted": True, "counters": _counters(origin)}
+
+
+@router.delete(
+    "/posts/{post_id}/repost",
+    response={200: RepostOut, 401: ErrorOut, 404: ErrorOut},
+)
+def unrepost_post(request, post_id: str):
+    """Cofnięcie podniesienia usuwa wpis-podniesienie i schodzi z licznika.
+
+    Twarde usunięcie jak przy wpisie: kontrakt nie zna kosza. Licznik
+    oryginału nie schodzi pod zero — z tego samego powodu co polubienia.
+    """
+    user = current_user(request)
+    post = Post.objects.filter(id=post_id).first()
+    if post is None:
+        raise HttpError(404, {"code": "not_found", "message": "Nie znaleziono tego wpisu."})
+
+    origin = post.repost_of or post
+
+    with transaction.atomic():
+        deleted, _ = Post.objects.filter(reposted_by=user, repost_of=origin).delete()
+        if deleted:
+            Post.objects.filter(id=origin.id, repost_count__gt=0).update(
+                repost_count=F("repost_count") - 1
+            )
+        origin.refresh_from_db()
+
+    return 200, {"reposted": False, "counters": _counters(origin)}
 
 
 @router.get("/posts/{post_id}/comments", response={200: list[CommentOut], 404: ErrorOut})

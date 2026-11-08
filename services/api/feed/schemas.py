@@ -44,6 +44,27 @@ class LikeOut(Schema):
     counters: CountersOut
 
 
+class FollowOut(Schema):
+    """Odpowiedź obserwacji — `FollowResponse` z kontraktu.
+
+    Idempotentna jak polubienie: powtórne żądanie wraca z tym samym stanem,
+    a nie z błędem, bo obserwowanie dwa razy nie zmienia świata.
+    """
+
+    following: bool
+
+
+class RepostOut(Schema):
+    """Odpowiedź podniesienia — `RepostResponse` z kontraktu.
+
+    Liczniki są ORYGINAŁU, bo to jego podniesiono — wpis-podniesienie nie
+    prowadzi własnych liczników.
+    """
+
+    reposted: bool
+    counters: CountersOut
+
+
 class AuthorOut(Schema):
     """Autor wpisu — to, co wolno pokazać publicznie.
 
@@ -68,11 +89,16 @@ class PostListOut(Schema):
 
     Mapa, a nie lista: interfejs dopasowuje autora po identyfikatorze,
     więc kolejność nie niesie informacji.
+
+    `following` to identyfikatory autorów TEJ strony, których czytelnik już
+    obserwuje. Bez tego interfejs musiałby pytać o każdego osobno — albo
+    pokazać przycisk „Obserwuj”, który kłamie, bo obserwacja już istnieje.
     """
 
     items: list[PostOut]
     nextCursor: str | None
     authors: dict[str, AuthorOut]
+    following: list[str]
 
 
 class CommentOut(Schema):

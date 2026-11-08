@@ -20,7 +20,7 @@ import { ApiRequestError, apiFetch } from "@/lib/api-client";
  * build produkcyjny przerywał się na błędzie typu. Rozmiar strony jest
  * decyzją interfejsu, nie kontraktu danych, i to jest właściwe miejsce.
  *
- * ── `authors` JEST TYPOWANE, NIE PRZECIąGANE PRZEZ `unknown` ────────────
+ * ── `authors` JEST TYPOWANE, NIE PRZECIĄGANE PRZEZ `unknown` ────────────
  * Poprzednia wersja oddawała całą stronę w polu `page: unknown`, a ekran
  * feedu czytał z niej `authors` — i build produkcyjny przerywał się na
  * `Property 'authors' does not exist on type 'CursorList<Post>'`.
@@ -34,6 +34,10 @@ import { ApiRequestError, apiFetch } from "@/lib/api-client";
  * inne listy stronicowane w tym projekcie nie dosyłają autorów i mają
  * prawo ich nie mieć. Dzięki temu hook obsługuje oba przypadki bez
  * drugiego wariantu.
+ *
+ * ── `following` — OBSERWOWANI ZE STRONY, TEN SAM WZORZEC ────────────────
+ * Feed dosyła identyfikatory autorów, których czytelnik obserwuje. Scalają
+ * się jak autorzy: ta sama osoba występuje na wielu stronach.
  */
 
 const PAGE_SIZE = 20;
@@ -48,12 +52,14 @@ export interface PageAuthor {
 
 /**
  * Kształt strony z serwera. Pola poza `items` są OPCJONALNE, bo nie każdy
- * endpoint stronicowany je dosyła — feed dosyła autorów, inne listy nie.
+ * endpoint stronicowany je dosyła — feed dosyła autorów i obserwowanych,
+ * inne listy nie.
  */
 export interface CursorPage<T> {
   items: T[];
   nextCursor: string | null;
   authors?: Record<string, PageAuthor>;
+  following?: string[];
 }
 
 export interface CursorList<T> {
@@ -63,6 +69,11 @@ export interface CursorList<T> {
    * dosyła — konsument nie musi sprawdzać, czy pole istnieje.
    */
   authors: Record<string, PageAuthor>;
+  /**
+   * Identyfikatory autorów ze wszystkich pobranych stron, których czytelnik
+   * obserwuje. Puste bez sesji i gdy endpoint tego pola nie dosyła.
+   */
+  following: string[];
   loading: boolean;
   loadingMore: boolean;
   error: ApiError | null;
@@ -74,6 +85,7 @@ export interface CursorList<T> {
 export function useCursorList<T>(path: string, enabled = true): CursorList<T> {
   const [items, setItems] = useState<T[]>([]);
   const [authors, setAuthors] = useState<Record<string, PageAuthor>>({});
+  const [following, setFollowing] = useState<string[]>([]);
   const [loading, setLoading] = useState(enabled);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
@@ -84,9 +96,9 @@ export function useCursorList<T>(path: string, enabled = true): CursorList<T> {
     async (cursor: string | null) => {
       const separator = path.includes("?") ? "&" : "?";
       const query = cursor
-        ? `${separator}limit=${PAGE_SIZE}&cursor=${encodeURIComponent(cursor)}`
-        : `${separator}limit=${PAGE_SIZE}`;
-      return apiFetch<CursorPage<T>>(`${path}${query}`);
+        ? separator + "limit=" + PAGE_SIZE + "&cursor=" + encodeURIComponent(cursor)
+        : separator + "limit=" + PAGE_SIZE;
+      return apiFetch<CursorPage<T>>(path + query);
     },
     [path],
   );
@@ -105,9 +117,10 @@ export function useCursorList<T>(path: string, enabled = true): CursorList<T> {
         setItems(result.items);
         setNextCursor(result.nextCursor);
         setAuthors(result.authors ?? {});
+        setFollowing(result.following ?? []);
       })
       .catch((cause: unknown) => {
-        if (cancelled) return;
+        if (!cancelled) return;
         setError(
           cause instanceof ApiRequestError
             ? cause.error
@@ -133,6 +146,11 @@ export function useCursorList<T>(path: string, enabled = true): CursorList<T> {
         // w kilku wpisach i na kilku stronach, a podmiana mapy na mapę
         // z ostatniej strony wyrzuciłaby autorów z wcześniejszych wpisów.
         setAuthors((prev) => ({ ...prev, ...(result.authors ?? {}) }));
+        // Obserwowani scalają się przez zbiór: ta sama osoba wraca
+        // na wielu stronach i duplikaty nie niosą informacji.
+        setFollowing((prev) =>
+          Array.from(new Set([...prev, ...(result.following ?? [])])),
+        );
       })
       .catch((cause: unknown) => {
         setError(
@@ -149,6 +167,7 @@ export function useCursorList<T>(path: string, enabled = true): CursorList<T> {
   return {
     items,
     authors,
+    following,
     loading,
     loadingMore,
     error,

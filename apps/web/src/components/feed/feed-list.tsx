@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import type { ApiError, Post } from "@bengos/core";
@@ -16,7 +15,7 @@ import { useSession } from "@/lib/session-context";
  *
  * Nazwy pól pochodzą DOKŁADNIE z kontraktu `Post` w `packages/core/src/feed.ts`:
  * treść to `body` (nie `text`), a liczniki siedzą w zagnieżdżonym `counters`
- * (`counters.likes`, `counters.comments`).
+ * (`counters.likes`, `counters.comments`, `counters.reposts`).
  *
  * ── AUTORZY JADĄ OSOBNO, PO TO ŻEBY BYŁO WIDAĆ KTO ─────────────────────
  * Wpisy niosą tylko `authorId`. Bez mapy autorów interfejs pokazywał surowy
@@ -24,12 +23,12 @@ import { useSession } from "@/lib/session-context";
  * Serwer dosyła autorów tej strony w polu `authors`, więc nie ma ani jednego
  * dodatkowego żądania na wpis.
  *
- * ── DODAWANIE WPISU ZOSTAŁO NA TYM EKRANIE ──────────────────────────────
- * Wcześniej nie było tu formularza i słusznie: nie istniało nic, co można
- * było napisać. Teraz endpoint publikowania działa, więc pole do pisania
- * jest — a wpis pojawia się na liście natychmiast, bez przeładowania.
- * Limity są te same co po stronie serwera i pokazywane przed wysłaniem,
- * żeby użytkownik nie dowiadywał się o nich z błędu.
+ * ── OBSERWUJ I PODNIEŚ — DWA ZAKOŃCZENIA ETAPU 2 ────────────────────────
+ * Serwer dosyła w stronie pole `following`: identyfikatory autorów, których
+ * czytelnik już obserwuje. Stan znany serwerowi jest prawdą wyjściową,
+ * lokalna akcja go nadpisuje — optymistycznie, z powrotem przy błędzie.
+ * Podniesienie działa na wzorcu polubienia: przycisk reaguje natychmiast,
+ * a serwer trzyma stan idempotentnie.
  *
  * ── KOMENTARZE SĄ POD WPISEM, NIE W LICZNIKU ────────────────────────────
  * `PostComments` stoi pod akapitem z polubieniami, a nie obok liczby
@@ -45,13 +44,13 @@ const FILTERS = ["wszystko", "obserwowani", "odkrywaj"] as const;
 const BODY_MAX = 80;
 const TAGS_MAX = 5;
 
- type Filter = (typeof FILTERS)[number];
+type Filter = (typeof FILTERS)[number];
 
 /** Ludzka nazwa autora: nazwa wyświetlana, a gdy jej nie ma — uchwyt. */
 function authorLabel(authors: Record<string, Author>, authorId: string): string {
   const author = authors[authorId];
   if (!author) return authorId;
-  return author.displayName ?? `@${author.username}`;
+  return author.displayName ?? "@" + author.username;
 }
 
 interface Author {
@@ -74,19 +73,71 @@ function pathFor(filter: Filter): string {
 }
 
 export function FeedList() {
-  const { isAuthenticated } = useSession();
+  const { identity, isAuthenticated } = useSession();
   const [filter, setFilter] = useState<Filter>("wszystko");
   const [announcement, setAnnouncement] = useState("");
   const [liked, setLiked] = useState<Record<string, boolean>>({});
+  const [reposted, setReposted] = useState<Record<string, boolean>>({});
+  const [followOverrides, setFollowOverrides] = useState<Record<string, boolean>>({});
 
   const list = useCursorList<Post>(pathFor(filter), true);
+
+  /** Stan obserwacji: serwer mówi prawdę wyjściową, lokalna akcja nadpisuje. */
+  function isFollowed(authorId: string): boolean {
+    const override = followOverrides[authorId];
+    if (override !== undefined) return override;
+    return list.following.includes(authorId);
+  }
+
+  const toggleFollow = useCallback(
+    async (authorId: string, next: boolean) => {
+      setFollowOverrides((prev) => ({ ...prev, [authorId]: next }));
+      try {
+        await apiFetch<void>("/api/feed/users/" + authorId + "/follow", {
+          method: next ? "POST" : "DELETE",
+        });
+        setAnnouncement(next ? "Obserwujesz tego autora." : "Cofnięto obserwację.");
+      } catch (cause) {
+        // Cichy powrót do poprzedniego stanu: optymistyczna zmiana, która się
+        // nie udała, musi zniknąć — inaczej przycisk kłamie.
+        setFollowOverrides((prev) => ({ ...prev, [authorId]: !next }));
+        const error: ApiError =
+          cause instanceof ApiRequestError
+            ? cause.error
+            : { code: "internal", message: "Nie udało się zapisać obserwacji." };
+        setAnnouncement(error.message);
+      }
+    },
+    [],
+  );
+
+  const toggleRepost = useCallback(
+    async (post: Post) => {
+      const next = !reposted[post.id];
+      setReposted((prev) => ({ ...prev, [post.id]: next }));
+      try {
+        await apiFetch<void>("/api/feed/posts/" + post.id + "/repost", {
+          method: next ? "POST" : "DELETE",
+        });
+        setAnnouncement(next ? "Wpis podniesiony na Twój feed." : "Cofnięto podniesienie.");
+      } catch (cause) {
+        setReposted((prev) => ({ ...prev, [post.id]: !next }));
+        const error: ApiError =
+          cause instanceof ApiRequestError
+            ? cause.error
+            : { code: "internal", message: "Nie udało się podnieść wpisu." };
+        setAnnouncement(error.message);
+      }
+    },
+    [reposted],
+  );
 
   const toggleLike = useCallback(
     async (post: Post) => {
       const next = !liked[post.id];
       setLiked((prev) => ({ ...prev, [post.id]: next }));
       try {
-        await apiFetch<void>(`/api/feed/posts/${post.id}/like`, {
+        await apiFetch<void>("/api/feed/posts/" + post.id + "/like", {
           method: next ? "POST" : "DELETE",
         });
         setAnnouncement(next ? "Polubiono wpis." : "Cofnięto polubienie.");
@@ -106,7 +157,7 @@ export function FeedList() {
 
   // Reakcja na zmianę filtra jest akcją użytkownika, więc jest ogłaszana.
   useEffect(() => {
-    setAnnouncement(`Filtr: ${filter}.`);
+    setAnnouncement("Filtr: " + filter + ".");
   }, [filter]);
 
   return (
@@ -124,11 +175,10 @@ export function FeedList() {
               type="button"
               aria-pressed={filter === item}
               onClick={() => setFilter(item)}
-              className={`min-h-[var(--bengos-touch-target-min)] rounded-full border px-4 text-[var(--bengos-size-caption)] transition-colors duration-[var(--bengos-motion-fast)] ${
-                filter === item
+              className={"min-h-[var(--bengos-touch-target-min)] rounded-full border px-4 text-[var(--bengos-size-caption)] transition-colors duration-[var(--bengos-motion-fast)] " +
+                (filter === item
                   ? "border-[var(--bengos-accent)] text-[var(--bengos-accent)]"
-                  : "border-[var(--bengos-border)] text-[var(--bengos-text-muted)]"
-              }`}
+                  : "border-[var(--bengos-border)] text-[var(--bengos-text-muted)]")}
             >
               {item}
             </button>
@@ -178,30 +228,60 @@ export function FeedList() {
               <li key={post.id} className="bengos-surface-card">
                 <p className="text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
                   {authorLabel(list.authors, post.authorId)}
-                  {post.createdAt ? ` · ${post.createdAt}` : ""}
+                  {post.createdAt ? " · " + post.createdAt : ""}
                 </p>
+                {post.repostedBy ? (
+                  <p className="text-[var(--bengos-size-caption)] text-[var(--bengos-accent)]">
+                    Podniesione przez {authorLabel(list.authors, post.repostedBy)}
+                  </p>
+                ) : null}
                 {post.body ? <p className="mt-2 whitespace-pre-line">{post.body}</p> : null}
                 {post.tags.length > 0 ? (
                   <p className="mt-1 text-[var(--bengos-size-caption)] text-[var(--bengos-accent)]">
-                    {post.tags.map((tag) => `#${tag}`).join(" ")}
+                    {post.tags.map((tag) => "#" + tag).join(" ")}
                   </p>
                 ) : null}
                 <p className="mt-3 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
-                  Polubienia: {post.counters.likes}
+                  Polubienia: {post.counters.likes} · Podniesienia: {post.counters.reposts}
                 </p>
                 {isAuthenticated ? (
-                  <button
-                    type="button"
-                    aria-pressed={Boolean(liked[post.id])}
-                    onClick={() => void toggleLike(post)}
-                    className={`bengos-touch-target mt-3 inline-flex rounded-[var(--bengos-radius-control)] border px-4 text-[var(--bengos-size-caption)] ${
-                      liked[post.id]
-                        ? "border-[var(--bengos-accent)] text-[var(--bengos-accent)]"
-                        : "border-[var(--bengos-border)] text-[var(--bengos-text-muted)]"
-                    }`}
-                  >
-                    {liked[post.id] ? "Polubione" : "Polub"}
-                  </button>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      aria-pressed={Boolean(liked[post.id])}
+                      onClick={() => void toggleLike(post)}
+                      className={"bengos-touch-target inline-flex rounded-[var(--bengos-radius-control)] border px-4 text-[var(--bengos-size-caption)] " +
+                        (liked[post.id]
+                          ? "border-[var(--bengos-accent)] text-[var(--bengos-accent)]"
+                          : "border-[var(--bengos-border)] text-[var(--bengos-text-muted)]")}
+                    >
+                      {liked[post.id] ? "Polubione" : "Polub"}
+                    </button>
+                    <button
+                      type="button"
+                      aria-pressed={Boolean(reposted[post.id])}
+                      onClick={() => void toggleRepost(post)}
+                      className={"bengos-touch-target inline-flex rounded-[var(--bengos-radius-control)] border px-4 text-[var(--bengos-size-caption)] " +
+                        (reposted[post.id]
+                          ? "border-[var(--bengos-accent)] text-[var(--bengos-accent)]"
+                          : "border-[var(--bengos-border)] text-[var(--bengos-text-muted)]")}
+                    >
+                      {reposted[post.id] ? "Podniesione" : "Podnieś"}
+                    </button>
+                    {identity && post.authorId !== identity.id ? (
+                      <button
+                        type="button"
+                        aria-pressed={isFollowed(post.authorId)}
+                        onClick={() => void toggleFollow(post.authorId, !isFollowed(post.authorId))}
+                        className={"bengos-touch-target inline-flex rounded-[var(--bengos-radius-control)] border px-4 text-[var(--bengos-size-caption)] " +
+                          (isFollowed(post.authorId)
+                            ? "border-[var(--bengos-accent)] text-[var(--bengos-accent)]"
+                            : "border-[var(--bengos-border)] text-[var(--bengos-text-muted)]")}
+                      >
+                        {isFollowed(post.authorId) ? "Obserwowany" : "Obserwuj"}
+                      </button>
+                    ) : null}
+                  </div>
                 ) : null}
 
                 {/*
@@ -310,9 +390,8 @@ function Composer({ onPublished }: { onPublished: () => void }) {
         aria-describedby="composer-hint"
         aria-invalid={tooLong ? true : undefined}
         onChange={(event) => setBody(event.target.value)}
-        className={`mt-2 w-full rounded-[var(--bengos-radius-control)] border bg-[var(--bengos-surface-sunken)] px-3 py-2 ${
-          tooLong ? "border-[var(--bengos-danger)]" : "border-[var(--bengos-border)]"
-        }`}
+        className={"mt-2 w-full rounded-[var(--bengos-radius-control)] border bg-[var(--bengos-surface-sunken)] px-3 py-2 " +
+          (tooLong ? "border-[var(--bengos-danger)]" : "border-[var(--bengos-border)]")}
       />
 
       <div className="mt-2 flex flex-wrap items-center gap-3">

@@ -121,3 +121,14 @@ export interface LikeResponse {
   liked: boolean;
   counters: PostCounters;
 }
+
+export interface FollowResponse {
+  /** Stan obserwacji po operacji. Operacja jest idempotentna. */
+  following: boolean;
+}
+
+export interface RepostResponse {
+  /** Stan podniesienia po operacji. Operacja jest idempotentna. */
+  reposted: boolean;
+  counters: PostCounters;
+}
