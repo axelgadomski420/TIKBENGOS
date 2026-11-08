@@ -1,21 +1,21 @@
 import type { Metadata } from "next";
-import { ModulePlaceholder } from "@/components/module-placeholder";
 
-export const metadata: Metadata = { title: "BENGOS Dev" };
+import { DevClient } from "@/components/dev/dev-client";
 
+export const metadata: Metadata = { title: "BENGOS Dev — TIKBENGOS" };
+
+/**
+ * Dev — repozytoria, issue, commity i plany zmian.
+ *
+ * Działa TERAZ przez token serwera (GITHUB_TOKEN): podłączanie repozytoriów
+ * z wykrytymi uprawnieniami, zakładanie i komentowanie issue, zamykanie,
+ * podgląd commitów, plany zmian z bramką zgody i trwały dziennik operacji.
+ *
+ * Dojdzie (napisane wprost, nie ukrywane): executor zmian (Aider w piaskownicy)
+ * wykonujący zatwierdzone plany — gałąź, commit, pull request. Do jego
+ * podłączenia zatwierdzanie planów zwraca uczciwą odmowę zamiast udawać
+ * wykonanie.
+ */
 export default function DevPage() {
-  return (
-    <ModulePlaceholder
-      name="Dev"
-      stage={5}
-      description="Repozytoria, issue, pull requesty i agent kodujący. Warstwa agenta to Aider z TIKGIT — uruchamiany w piaskownicy, nigdy jako proces serwerowy z Twoim tokenem."
-      planned={[
-        "Połączenie GitHuba jako aplikacja, z tokenem o najmniejszych potrzebnych uprawnieniach",
-        "Przeglądanie repozytoriów, gałęzi i issue",
-        "Opis funkcji zmienia się w plan zmian, który widzisz przed wykonaniem",
-        "Zatwierdzenie człowieka przed każdą gałęzią, commitem i pull requestem",
-        "Dziennik każdej operacji na kodzie — trwały i nieusuwalny",
-      ]}
-    />
-  );
+  return <DevClient />;
 }

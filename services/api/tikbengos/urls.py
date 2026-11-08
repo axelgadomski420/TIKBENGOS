@@ -18,6 +18,10 @@ Prefiksy nazw są więc wymagane, nie opcjonalne.
 Router czatu jest OSOBNY i podpięty pod `/chat` — prefiks jest na liście
 dozwolonych w proxy interfejsu (`apps/web/src/app/api/[...path]/route.ts`),
 więc bez zmian w proxy ścieżka `/api/chat/...` działa od razu.
+
+Router Dev jest pod `/git` — dokładnie ten prefiks stoi w kontrakcie
+(`API.git` w `packages/core/src/api.ts`) i na liście dozwolonych prefiksów
+proxy, więc ani proxy, ani interfejs nie wymagają zmian.
 """
 
 from django.http import JsonResponse
@@ -32,6 +36,7 @@ from accounts.keys_api import router as keys_router
 from accounts.oauth import router as oauth_router
 from accounts.providers_api import router as providers_router
 from chat.api import router as chat_router
+from dev.api import router as dev_router
 from feed.api import router as feed_router
 
 api = NinjaAPI(
@@ -88,7 +93,7 @@ def config_view(request):
     """Kontrakt widoczny z zewnątrz — bez niczego wrażliwego.
 
     `realtimePath` i `csrfPath` są tu po to, żeby interfejs i skrypty nie
-    musiały znać tych ścieżek na sztywno. Rozjazd między klientem a serwerem
+    musiały znać tych ścieżek na sztywno. Rozjazd między klientem a serwera
     w tych dwóch miejscach był już raz błędem w tym projekcie.
 
     `oauthPaths` dołączyły z tego samego powodu: adresy callbacku są
@@ -123,6 +128,9 @@ api.add_router("/settings", keys_router)
 api.add_router("/settings", providers_router)
 api.add_router("/feed", feed_router)
 api.add_router("/chat", chat_router)
+# Dev pod `/git` — prefiks z kontraktu API.git. Router jest osobny jak
+# czat: domena GitHub ma własne tagi i własne testy.
+api.add_router("/git", dev_router)
 
 urlpatterns = [
     path("v1/csrf", csrf_view, name="csrf_view"),

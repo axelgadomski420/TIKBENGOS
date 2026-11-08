@@ -54,6 +54,9 @@ INSTALLED_APPS = [
     # Bez tej pozycji migracje czatu by nie istniały dla Django, a router
     # w `tikbengos/urls.py` nie miałby tabel pod sobą.
     "chat",
+    # Dev od Etapu 5: repozytoria i issue GitHub, plany zmian z bramką
+    # zgody, dziennik operacji. Montowane pod prefiks /git z kontraktu.
+    "dev",
 ]
 
 MIDDLEWARE = [
@@ -230,6 +233,21 @@ OAUTH_REDIRECT_BASE = os.environ.get(
     "OAUTH_REDIRECT_BASE",
     (CSRF_TRUSTED_ORIGINS[0] if CSRF_TRUSTED_ORIGINS else ""),
 )
+
+# ── BENGOS Dev: GitHub i executor zmian ──────────────────────────────────
+# Token jest OPCJONALNY i celowo bez domyślnej wartości. Gdy go nie ma,
+# endpointy Dev zwracają 503 z wyjaśnieniem — moduł mówi "nie skonfigurowano",
+# zamiast udawać działające połączenie z GitHubem. Zasada najmniejszych
+# uprawnień z kontraktu: prawa są WYKRYWANE z odpowiedzi GitHuba (pole
+# "permissions"), więc interfejs nigdy nie twierdzi, że token ma więcej,
+# niż ma naprawdę.
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
+
+# Adres executora zmian kodu (Aider w piaskownicy, z TIKGIT). Pusto =
+# zatwierdzanie planów zwraca odmowę 409 z wyjaśnieniem. To jest świadome:
+# planu, którego nie da się wykonać, nie można przepuszczać przez bramkę
+# zgody, bo zgoda traciłaby znaczenie.
+BENGOS_CODE_EXECUTOR_URL = os.environ.get("BENGOS_CODE_EXECUTOR_URL", "")
 
 # ── Czas trwania sesji ───────────────────────────────────────────────────
 # 30 dni dla zwykłego logowania. MFA dokłada osobną, krótszą ważność tokenu.

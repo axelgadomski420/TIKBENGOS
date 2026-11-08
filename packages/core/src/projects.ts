@@ -38,6 +38,24 @@ export interface RepositoryIssue {
   createdAt: string;
 }
 
+/** Komentarz pod issue — realny zapis w GitHubie, z adresem do otwarcia. */
+export interface IssueComment {
+  id: string;
+  htmlUrl: string;
+  createdAt: string;
+}
+
+/**
+ * Commit z repozytorium — podgląd, nie audyt. Audytem jest CodeOperation.
+ */
+export interface RepositoryCommit {
+  sha: string;
+  message: string;
+  authorName: string;
+  createdAt: string;
+  url: string;
+}
+
 /**
  * Plan zmian to propozycja, nie zamiar. Istnieje po to, żeby użytkownik
  * zobaczył, co agent zamierza zrobić, zanim cokolwiek się stanie.
@@ -78,13 +96,32 @@ export interface ApprovePlanRequest {
   confirm: "create-branch-and-pull-request";
 }
 
+/**
+ * Unia operacji dziennika. Wartości issue.* i repository.* dołączyły
+ * z Etapu 5 — moduł Dev wykonuje je dziś naprawdę (token serwera), a wartości
+ * branch.create, commit.create i pull-request.open pozostają zarezerwowane
+ * dla executora zmian, żeby dziennik rozróżniał "człowiek kliknął" od
+ * "agent napisał".
+ */
 export interface CodeOperation {
   id: string;
   planId: string | null;
   actorId: string;
   /** Każde działanie na kodzie jest zapisane i nie da się go usunąć. */
-  operation: "read" | "branch.create" | "commit.create" | "pull-request.open" | "plan.reject";
-  repositoryId: string;
+  operation:
+    | "read"
+    | "repository.connect"
+    | "repository.disconnect"
+    | "issue.create"
+    | "issue.comment"
+    | "issue.state"
+    | "plan.create"
+    | "plan.approve"
+    | "plan.reject"
+    | "branch.create"
+    | "commit.create"
+    | "pull-request.open";
+  repositoryId: string | null;
   detail: string;
   createdAt: string;
 }
@@ -92,6 +129,8 @@ export interface CodeOperation {
 export interface ConnectRepositoryResponse {
   repository: ConnectedRepository;
   /** Instalacja aplikacji GitHub. Oddzielone od samego połączenia, bo
-   * instalacja dzieje się w przeglądarce użytkownika i może nie wrócić. */
+   * instalacja dzieje się w przeglądarce użytkownika i może nie wrócić.
+   * Dla tokenu serwera (Etap 5) jest to adres repozytorium — pole trzyma
+   * kształt, żeby interfejs nie zmienił się po wprowadzeniu aplikacji. */
   installationUrl: string;
 }
