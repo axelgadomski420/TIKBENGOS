@@ -119,9 +119,29 @@ const KIND_ICONS: Record<ContinueItem["kind"], (p: IconProps) => React.JSX.Eleme
   "pull-request": IconProposal,
 };
 
-function Trap({ children, Icon }: { children: React.ReactNode; Icon: (p: IconProps) => React.JSX.Element }) {
+/**
+ * Tarcza ze znakiem.
+ *
+ * `children` jest OPCJONALNE, i to jest naprawą błędu, który zatrzymał build:
+ * typ wymagał `children`, a `StateBlock` przekazywał tylko `Icon`. TypeScript
+ * to wyłapał:
+ *
+ *     Property 'children' is missing in type '{ Icon: … }' but required
+ *     in type '{ children: ReactNode; Icon: … }'.
+ *
+ * Znacznik etapu — albo inny dodatek — pojawi się w tej tarczy później.
+ * Do tego czasu pole musi być opcjonalne, bo tarcza bez dodatku jest
+ * poprawnym użyciem, a nie niedokończonym.
+ */
+function Trap({
+  children,
+  Icon,
+}: {
+  children?: React.ReactNode;
+  Icon: (p: IconProps) => React.JSX.Element;
+}) {
   return (
-    <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-[var(--bengos-border)] bg-[var(--bengos-surface-sunken)] text-[var(--bengos-accent)]">
+    <span className="relative flex size-10 shrink-0 items-center justify-center rounded-full border border-[var(--bengos-border)] bg-[var(--bengos-surface-sunken)] text-[var(--bengos-accent)]">
       <Icon className="size-5" />
       {children}
     </span>
