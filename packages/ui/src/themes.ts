@@ -1,4 +1,4 @@
-// Import BEZ rozszerzenia `.js` — patrz komentarz w `packages/core/src/identity.ts`.
+successfully downloaded text file (SHA: 7bc1b73bf261e477ed7362020e7a1b9fb44f1b27)// Import BEZ rozszerzenia `.js` — patrz komentarz w `packages/core/src/identity.ts`.
 import {
   BASE_GEOMETRY,
   BASE_MOTION,
@@ -21,30 +21,38 @@ import {
  * nazwał to „czarnym na czarnym” i miał rację: dwa prawie identyczne czernie
  * dają obraz bez krawędzi, czyli plamę, a nie element interfejsu.
  *
- * Nowy `surface` (#0A1020) jest granatem WIDOCZNYM jako granat, a karty
- * (#121A2E) i obramowania (#243049) odcinają się od tła. Czarny prostokąt
- * grafiki ma teraz na czym siedzieć.
+ * Obecne wartości dociągniły paletę do znaku marki na życzenie właściciela:
+ * tło #0A0E18 to granat PRAWIE czarny (jak w grafice), akcent #00F7FF to
+ * cyjan ze znaku, a #FFAB4D to złoto tygrysa. Karty (#131C2E) i obramowania
+ * (#26334D) nadal odcinają się od tła, więc czarny prostokąt grafiki ma
+ * na czym siedzieć — ale motyw mówi kolorami grafiki, nie „granatem z daleka”.
  *
  * ── WARTOŚCI SĄ POLICZONE, NIE WYBRANE NA OKO ───────────────────────────
- * Każda para tekstu i tła została policzona metodą WCAG 2.1 przed wpisaniem,
+ * Każda para tekstu i tła została policzona metodą WCAG 2.2 przed wpisaniem,
  * a `contrast.test.ts` liczy je ponownie przy każdym uruchomieniu testów.
- * Ciemny motyw: tekst 16,83; drugorzędny 8,62; akcent jako tekst 10,49;
- * błąd 6,85 — wszystko powyżej progu 4,5:1, najniższy wynik ma zapas.
+ * Ciemny motyw: tekst 17,24; drugorzędny 9,16; akcent jako tekst 14,47;
+ * błąd 6,97; obramowanie aktywne 3,50 — wszystko powyżej progu 4,5:1
+ * (obramowania 3:1), najniższy wynik tekstu ma zapas.
  */
 const DARK: Palette = {
-  surface: "#0A1020",
-  surfaceRaised: "#121A2E",
-  surfaceSunken: "#070C18",
-  border: "#243049",
-  borderStrong: "#35486E",
-  text: "#EAF2FF",
-  textMuted: "#9DB0D0",
-  textOnAccent: "#04121A",
-  accent: "#22D3EE",
-  accentMuted: "#123043",
-  glow: "#5FF0FF",
+  surface: "#0A0E18",
+  surfaceRaised: "#131C2E",
+  surfaceSunken: "#060A12",
+  border: "#26334D",
+  borderStrong: "#51689B",
+  text: "#EAF3FF",
+  textMuted: "#9FB4D6",
+  textOnAccent: "#031318",
+  accent: "#00F7FF",
+  accentMuted: "#0D3440",
+  // Poświata JEST celowo pod progiem tekstu (4,24:1): to dekoracja
+  // (cień świecący), a test „poświata nigdy nie jest tekstem" pilnuje,
+  // żeby nikt nie użył jej jako koloru napisu. Jasny cyjan z grafiki
+  // dawał 14:1 — przechodziłby próg tekstu, czyli kusił do złego użycia.
+  glow: "#14809F",
   success: "#4ADE80",
-  warning: "#FB923C",
+  // Złoto tygrysa ze znaku marki — w roli ostrzeżenia, jak w całym systemie.
+  warning: "#FFAB4D",
   danger: "#F87171",
 };
 
@@ -53,19 +61,23 @@ const DARK: Palette = {
  * tylko odwrócone. Akcent jest ciemniejszy, bo na jasnym tle cyjan z ciemnego
  * motywu (#22D3EE) daje kontrast 1,9:1 — czyli nieczytelny.
  *
- * `textOnAccent` jest tu #04121A, nie białe. Białe dawało 3,54:1, czyli pod
- * progiem 4,5:1 — a ten kolor pojawia się na akcencie w każdym przycisku
- * głównym, więc musi przechodzić z zapasem.
+ * `textOnAccent` jest tu BIAŁE. Poprzednie #04121A dawało na akcencie #0E7490
+ * dokładnie 3,54:1 — pod progiem 4,5:1 — a komentarz twierdził, że to biel
+ * go nie przechodzi; policzone było na odwrót. Biel daje 5,36:1 i to ona
+ * przechodzi, więc przyciski główne w tym motywie mają biały napis.
  */
 const LIGHT: Palette = {
   surface: "#F5F8FF",
   surfaceRaised: "#FFFFFF",
   surfaceSunken: "#E7EEFB",
   border: "#C6D3EC",
-  borderStrong: "#94A9CE",
+  // Wzmacniany z #94A9CE: dawał 2,24:1 na tle, a próg obramowania aktywnego
+  // to 3:1 — test obramowań był czerwony od dnia napisania. Charakter motywu
+  // (chłodny, przygaszony) bez zmian.
+  borderStrong: "#6480B8",
   text: "#0A1020",
   textMuted: "#4A5A78",
-  textOnAccent: "#04121A",
+  textOnAccent: "#FFFFFF",
   accent: "#0E7490",
   accentMuted: "#CDE9F2",
   glow: "#0891B2",
@@ -94,7 +106,11 @@ const HIGH_CONTRAST: Palette = {
   textOnAccent: "#000000",
   accent: "#7FF0FF",
   accentMuted: "#0B2A33",
-  glow: "#B8F7FF",
+  // Przygaszone z #B8F7FF: na czystej czerni dawało ~18:1, czyli przechodziło
+  // próg TEKSTU — a poświata to dekoracja i test „poświata nigdy nie jest
+  // tekstem" tego zabrania. 3,72:1 wystarcza, żeby świecić, i za mało,
+  // żeby udawać czytelny kolor napisu.
+  glow: "#1E7086",
   success: "#7DFFA8",
   warning: "#FFC078",
   danger: "#FF9A9A",

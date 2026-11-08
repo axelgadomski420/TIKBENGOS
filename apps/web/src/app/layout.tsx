@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next";
+successfully downloaded text file (SHA: 55d7fe1ddea79abb424039effb8110d03f298052)import type { Metadata, Viewport } from "next";
 
 import "@bengos/ui/styles.css";
 import "@bengos/ui/boot.css";
@@ -75,7 +75,7 @@ export const metadata: Metadata = {
  */
 export const viewport: Viewport = {
   colorScheme: "dark light",
-  themeColor: "#05070D",
+  themeColor: "#0A0E18",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
