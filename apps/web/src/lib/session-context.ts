@@ -4,10 +4,23 @@ import { createContext, useContext } from "react";
 
 import type { Identity } from "@bengos/core";
 
+/**
+ * Stan sesji po stronie przeglądarki.
+ *
+ * `status` rozdziela „jeszcze nie wiem” (loading) od „wiem — nie jest
+ * zalogowany” (anonymous). Bez tego rozróżnienia brama logowania pokazałaby
+ * się na moment przy KAŻDYM wejściu, zanim dociągnie się odpowiedź
+ * /users/me — i wyglądałoby to jak mignięcie błędu, a nie jak sprawdzenie.
+ */
+export type SessionStatus = "loading" | "authenticated" | "anonymous";
+
 export interface SessionContextValue {
   identity: Identity | null;
+  /** Skrót: `status === "authenticated"`. Zostaje, bo większość czyta tylko to. */
   isAuthenticated: boolean;
-  logout: () => Promise<void>;
+  status: SessionStatus;
+  /** Ponowny odczyt sesji — po zmianach na koncie, nie przy każdym renderze. */
+  refresh: () => Promise<void>;
 }
 
 export const SessionContext = createContext<SessionContextValue | null>(null);
