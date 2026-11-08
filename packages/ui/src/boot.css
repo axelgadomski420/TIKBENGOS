@@ -9,17 +9,16 @@
  *
  * Bez tego użytkownik na wolnym łączu widzi biały prostokąt — a biały
  * prostokąt w aplikacji z ciemnym motywem wygląda jak zepsuta strona,
- * nie jak ładowanie. Dlatego tło i znak są tu wpisane wprost, bez
- * odwołania do arkusza, którego jeszcze nie ma.
+ * nie jak ładowanie.
  *
  * ── KOLORY SĄ POWTÓRZONE ŚWIADOMIE ─────────────────────────────────────
- * `#0B0B0F` to `--bengos-surface`, a `#7C5CFF` to `--bengos-accent`
+ * `#05070D` to `--bengos-surface`, `#22D3EE` to `--bengos-accent`
  * z ciemnego motywu. Nie da się tu użyć zmiennych CSS, bo ten arkusz jest
  * tym, co sprawia, że zmienne zaczynają istnieć — więc w tym jednym miejscu
  * kolor stoi wprost i nie da się tego obejść.
  *
  * ── ZNIKA SAME, BEZ JAVASCRIPTU ─────────────────────────────────────────
- * Zasłona schodzi po 900 ms animacją, a nie po zdarzeniu `load`. Powód:
+ * Zasłona schodzi po 1100 ms animacją, a nie po zdarzeniu `load`. Powód:
  * zdarzenie `load` wymaga skryptu, a skrypt wykonuje się dopiero po
  * hydracji — czyli dokładnie wtedy, gdy zasłona przestaje być potrzebna.
  * Animacja CSS działa od pierwszej klatki, także przed JavaScriptem.
@@ -66,39 +65,54 @@
   align-items: center;
   justify-content: center;
   gap: 1.25rem;
-  background: #0b0b0f;
+  background: radial-gradient(
+    circle at 50% 42%,
+    #0b1622 0%,
+    #05070d 55%,
+    #03050a 100%
+  );
   /*
    * Odcina zasłonę od dotyku od razu. Bez tego element przechwytywałby
    * kliknięcia w interfejs, który jest pod nim — a jest tam już od
    * pierwszej klatki.
    */
   pointer-events: none;
-  animation: bengos-boot-hide 240ms ease-out 900ms forwards;
+  animation: bengos-boot-hide 260ms ease-out 1100ms forwards;
 }
 
 .bengos-boot-mark {
-  width: 96px;
-  height: 96px;
-  border-radius: 24px;
+  width: 112px;
+  height: 112px;
+  border-radius: 9999px;
   object-fit: cover;
-  animation: bengos-boot-pulse 1.6s ease-in-out infinite;
+  /*
+   * Poświata pod znakiem. Cyjan, ten sam co `--bengos-glow` w ciemnym
+   * motywie — świeci, ale nie zalewa, bo pod spodem nie ma tekstu.
+   */
+  box-shadow: 0 0 48px -8px #38e8ff, 0 0 0 1px rgb(56 232 255 / 0.35);
+  animation: bengos-boot-pulse 1.8s ease-in-out infinite;
 }
 
 .bengos-boot-name {
   font-family: ui-sans-serif, -apple-system, "Segoe UI", Inter, Arial, sans-serif;
-  font-size: 1.375rem;
+  font-size: 1.5rem;
   font-weight: 600;
-  letter-spacing: 0.08em;
-  color: #f5f5f7;
+  letter-spacing: 0.22em;
+  color: #f2f7fa;
   text-transform: uppercase;
+  /*
+   * Wcięcie po prawej o szerokość rozstrzelenia — bez tego napis z literami
+   * rozstawionymi na 0,22em wygląda, jakby był przesunięty w lewo.
+   */
+  text-indent: 0.22em;
 }
 
 .bengos-boot-bar {
-  width: 96px;
-  height: 2px;
+  width: 128px;
+  height: 3px;
   border-radius: 9999px;
   overflow: hidden;
-  background: rgb(124 92 255 / 0.25);
+  background: rgb(34 211 238 / 0.18);
 }
 
 .bengos-boot-bar::after {
@@ -107,8 +121,8 @@
   width: 40%;
   height: 100%;
   border-radius: 9999px;
-  background: #7c5cff;
-  animation: bengos-boot-slide 1.2s ease-in-out infinite;
+  background: linear-gradient(90deg, #22d3ee, #fb923c);
+  animation: bengos-boot-slide 1.4s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
