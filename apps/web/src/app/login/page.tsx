@@ -15,25 +15,24 @@ export const metadata: Metadata = { title: "Zaloguj się" };
  * formularza mieszka w `@/components/auth/login-form`, a tutaj zostaje
  * tylko to, co serwerowe.
  *
+ * ── GRAFIKA EKRANU JEST CZĘŚCIĄ KOMPOZYCJI, NIE OZDOBĄ ─────────────────
+ * Ekran logowania ma własną grafikę (`BRAND.login`) — tygrys w kuli
+ * z podpisami „logowanie” i „rejestracja”. Stoi na samej górze, nad
+ * formularzem, i jest jedynym elementem bez ramki: reszta ekranu to karty
+ * i pola, więc obraz bez krawędzi czyta się jako tło kompozycji.
+ *
+ * ── TEKST OBCY W GRAFICE NIE JEST ODCZYTYWANY ─────────────────────────
+ * Napisy „logowanie” i „rejestracja” są WYPALONE w obrazie, więc nie
+ * istnieją dla czytnika ekranu ani dla wyszukiwarki. To akceptowalne
+ * tylko dlatego, że prawdziwe nagłówki i przyciski stoją pod obrazem:
+ * funkcja nie zależy od grafiki. Obraz ma `alt=""`, bo prawdziwy `h1`
+ * mówi to samo, a powtórzenie dałoby „Utwórz konto” dwa razy.
+ *
  * ── PEŁNOEKRANOWY UKŁAD Z TŁEM ──────────────────────────────────────────
  * Logowanie jest jedynym ekranem bez nagłówka powłoki, więc jako jedyny
- * może wziąć cały ekran. Tło jest gradientem zbudowanym z tokenów motywu
- * (granat w środku, czerń przy brzegach) i dwiema rozmytymi plamami —
- * cyjanową i pomarańczową. To ten sam motyw co w znaku marki, więc ekran
+ * może wziąć cały ekran. Tło to gradient z tokenów motywu i dwie rozmyte
+ * plamy — cyjanowa i pomarańczowa. Ten sam motyw co w znaku, więc ekran
  * czyta się jako jego przedłużenie, a nie jako osobna strona.
- *
- * Plamy są `aria-hidden` i `pointer-events: none`: to czysta dekoracja —
- * nie niosą treści i nie mogą przechwytywać kliknięć.
- *
- * ── ZNAK NAD FORMULARZEM ────────────────────────────────────────────────
- * Znak stoi nad treścią, bo bez nagłówka powłoki nie byłoby wiadomo, do
- * czego się logujesz. Obraz jest dekoracją (`alt=""`), bo nazwa stoi pod
- * nim tekstem: czytnik ekranu usłyszałby „BENGOS” dwa razy.
- *
- * ── LICZBA W KADRZE: CAŁA POSTAĆ, NIE TYLKO GŁOWA ──────────────────────
- * W nagłówku powłoki znak jest przycięty do głowy (`object-top`), bo tam
- * ma 36 px. Tutaj ma 112 px i cały napis „BENGOS” jest częścią grafiki —
- * przycięcie zabrałoby połowę znaku, więc kadr zostaje pełny.
  */
 export default function LoginPage() {
   return (
@@ -45,23 +44,21 @@ export default function LoginPage() {
         <div className="absolute -right-20 bottom-8 size-80 rounded-full bg-[var(--bengos-warning)] opacity-[0.06] blur-3xl" />
       </div>
 
-      <div className="bengos-rise mx-auto flex max-w-md flex-col px-4 py-10">
-        <div className="mb-6 flex flex-col items-center gap-3">
+      <div className="bengos-rise mx-auto flex max-w-md flex-col px-4 py-8">
+        <div className="mb-6 flex flex-col items-center">
+          {/*
+            `priority` nie jest tu potrzebne (to zwykły `img`, nie `next/image`),
+            ale grafika stoi nad zgięciem — więc ładujemy ją od razu, bez
+            leniwego wczytywania, żeby nie wskoczyła po chwili jako przeskok.
+          */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={BRAND.logo}
+            src={BRAND.login}
             alt=""
-            width={112}
-            height={112}
-            className="size-28 rounded-full object-cover"
-            style={{ boxShadow: "0 0 56px -10px var(--bengos-glow)" }}
+            width={1024}
+            height={1024}
+            className="w-full max-w-sm rounded-[var(--bengos-radius-card)] object-contain"
           />
-          <p className="text-[var(--bengos-size-display)] font-[var(--bengos-weight-semibold)] tracking-[0.2em] text-indent-[0.2em]">
-            BENGOS
-          </p>
-          <p className="text-center text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
-            {BRAND.tagline}
-          </p>
         </div>
 
         <LoginForm />
