@@ -2,89 +2,92 @@ import type { Metadata } from "next";
 
 import { ModuleBranches } from "@/components/home/module-branches";
 import { UniversalSearch } from "@/components/home/universal-search";
+import { WelcomeBanner } from "@/components/home/welcome-banner";
 import { BRAND } from "@/lib/brand";
 
 export const metadata: Metadata = { title: "BENGOS" };
 
 /**
- * STRONA 2 — MENU Z ODNOŚNIKAMI.
+ * MENU GŁÓWNE — ekran, na który wchodzi się po zalogowaniu.
  *
- * Przepływ aplikacji jest dwustopniowy i zamknięty, jak w dużych produktach:
- *   strona 1 — logowanie i rejestracja, nic więcej (LoginGate w powłoce),
- *   strona 2 — TO menu: znak marki w okręgu HUD i dziewięć odnośników.
+ * ── TO JEST MENU, NIE DRUGI EKRAN LOGOWANIA (korekta 2026-11-08) ────────
+ * Poprzednia wersja stawiała na środku ekranu DUŻY znak marki w okręgu HUD
+ * — dokładnie taki sam, jaki stoi na ekranie logowania. Po zalogowaniu
+ * użytkownik lądował więc na ekranie wizualnie NIEROZRÓŻNIALNYM od tego,
+ * z którego właśnie wyszedł, a cała różnica (siatka kafli) była pod zgięciem.
+ * Właściciel opisał to wprost: „logowanie i rejestracja do menu głównego"
+ * — czyli po wejściu ma być WIDAĆ, że jest się w innym miejscu.
  *
- * ── ZNAK W OKRĘGU, JAK NA GRAFICE LOGO ─────────────────────────────────
- * Grafika marki (tygrys w świetlistym okręgu, "BENGOS" nad znakiem)
- * narzuca kompozycję tego ekranu: napis jest NAD tygrysem, a nie pod nim,
- * i świeci cyjanem z poświatą — dokładnie jak w znaku. Pierścienie HUD
- * są te same co na ekranie logowania (.bengos-hud), więc strona 1 i strona 2
- * mówią jednym językiem marki: wchodzisz przez ten sam okrąg, którym
- * nawigujesz.
+ * Teraz hierarchia jest odwrócona tak, jak w każdym launcherze:
+ *   1. PASEK TOŻSAMOŚCI — kto wszedł i jakim uchwytem (to potwierdza
+ *      zalogowanie i jest pierwszą rzeczą, której szuka oko),
+ *   2. SIATKA DZIEWIĘCIU WEJŚĆ — cała uwaga i cały ekran,
+ *   3. znak marki jako mała pieczęć w tle nagłówka, nie jako kula
+ *      na środku — znak jest dekoracją, drzwi są treścią.
  *
- * ── DLACZEGO TŁO JEST CZYSTE, A NIE HOLOGRAMEM ──────────────────────────
- * Poprzednia wersja kładła pełnoekranową grafikę menu pod siatką. Grafika
- * z wypalonymi podpisami nie jest klikalna ani czytana przez czytnik
- * ekranu, więc prawdziwe odnośniki i tak stały pod nią jako tekst — a tło
- * w tle traciło na wartości to, co miało być najważniejsze: dziewięć drzwi.
- * Teraz punkt centralny jest JEDEN (żywy okrąg z tygrysem), tło jest ciche,
- * a całą uwagę bierze siatka odnośników. To układ, którym nawigują
- * największe launchery: jeden znak, czysta siatka, zero szumu.
+ * ── DLACZEGO ZNAK JEST MNIEJSZY, A NIE TAKI SAM ─────────────────────────
+ * Na ekranie logowania znak jest osią kompozycji, bo nie ma tam nic
+ * innego do zrobienia. Tu jest dziewięć rzeczy do zrobienia — a powtórzenie
+ * tego samego znaku w tej samej wielkości odbiera uwagę siatce i sprawia,
+ * że ekran wygląda jak kopia poprzedniego. Rozmiar 256–320 px w tle, mocno
+ * przygaszony, wystarcza, żeby marka była obecna, i nie konkuruje z kaflami.
  *
- * ── WYSZUKIWARKA JEST TU, NIE W OBRAZIE ─────────────────────────────────
- * Kafelek "wyszukiwarka" prowadzi na kotwicę #wyszukiwarka na dole strony —
- * tam stoi karty uniwersalnej wyszukiwarki, która mówi wprost, że funkcja
- * powstaje w Etapie 5. Odnośnik więc prowadzi do prawdy, nie do atrapy.
+ * ── PASEK „KONTO GOTOWE” PO REJESTRACJI ────────────────────────────────
+ * Formularz wraca tu z `?welcome=1`. Pasek mówi, że konto powstało
+ * i jakim uchwytem się logujesz — samo przeładowanie na pulpit niczego
+ * nie potwierdzało. Po samym zalogowaniu parametru NIE MA, bo powitanie
+ * jest dla nowego konta, nie dla każdego wejścia.
  */
 export default function HomePage() {
   return (
     <div className="relative isolate min-h-dvh overflow-hidden">
       {/*
-        Tło: cicha powierzchnia i dwie poświaty — cyjan nad znakiem,
-        złoto tygrysa w rogu. Te same plamy świetlne co na ekranie
-        logowania utrzymują jedno wrażenie przestrzeni w całej aplikacji.
+        Tło: cicha powierzchnia i trzy poświaty — te same plamy świetlne
+        co na ekranie logowania, żeby przejście między ekranami nie zmieniało
+        nastroju. Znak marki jest tu PIEKĘCIĄ W TLE (duży, przygaszony,
+        przesunięty nad górną krawędź), a nie kulą na środku — bo prawdziwą
+        treścią są drzwi do modułów.
       */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-[var(--bengos-surface)]" />
-        <div className="absolute left-1/2 top-16 size-[30rem] -translate-x-1/2 rounded-full bg-[var(--bengos-accent)] opacity-[0.10] blur-3xl" />
-        <div className="absolute -right-20 bottom-8 size-80 rounded-full bg-[var(--bengos-warning)] opacity-[0.07] blur-3xl" />
-        <div className="absolute -left-24 bottom-32 size-72 rounded-full bg-[var(--bengos-accent)] opacity-[0.06] blur-3xl" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={BRAND.logo}
+          alt=""
+          width={1024}
+          height={1024}
+          className="absolute left-1/2 top-0 size-64 -translate-x-1/2 -translate-y-1/3 rounded-full object-cover object-center opacity-[0.14] blur-sm sm:size-80"
+        />
+        <div className="absolute left-1/2 top-16 size-[26rem] -translate-x-1/2 rounded-full bg-[var(--bengos-accent)] opacity-[0.08] blur-3xl" />
+        <div className="absolute -right-20 bottom-8 size-80 rounded-full bg-[var(--bengos-warning)] opacity-[0.06] blur-3xl" />
       </div>
 
-      <div className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col px-5 pb-28 pt-8 md:pb-12">
+      <div className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col px-4 pb-28 pt-6 md:pb-12 md:pt-10">
         {/*
-          Znak marki: napis nad tygrysem, jak na grafice logo. Pierścienie
-          są aria-hidden — nazwę niesie napis, okrąg jest dekoracją.
+          Pasek tożsamości — pierwsza rzecz na ekranie. Mówi, że jesteś
+          w środku i kim jesteś; dopiero pod nim stoją drzwi.
         */}
-        <header className="flex flex-col items-center text-center">
-          <h1 className="text-[var(--bengos-size-display)] font-[var(--bengos-weight-semibold)] uppercase tracking-[0.32em] text-[var(--bengos-accent)] [text-shadow:0_0_28px_var(--bengos-glow)]">
-            {BRAND.name}
-          </h1>
+        <WelcomeBanner />
 
-          <div className="bengos-hud mt-7 flex size-40 items-center justify-center sm:size-56">
-            <span aria-hidden="true" className="bengos-hud__ring bengos-hud__ring--static inset-0" />
-            <span aria-hidden="true" className="bengos-hud__ring bengos-hud__ring--ticks -inset-4 sm:-inset-6" />
-            <span aria-hidden="true" className="bengos-hud__ring bengos-hud__ring--arc -inset-8 sm:-inset-12" />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={BRAND.logo}
-              alt="Tygrys w cyfrowym okregu — znak marki BENGOS"
-              width={1024}
-              height={1024}
-              fetchPriority="high"
-              className="size-[78%] rounded-full object-cover object-center shadow-[0_0_64px_-16px_var(--bengos-glow)]"
-            />
-          </div>
-
-          <p className="mt-7 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
-            {BRAND.tagline}
-          </p>
-        </header>
-
-        <div className="mt-12">
+        {/*
+          Siatka dziewięciu wejść — CAŁA uwaga i pierwsza rzecz po nagłówku.
+          Na telefonie dwa kafle w rzędzie (44 px celu w każdym), od `lg`
+          trzy w rzędzie. Znak marki jest już w tle nagłówka, więc nie ma
+          tu drugiego okręgu — jest tylko `h1` z nazwą, czytany przez
+          czytnik ekranu (`sr-only`), bo nazwę widać na pasku powyżej.
+        */}
+        <div className="mt-6">
+          <h1 className="sr-only">{BRAND.name} — menu główne</h1>
           <ModuleBranches />
         </div>
 
-        <div id="wyszukiwarka" className="mt-10 scroll-mt-28">
+        {/*
+          Wyszukiwarka uniwersalna — na dole, pod siatką. To jest celowe:
+          najpierw drzwi do modułów (najczęstsza droga), potem jedno pole
+          na wszystko (droga dla kogoś, kto wie, czego chce).
+          Kotwica `#wyszukiwarka` jest adresem kafla „wyszukiwarka”.
+        */}
+        <div id="wyszukiwarka" className="mt-8 scroll-mt-24">
           <UniversalSearch />
         </div>
       </div>
