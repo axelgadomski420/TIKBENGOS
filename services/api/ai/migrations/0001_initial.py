@@ -1,4 +1,4 @@
-"""Ręczna migracja początkowa asystenta — addytywna, jak każe zasada.
+successfully downloaded text file (SHA: 7b5aca50ff316688cfa8aadb619abe785ae041f4)"""Ręczna migracja początkowa asystenta — addytywna, jak każe zasada.
 
 Powstaje RĘCZNIE (nigdy makemigrations), bo migracje w tym projekcie są
 częścią kontraktu bazy: kolejność i kształt mają być czytelne dla człowieka.
@@ -17,7 +17,11 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("accounts", "0001_initial"),
+        # Wzorzec z dev/migrations/0001_initial.py: zależność od modelu
+        # użytkownika przez swappable_dependency, a nie od nazwy migracji
+        # accounts — nazwa migracji innego modułu to wiedza o jego wnętrzu,
+        # której ten moduł nie powinien mieć.
+        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
