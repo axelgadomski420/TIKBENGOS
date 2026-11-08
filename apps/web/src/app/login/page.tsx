@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { LoginForm } from "@/components/auth/login-form";
+import { BRAND } from "@/lib/brand";
 
 export const metadata: Metadata = { title: "Logowanie" };
 
@@ -52,7 +53,7 @@ export default function LoginPage() {
         <div className="mb-5 flex justify-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={BRAND_LOGIN}
+            src={BRAND.login}
             alt=""
             width={1024}
             height={1024}
