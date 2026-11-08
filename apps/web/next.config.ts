@@ -27,6 +27,15 @@ const config: NextConfig = {
   // PRZERWAć na błędzie typów, a nie tylko go wypisać.
   typescript: { ignoreBuildErrors: false },
   eslint: { ignoreDuringBuilds: true },
+  // Znak marki stoi dziś na `i.ibb.co` — decyzja właściciela opisana w
+  // `src/lib/brand.ts`. Grafika w nagłówku powłoki ma `unoptimized`, więc
+  // nie przechodzi przez `/_next/image` i ten wpis nie jest jej potrzebny.
+  // Istnieje na zapas: jeśli przy przyszłej optymalizacji obrazów ktoś zdejmie
+  // `unoptimized`, bez `remotePatterns` Next odmówi serwowania obcej domeny
+  // i logo zniknie z pasków. Wpis załatwia to zawczasu.
+  images: {
+    remotePatterns: [{ protocol: "https", hostname: "i.ibb.co" }],
+  },
   async headers() {
     return [
       {
