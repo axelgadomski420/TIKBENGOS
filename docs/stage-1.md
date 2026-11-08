@@ -1,5 +1,4 @@
 # Etap 1 — co jest zrobione, a co nie
-
 Dokument prawdy o stanie prac. Zasada: nie dopisuj tu niczego, czego nie ma w kodzie.
 
 ## Zrobione
@@ -37,34 +36,3 @@ Dokument prawdy o stanie prac. Zasada: nie dopisuj tu niczego, czego nie ma w ko
 - Jedno konto i jeden model uprawnień z rolami: użytkownik, twórca, moderator,
   deweloper, administrator.
 - Model kluczy API: szyfrowanie w spoczynku, jednorazowe pokazanie, brak odczytu zwrotnego.
-
-## Nie zrobione — i tak ma być
-
-- **Feed, Studio, Chat, Create, Dev, Access nie istnieją w tym etapie.** Nawigacja
-  prowadzi do ekranów, które mówią wprost, że moduł jest w kolejnym etapie. To jest
-  celowe: lepszy uczciwy ekran zastępczy niż atrapa działającej funkcji.
-- **Wideo, muzyka, czat i migi nie mają jeszcze żadnej logiki.** Warstwy usług są
-  założone jako katalogi z kontraktem API, nie jako działające procesy.
-- **Push notifications nie są wybrane.** Do decyzji: usługa zewnętrzna czy własna
-  implementacja na kluczach VAPID. Wpływa na Etap 2, bo PWA potrzebuje tego od początku.
-- **Transkodowanie wideo nie istnieje.** Kolejka zadań jest w kontrakcie, nie w kodzie.
-- **Nie ma jeszcze migracji danych z TIKTAK.** Baza startuje pusta, z modelem docelowym.
-
-## Zadania otwarte z audytu, nierozwiązane w tym etapie
-
-1. Liczba kont w darmowej dzierżawie Oracle — dokumentacja podaje limit i warunek
-   wysokiego wykorzystania; konkretnej liczby nie potwierdzono. Plan ostrożnościowy:
-   jedna maszyna ARM 4 rdzenie / 24 GB, wszystko w kontenerach.
-2. Licencja `TIKMIG` — brak pliku licencji. Do uzupełnienia przed publicznym wydaniem.
-3. Licencja `TIKMESS` — niepotwierdzona. Patrz `docs/licensing.md`.
-4. Zakres migracji mediów z Cloudinary — bez dostępu do konta Cloudinary nie da się
-   powiedzieć, ile plików trzeba przenieść.
-
-## Czego ten etap świadomie nie obiecuje
-
-- Pełnego tłumaczenia polskiego języka migowego. Model przenoszony z `TIKMIG`
-  rozpoznaje 250 znaków amerykańskiego języka migowego i nie ma segmentacji
-  ciągłego migania. Interfejs musi to mówić wprost.
-- Generacji muzyki na darmowym planie Oracle. MusicGen średni potrzebuje 16 GB
-  pamięci karty graficznej. To osobny worker, nie część maszyny aplikacyjnej.
-
