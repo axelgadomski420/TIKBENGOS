@@ -3,10 +3,10 @@
 # Pięć różnic wobec `docker-compose.yml`, każda jest celowa:
 #
 # 1. HASA WYMAGANE, NIE DOMYŚLNE. W pliku developerskim hasło bazy ma
-#    domyślnkę `change-me`. Tu nie ma żadnej: brak zmiennej w `.env`
+#    domyślkę `change-me`. Tu nie ma żadnej: brak zmiennej w `.env`
 #    zatrzymuje start z błędem. Domyślka na publicznej maszynie to baza
 #    otwarta dla każdego, kto zgadnie port.
-# 2. PORTY NA ZEWNĄTRZ ZAMKNIĘTE. Baza, Redis, API i worker agenta nie są
+# 2. PORTY NA ZEWNĄTRZ ZAMKNIĘTE. Baza, Redis, API i workery nie są
 #    wystawione na świat — tylko reverse proxy (Caddy) ma porty 80 i 443.
 #    Reszta rozmawia w sieci Dockera, gdzie nie dosięgnie jej nikt z zewnątrz.
 # 3. SERWER PRODUKCYJNY, NIE DEVELOPERSKI. `runserver` i `daphne` są
@@ -26,13 +26,6 @@
 # Docker Compose czytał go jako klucz najwyższego poziomu i odrzucał cały
 # plik komunikatem `additional properties … not allowed`, więc build nie
 # startował w ogóle. Pierwsza linia MUSI zaczynać się od `#` albo od `name:`.
-#
-# ── JEDNA RZECZ DO ZROBIENIA ────────────────────────────────────────────
-# `api` pisze wgrane utwory do `MEDIA_ROOT` (`/srv/media` w kontenerze),
-# ale NIE MA TU WOLUMENU na tym katalogu. To znaczy, że każde
-# `up -d --build` kasuje wszystkie pliki audio użytkowników. Wolumen
-# `api-media` trzeba dodać razem ze zmianą w `settings.py` na R2 —
-# do tego czasu jest to świadomy dług, nie przeoczenie.
 
 name: tikbengos
 
@@ -72,11 +65,6 @@ services:
     restart: unless-stopped
     # Trzy procesy gunicorna. Maszyna darmowa ma dwa rdzenie Ampere,
     # więc więcej procesów nie przyspieszy niczego — będzie tylko kolejkować.
-    #
-    # `collectstatic` jest tu BEZ `|| true`. Poprzednia wersja tłumiła jego
-    # wynik, więc brak aplikacji `django.contrib.staticfiles` w ustawieniach
-    # przechodził niezauważony — komenda nie istniała, a deploy wyglądał
-    # na udany. Teraz brak `staticfiles` zatrzymuje start głośno.
     command: >
       sh -c "python manage.py migrate --noinput &&
              python manage.py collectstatic --noinput &&
@@ -91,37 +79,23 @@ services:
       CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:?Ustaw CSRF_TRUSTED_ORIGINS w .env}
       # ── Moduły i dostawcy ─────────────────────────────────────────────
       # Compose NIE wstrzykuje zmiennych z `.env` do kontenerów sam z siebie:
-      # `.env` służy tylko do podstawień `${...}` w tym pliku. Zmienna, której
-      # tu nie ma, w kontenerze API nie istnieje nawet wtedy, gdy leży w `.env`
-      # na hoście — więc każda zmienna czytana przez settings.py musi tu jawnie
-      # przejść. Wszystkie poniższe są opcjonalne, dokładnie tak samo jak
-      # w ustawieniach: pusto = moduł uczciwie mówi „nie skonfigurowano”.
-      # OAuth (Google, GitHub): pusto = przyciski dostawców nieaktywne.
+      # `.env` służy tylko do podstawień `${...}` w tym pliku.
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GITHUB_OAUTH_CLIENT_ID: ${GITHUB_OAUTH_CLIENT_ID:-}
       GITHUB_OAUTH_CLIENT_SECRET: ${GITHUB_OAUTH_CLIENT_SECRET:-}
-      # Adresy zwrotne OAuth — bez tego Django bierze pierwszy wpis
-      # z CSRF_TRUSTED_ORIGINS, co przy kilku domenach daje rozjazd.
       OAUTH_REDIRECT_BASE: ${OAUTH_REDIRECT_BASE:-}
-      # BENGOS Dev: token do GitHuba (plan + pull request) i adres executora.
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
       BENGOS_CODE_EXECUTOR_URL: ${BENGOS_CODE_EXECUTOR_URL:-}
-      # BENGOS Music: adres workera GPU i limit dzienny na użytkownika.
-      # Limit używa „:-” (domyślna także przy pustym), bo pusty ciąg
-      # trafiłby do int("") i zatrzymał import ustawień.
       MUSICGEN_ENDPOINT: ${MUSICGEN_ENDPOINT:-}
       MUSIC_DAILY_LIMIT: ${MUSIC_DAILY_LIMIT:-10}
-      # Wspólny sekret endpointów zwrotnych /jobs/{id}/complete: worker GPU,
-      # executor zmian, worker asystenta. Pusto = endpointy zwrotne zwracają
-      # 403 dla każdego żądania.
       BENGOS_WORKER_TOKEN: ${BENGOS_WORKER_TOKEN:-}
-      # BENGOS Asystent: adres usługi z modelem i nazwa modelu.
+      # ── Asystent: Ollama jako silnik modelu ──────────────────────────
+      # Adres usługi `ollama` w sieci Dockera. API wysyła tu ZLECENIE,
+      # a nie pytanie — model odpowiada na endpoint zwrotny, więc żądanie
+      # API nie czeka na generację. Pusto = pytanie dostaje 503 z wyjaśnieniem.
       ASSISTANT_LLM_ENDPOINT: ${ASSISTANT_LLM_ENDPOINT:-}
       ASSISTANT_MODEL: ${ASSISTANT_MODEL:-}
-    # Wolumen na media, żeby `up -d --build` nie kasował wgranych utworów.
-    # `MEDIA_ROOT` w `settings.py` to `BASE_DIR / media`, a `BASE_DIR`
-    # to `/srv` w obrazie — więc montujemy dokładnie tam.
     volumes:
       - api-media:/srv/media
     depends_on:
@@ -150,17 +124,10 @@ services:
     build:
       context: ..
       dockerfile: apps/web/Dockerfile
-      # NEXT_PUBLIC_* Next.js wypala w paczce klienta W CZASIE BUDOWY.
-      # Podana tylko w „environment” (runtime) do przeglądarki nie trafia
-      # — po wdrożeniu czat pokazywałby „nieskonfigurowany”, choć `.env`
-      # jest poprawny. Dlatego wartość idzie przez args do etapu builder.
       args:
         NEXT_PUBLIC_REALTIME_URL: ${NEXT_PUBLIC_REALTIME_URL:-}
     restart: unless-stopped
     environment:
-      # Proxy w `apps/web` czyta ten adres po stronie serwera Next.js.
-      # To adres w sieci Dockera, nie publiczny — ciasteczko sesji zostaje
-      # w jednej domenie, więc CORS nie jest potrzebny.
       API_INTERNAL_URL: http://api:8000
       NEXT_PUBLIC_REALTIME_URL: ${NEXT_PUBLIC_REALTIME_URL:-}
       NODE_ENV: production
@@ -171,7 +138,6 @@ services:
     image: caddy:2-alpine
     restart: unless-stopped
     ports:
-      # Jedyne porty wystawione na świat.
       - "80:80"
       - "443:443"
     volumes:
@@ -186,35 +152,92 @@ services:
       - api
 
   # ───────────────────────────────────────────────────────────────────────
-  # AGENT KODUJĄCY — BENGOS Dev
+  # MODEL ASYSTENTA — Ollama
   # ───────────────────────────────────────────────────────────────────────
   #
-  # ── DLACZEGO OSOBNY KONTENER ───────────────────────────────────────────
-  # Agent wykonuje polecenia powłoki. README TIKCODING mówi to wprost:
-  # uruchamiaj wyłącznie w kontenerze, bo inaczej agent grzebie w systemie
-  # plików hosta. Gdyby chodził w procesie Django, jedno jego polecenie
-  # sięgałoby do bazy i do kluczy dostawców użytkowników.
+  # ── DLACZEGO WŁASNA USŁUGA, A NIE KLUCZ DOSTAWCY ───────────────────────
+  # Model chodzi na tej samej maszynie co reszta stosu, więc nie ma klucza,
+  # który mógłby wyciec, nie ma kosztu za token i nie ma drugiej tożsamości:
+  # użytkownik nie zakłada konta u nikogo, żeby asystent odpowiedział.
+  # Zostaje jedna tożsamość BENGOS z briefu.
   #
-  # ── DLACZEGO W INNEJ SIECI NIŻ BAZA ────────────────────────────────────
-  # Ten kontener NIE JEST w domyślnej sieci `tikbengos`. To nie ostrożność,
-  # a warunek: agent, któremu model każe wysłać dane na zewnątrz, nie może
-  # mieć trasy do bazy ani do Redisa. Do internetu wychodzi (musi — klonuje
-  # repozytorium i woła model), ale do własnej infrastruktury nie.
+  # ── DLACZEGO BEZ `ports` ───────────────────────────────────────────────
+  # Ollama domyślnie nie ma uwierzytelniania. Wystawiona na świat byłaby
+  # otwartym modelem dla każdego, kto zgadnie adres — więc portu nie ma,
+  # a dostęp ma wyłącznie sieć Dockera. To ta sama zasada co przy bazie.
   #
-  # ── DLACZEGO `profiles` ────────────────────────────────────────────────
-  # Usługa jest w profilu `worker`, więc NIE startuje przy zwykłym
-  # `docker compose up -d`. Powód jest praktyczny: bez klucza modelu
-  # i bez podłączonego agenta ten kontener nie ma czego robić, a kontener,
-  # który stoi i nic nie robi, wygląda na zepsuty. Włącza się świadomie:
-  #     docker compose --profile worker up -d code-worker
+  # ── GDY MODEL NIE JEST POBRANY ─────────────────────────────────────────
+  # Obraz startuje z pustym wolumenem. Workera nie obchodzi, jaki model
+  # chcesz — bierze nazwę z `ASSISTANT_MODEL` i odmawia pracy, gdy go nie ma.
+  # Pobranie należy do właściciela maszyny, bo to gigabajty i decyzja:
+  #     docker compose --env-file .env -f infra/docker-compose.prod.yml \
+  #       exec ollama ollama pull qwen2.5:7b
+  # Wariant 7b to rozsądny kompromis na ARM z 24 GB: mieści się w pamięci
+  # i odpowiada w kilka sekund. Większy model zje cały RAM maszyny.
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ollama-models:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  # ───────────────────────────────────────────────────────────────────────
+  # WORKER ASYSTENTA — warstwa między API a Ollamą
+  # ───────────────────────────────────────────────────────────────────────
   #
-  # ── CZEGO TU NIE MA I DLACZEGO ─────────────────────────────────────────
-  # Bez `ports`: ten kontener nie ma portu. Woła go API, nie świat — a brak
-  # portu to brak powierzchni ataku, której nie potrzebujemy.
-  # Bez `DATABASE_URL` i bez `REDIS_URL`, przez co agent nie ma czym sięgnąć
-  # po dane użytkowników, nawet gdyby model go o to poprosił.
-  # Bez `GITHUB_READ_TOKEN` w domyślnym wariancie: klonowanie publicznych
-  # repozytoriów wystarcza do planu, a token dodajesz świadomie w `.env`.
+  # ── PO CO OSOBNY KONTENER, SKORO MODEL JEST OBOK ───────────────────────
+  # API nie ma wag modelu i nie udaje, że ma: `services/api/ai/api.py`
+  # tworzy zadanie i zwraca 202, a odpowiedź POWSTAJE tylko na endpoincie
+  # zwrotnym. Ten kontener jest tym, co między jedno a drugie wchodzi —
+  # z jednolitym raportem `running`/`succeeded`/`failed`.
+  #
+  # ── PROFIL `worker`, JAK PRZY AGENCIE KODUJĄCYM ────────────────────────
+  # Usługa nie startuje przy zwykłym `up -d`, bo bez pobranego modelu nie
+  # ma czego robić, a kontener, który stoi i nic nie robi, wygląda na
+  # zepsuty. Włącza się świadomie — patrz komenda `ollama pull` wyżej:
+  #     docker compose --profile worker up -d ai-worker
+  #
+  # ── `depends_on` Z `service_healthy`, NIE SAMO `depends_on` ───────────
+  # Bez warunku kontener wstaje zanim Ollama zacznie słuchać i pierwsze
+  # pytanie kończy się „connection refused”. Warunek to jedyne miejsce,
+  # w którym ta kolejność jest zapisana.
+  ai-worker:
+    build:
+      context: ..
+      dockerfile: services/ai-worker/Dockerfile
+    restart: unless-stopped
+    profiles: ["worker"]
+    environment:
+      # Adres modelu w sieci Dockera — nie publiczny, nie z `.env`,
+      # bo ten kontener nie ma prawa wyjść na świat poza tym adresem.
+      OLLAMA_URL: http://ollama:11434
+      ASSISTANT_MODEL: ${ASSISTANT_MODEL:?Ustaw ASSISTANT_MODEL w .env}
+      API_INTERNAL_URL: http://api:8000
+      BENGOS_WORKER_TOKEN: ${BENGOS_WORKER_TOKEN:?Ustaw BENGOS_WORKER_TOKEN w .env}
+      # Model bez limitu potrafi myśleć w nieskończoność. Ten limit jest
+      # w kodzie workera; zostaje tu jako jawny ślad, że jest.
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      # Kod z hosta, żeby poprawka działała bez przebudowy obrazu.
+      # `:ro` — worker nie pisze niczego do swojego kodu.
+      - ../services/ai-worker:/srv:ro
+    depends_on:
+      ollama:
+        condition: service_healthy
+      api:
+        condition: service_started
+
+  # ───────────────────────────────────────────────────────────────────────
+  # AGENT KODUJĄCY — BENGOS Dev
+  # ───────────────────────────────────────────────────────────────────────
+  # Agent wykonuje polecenia powłoki, więc żyje w OSOBNYM kontenerze,
+  # w innej sieci niż baza. Powód jest bezpieczeństwem, nie wygodą —
+  # szczegóły w komentarzach przy usłudze i w `services/code-worker/`.
   code-worker:
     build:
       context: ..
@@ -222,38 +245,21 @@ services:
     restart: unless-stopped
     profiles: ["worker"]
     environment:
-      # Klucz modelu — po stronie serwera, nie użytkownika. Bez niego worker
-      # odmawia startu z wyjaśnieniem, a nie pada w połowie zlecenia.
-      # Puste znaczy „pominięty”: nie każdy używa Anthropica.
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
-      # Potwierdzenie, że obraz z agentem jest podniesiony. Bez tego worker
-      # zwraca `unavailable` Z WYJAŚNIENIEM — wołanie agenta, którego nie ma,
-      # zwróciłoby „command not found”, czyli dokładnie tę atrapę, której
-      # brief zakazuje.
       CODE_AGENT_AVAILABLE: ${CODE_AGENT_AVAILABLE:-0}
-      # Token tylko do CZYTANIA prywatnych repozytoriów. Zapis (gałąź, commit,
-      # pull request) robi API, gdzie jest token użytkownika i dziennik audytu.
       GITHUB_READ_TOKEN: ${GITHUB_READ_TOKEN:-}
       CODE_WORK_DIR: /srv/work
     volumes:
-      # Katalog pracy na wolumenie, nie w warstwie obrazu: klony repozytoriów
-      # są duże, a obraz ma zostać mały. `:rw` jest konieczne — worker pisze.
       - code-worker-work:/srv/work
     networks:
-      # Własna sieć z wyjściem na świat i BEZ trasy do bazy oraz Redisa.
-      # `internal: false` znaczy, że internet działa (klonowanie, model),
-      # a brak wpisu o sieci domyślnej odcina drogę do reszty stosu.
       - code-worker-net
 
 networks:
   code-worker-net:
     driver: bridge
-    # Nie `internal: true` — worker MUSI mieć wyjście na świat, żeby
-    # sklonować repozytorium i zawołać model. Izolacja polega na tym, że ta
-    # sieć nie zawiera bazy ani Redisa, a nie na odcięciu internetu.
     internal: false
 
 volumes:
@@ -262,6 +268,8 @@ volumes:
   caddy-data:
   caddy-config:
   code-worker-work:
-  # Media API — wgrane utwory i inne pliki użytkowników. Bez tego wolumenu
-  # każda przebudowa obrazu kasowała zawartość `/srv/media`.
   api-media:
+  # Modele Ollamy — dziesiątki gigabajtów, więc MUSZĄ przeżyć przebudowę
+  # obrazu i `up -d --build`. Bez tego wolumenu każde wdrożenie kasowałoby
+  # pobrane modele i worker odmawiałby pracy do czasu ponownego pobrania.
+  ollama-models:
