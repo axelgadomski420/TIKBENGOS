@@ -4,8 +4,8 @@
  * ── CZYM TO NIE JEST ────────────────────────────────────────────────────
  * To nie jest ekran ładowania aplikacji. Next.js serwuje interfejs tak
  * szybko, że zasłanianie go na sekundę byłoby udawaniem pracy, której nie ma.
- * Ten plik istnieje dla momentu, którego Next nie widzi: zanim CSS i czcionki
- * dojadą, przeglądarka maluje coś sama.
+ * Ten arkusz istnieje dla momentu, którego Next nie widzi: zanim CSS
+ * i czcionki dojadą, przeglądarka maluje coś sama.
  *
  * Bez tego użytkownik na wolnym łączu widzi biały prostokąt — a biały
  * prostokąt w aplikacji z ciemnym motywem wygląda jak zepsuta strona,
@@ -13,19 +13,20 @@
  *
  * ── KOLORY SĄ POWTÓRZONE ŚWIADOMIE ─────────────────────────────────────
  * `#05070D` to `--bengos-surface`, `#22D3EE` to `--bengos-accent`
- * z ciemnego motywu. Nie da się tu użyć zmiennych CSS, bo ten arkusz jest
- * tym, co sprawia, że zmienne zaczynają istnieć — więc w tym jednym miejscu
- * kolor stoi wprost i nie da się tego obejść.
+ * z ciemnego motywu. Nie da się tu użyć zmiennych CSS, bo marka stoi
+ * w `layout.tsx` PRZED `tokensToStyle` — zmienne jeszcze nie istnieją
+ * w chwili pierwszego malowania. W tym jednym miejscu kolor stoi wprost.
  *
- * ── ZNIKA SAME, BEZ JAVASCRIPTU ─────────────────────────────────────────
- * Zasłona schodzi po 1100 ms animacją, a nie po zdarzeniu `load`. Powód:
- * zdarzenie `load` wymaga skryptu, a skrypt wykonuje się dopiero po
- * hydracji — czyli dokładnie wtedy, gdy zasłona przestaje być potrzebna.
- * Animacja CSS działa od pierwszej klatki, także przed JavaScriptem.
+ * ── ZASŁONA JEST TERAZ STEROWANA KLASĄ, NIE CZYSTYM CSS ─────────────────
+ * Poprzednia wersja znikała sama po czasie. To pokazywało ją przy każdym
+ * przejściu między modułami — Next montuje ten element na nowo przy każdym
+ * wejściu na ekran. Teraz elementem steruje `BootSplash` (raz na sesję),
+ * a ten arkusz daje mu tylko wygląd i animację wyjścia.
  *
  * ── ANIMACJA NIE ZNIKA PRZY OGRANICZENIU RUCHU ──────────────────────────
- * Pulsowanie schodzi do 1 ms, tak jak tokeny ruchu w design systemie.
- * Element, który się nie pojawia, jest błędem, a nie udogodnieniem.
+ * Pulsowanie i przejazd schodzą do 1 ms, tak jak tokeny ruchu w design
+ * systemie. Element, który się nie pojawia, jest błędem — a nie
+ * udogodnieniem.
  */
 
 @keyframes bengos-boot-hide {
@@ -73,11 +74,17 @@
   );
   /*
    * Odcina zasłonę od dotyku od razu. Bez tego element przechwytywałby
-   * kliknięcia w interfejs, który jest pod nim — a jest tam już od
-   * pierwszej klatki.
+   * kliknięcia w interfejs, który jest pod nim.
    */
   pointer-events: none;
-  animation: bengos-boot-hide 260ms ease-out 1100ms forwards;
+}
+
+/*
+ * Wyjście. Klasa dodawana przez `BootSplash` po 1100 ms — element zostaje
+ * w drzewie do końca animacji, a dopiero potem znika.
+ */
+.bengos-boot--hide {
+  animation: bengos-boot-hide 260ms ease-out forwards;
 }
 
 .bengos-boot-mark {
@@ -126,9 +133,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bengos-boot {
+  .bengos-boot--hide {
     animation-duration: 1ms;
-    animation-delay: 1ms;
   }
   .bengos-boot-mark,
   .bengos-boot-bar::after {
