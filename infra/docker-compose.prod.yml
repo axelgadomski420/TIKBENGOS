@@ -1,9 +1,9 @@
-successfully downloaded text file (SHA: a135699e6edb125c2cfd959b1c436e6190b2d5d4)# Infrastruktura TIKBENGOS — środowisko produkcyjne.
+# Infrastruktura TIKBENGOS — środowisko produkcyjne.
 #
 # Pięć różnic wobec `docker-compose.yml`, każda jest celowa:
 #
 # 1. HASA WYMAGANE, NIE DOMYŚLNE. W pliku developerskim hasło bazy ma
-#    domyślkę `change-me`. Tu nie ma żadnej: brak zmiennej w `.env`
+#    domyślnkę `change-me`. Tu nie ma żadnej: brak zmiennej w `.env`
 #    zatrzymuje start z błędem. Domyślka na publicznej maszynie to baza
 #    otwarta dla każdego, kto zgadnie port.
 # 2. PORTY NA ZEWNĄTRZ ZAMKNIĘTE. Baza, Redis, API i worker agenta nie są
@@ -17,7 +17,22 @@ successfully downloaded text file (SHA: a135699e6edb125c2cfd959b1c436e6190b2d5d4
 #    sieci niż baza — powód jest w komentarzu przy samej usłudze i jest
 #    bezpieczeństwem, nie wygodą.
 #
-# `infra/docker-compose.yml` zostaje bez zmian jako środowisko developerskie.
+# ── UWAGA O PIERWSZEJ LINII TEGO PLIKU ──────────────────────────────────
+# Ten plik zaczynał się kiedyś od tekstu:
+#
+#     successfully downloaded text file (SHA: a135699e…)# Infrastruktura…
+#
+# To komunikat narzędzia, które pobierało plik — wklejony przed komentarzem.
+# Docker Compose czytał go jako klucz najwyższego poziomu i odrzucał cały
+# plik komunikatem `additional properties … not allowed`, więc build nie
+# startował w ogóle. Pierwsza linia MUSI zaczynać się od `#` albo od `name:`.
+#
+# ── JEDNA RZECZ DO ZROBIENIA ────────────────────────────────────────────
+# `api` pisze wgrane utwory do `MEDIA_ROOT` (`/srv/media` w kontenerze),
+# ale NIE MA TU WOLUMENU na tym katalogu. To znaczy, że każde
+# `up -d --build` kasuje wszystkie pliki audio użytkowników. Wolumen
+# `api-media` trzeba dodać razem ze zmianą w `settings.py` na R2 —
+# do tego czasu jest to świadomy dług, nie przeoczenie.
 
 name: tikbengos
 
@@ -75,22 +90,25 @@ services:
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:?Ustaw ALLOWED_HOSTS w .env}
       CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:?Ustaw CSRF_TRUSTED_ORIGINS w .env}
       # ── Moduły i dostawcy ─────────────────────────────────────────────
-      # Compose NIE wstrzykuje zmiennych z ".env" do kontenerów sam z siebie:
-      # ".env" służy tylko do podstawień "${...}" w tym pliku. Zmienna, której
-      # tu nie ma, w kontenerze API nie istnieje nawet wtedy, gdy leży w ".env"
+      # Compose NIE wstrzykuje zmiennych z `.env` do kontenerów sam z siebie:
+      # `.env` służy tylko do podstawień `${...}` w tym pliku. Zmienna, której
+      # tu nie ma, w kontenerze API nie istnieje nawet wtedy, gdy leży w `.env`
       # na hoście — więc każda zmienna czytana przez settings.py musi tu jawnie
       # przejść. Wszystkie poniższe są opcjonalne, dokładnie tak samo jak
-      # w ustawieniach: pusto = moduł uczciwie mówi "nie skonfigurowano".
+      # w ustawieniach: pusto = moduł uczciwie mówi „nie skonfigurowano”.
       # OAuth (Google, GitHub): pusto = przyciski dostawców nieaktywne.
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GITHUB_OAUTH_CLIENT_ID: ${GITHUB_OAUTH_CLIENT_ID:-}
       GITHUB_OAUTH_CLIENT_SECRET: ${GITHUB_OAUTH_CLIENT_SECRET:-}
+      # Adresy zwrotne OAuth — bez tego Django bierze pierwszy wpis
+      # z CSRF_TRUSTED_ORIGINS, co przy kilku domenach daje rozjazd.
+      OAUTH_REDIRECT_BASE: ${OAUTH_REDIRECT_BASE:-}
       # BENGOS Dev: token do GitHuba (plan + pull request) i adres executora.
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
       BENGOS_CODE_EXECUTOR_URL: ${BENGOS_CODE_EXECUTOR_URL:-}
       # BENGOS Music: adres workera GPU i limit dzienny na użytkownika.
-      # Limit używa ":-" (domyślna także przy pustym), bo pusty ciąg
+      # Limit używa „:-” (domyślna także przy pustym), bo pusty ciąg
       # trafiłby do int("") i zatrzymał import ustawień.
       MUSICGEN_ENDPOINT: ${MUSICGEN_ENDPOINT:-}
       MUSIC_DAILY_LIMIT: ${MUSIC_DAILY_LIMIT:-10}
@@ -101,6 +119,11 @@ services:
       # BENGOS Asystent: adres usługi z modelem i nazwa modelu.
       ASSISTANT_LLM_ENDPOINT: ${ASSISTANT_LLM_ENDPOINT:-}
       ASSISTANT_MODEL: ${ASSISTANT_MODEL:-}
+    # Wolumen na media, żeby `up -d --build` nie kasował wgranych utworów.
+    # `MEDIA_ROOT` w `settings.py` to `BASE_DIR / media`, a `BASE_DIR`
+    # to `/srv` w obrazie — więc montujemy dokładnie tam.
+    volumes:
+      - api-media:/srv/media
     depends_on:
       db:
         condition: service_healthy
@@ -128,8 +151,8 @@ services:
       context: ..
       dockerfile: apps/web/Dockerfile
       # NEXT_PUBLIC_* Next.js wypala w paczce klienta W CZASIE BUDOWY.
-      # Podana tylko w "environment" (runtime) do przeglądarki nie trafia
-      # — po wdrożeniu czat pokazywałby "nieskonfigurowany", choć ".env"
+      # Podana tylko w „environment” (runtime) do przeglądarki nie trafia
+      # — po wdrożeniu czat pokazywałby „nieskonfigurowany”, choć `.env`
       # jest poprawny. Dlatego wartość idzie przez args do etapu builder.
       args:
         NEXT_PUBLIC_REALTIME_URL: ${NEXT_PUBLIC_REALTIME_URL:-}
@@ -164,7 +187,7 @@ services:
 
   # ───────────────────────────────────────────────────────────────────────
   # AGENT KODUJĄCY — BENGOS Dev
-  # ─────────────────────────────────────────────────────────────────────
+  # ───────────────────────────────────────────────────────────────────────
   #
   # ── DLACZEGO OSOBNY KONTENER ───────────────────────────────────────────
   # Agent wykonuje polecenia powłoki. README TIKCODING mówi to wprost:
@@ -239,3 +262,6 @@ volumes:
   caddy-data:
   caddy-config:
   code-worker-work:
+  # Media API — wgrane utwory i inne pliki użytkowników. Bez tego wolumenu
+  # każda przebudowa obrazu kasowała zawartość `/srv/media`.
+  api-media:
