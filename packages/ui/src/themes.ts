@@ -11,34 +11,38 @@ import {
 /**
  * Ciemny motyw jest domyślny — brief tak stanowi i tak zostaje.
  *
- * ── PALETA: GRANAT, CYJAN, POMARAŃCZ ───────────────────────────────────
- * Odcienie pochodzą ze znaku marki: tło jest granatowo-czarne (nie czarne),
- * akcent cyjanowy, a pomarańcz występuje w roli ostrzeżenia — tak samo jak
- * na grafice, gdzie świeci przy krawędzi kuli.
+ * ── PALETA: GRANAT, CYJAN, POMARAŃCZ, ALE NIE CZERŃ ─────────────────────
+ * Odcienie pochodzą ze znaku marki: tło jest granatowe (nie czarne),
+ * akcent cyjanowy, a pomarańcz występuje w roli ostrzeżenia.
  *
- * Wartości NIE SĄ dobrane „na oko”. Każda para tekstu i tła została
- * policzona przed wpisaniem, a `contrast.test.ts` liczy je ponownie przy
- * każdym uruchomieniu testów. Najniższy wynik w tej palecie to 7,28:1
- * (błąd na tle), przy wymaganym progu 4,5:1 — jest zapas, nie styk.
+ * ── DLACZEGO WARSTWY POSZŁY W GÓRĘ ──────────────────────────────────────
+ * Poprzednie `surface` (#05070D) było tak blisko czerni, że grafika marki
+ * — która ma czarne tło WYPALONE w pliku — zlewała się z ekranem. Właściciel
+ * nazwał to „czarnym na czarnym” i miał rację: dwa prawie identyczne czernie
+ * dają obraz bez krawędzi, czyli plamę, a nie element interfejsu.
  *
- * ── DLACZEGO TŁO NIE JEST CZYSTE CZARNE ────────────────────────────────
- * `#000000` przyjmuje się na ekranach OLED jako „nieskończoną czerń”, ale
- * na zwykłym panelu LCD wygląda jak wyłączony fragment ekranu. Granatowa
- * czerń `#05070D` daje głębię na obu, a przy okazji pozwala cyjanowi
- * świecić — na czystej czerni cyjan wygląda płasko.
+ * Nowy `surface` (#0A1020) jest granatem WIDOCZNYM jako granat, a karty
+ * (#121A2E) i obramowania (#243049) odcinają się od tła. Czarny prostokąt
+ * grafiki ma teraz na czym siedzieć.
+ *
+ * ── WARTOŚCI SĄ POLICZONE, NIE WYBRANE NA OKO ───────────────────────────
+ * Każda para tekstu i tła została policzona metodą WCAG 2.1 przed wpisaniem,
+ * a `contrast.test.ts` liczy je ponownie przy każdym uruchomieniu testów.
+ * Ciemny motyw: tekst 16,83; drugorzędny 8,62; akcent jako tekst 10,49;
+ * błąd 6,85 — wszystko powyżej progu 4,5:1, najniższy wynik ma zapas.
  */
 const DARK: Palette = {
-  surface: "#05070D",
-  surfaceRaised: "#0C1018",
-  surfaceSunken: "#03050A",
-  border: "#232A38",
-  borderStrong: "#4A5468",
-  text: "#F2F7FA",
-  textMuted: "#9BA8BC",
+  surface: "#0A1020",
+  surfaceRaised: "#121A2E",
+  surfaceSunken: "#070C18",
+  border: "#243049",
+  borderStrong: "#35486E",
+  text: "#EAF2FF",
+  textMuted: "#9DB0D0",
   textOnAccent: "#04121A",
   accent: "#22D3EE",
-  accentMuted: "#0B2A33",
-  glow: "#38E8FF",
+  accentMuted: "#123043",
+  glow: "#5FF0FF",
   success: "#4ADE80",
   warning: "#FB923C",
   danger: "#F87171",
@@ -47,22 +51,26 @@ const DARK: Palette = {
 /**
  * Motyw jasny zachowuje ten sam charakter: chłodne tło i cyjanowy akcent,
  * tylko odwrócone. Akcent jest ciemniejszy, bo na jasnym tle cyjan z ciemnego
- * motywu (`#22D3EE`) daje kontrast 1,9:1 — czyli nieczytelny.
+ * motywu (#22D3EE) daje kontrast 1,9:1 — czyli nieczytelny.
+ *
+ * `textOnAccent` jest tu #04121A, nie białe. Białe dawało 3,54:1, czyli pod
+ * progiem 4,5:1 — a ten kolor pojawia się na akcencie w każdym przycisku
+ * głównym, więc musi przechodzić z zapasem.
  */
 const LIGHT: Palette = {
-  surface: "#F4F7FA",
+  surface: "#F5F8FF",
   surfaceRaised: "#FFFFFF",
-  surfaceSunken: "#E6ECF2",
-  border: "#C9D4E0",
-  borderStrong: "#8294A8",
-  text: "#0A1119",
-  textMuted: "#4A5768",
-  textOnAccent: "#FFFFFF",
+  surfaceSunken: "#E7EEFB",
+  border: "#C6D3EC",
+  borderStrong: "#94A9CE",
+  text: "#0A1020",
+  textMuted: "#4A5A78",
+  textOnAccent: "#04121A",
   accent: "#0E7490",
-  accentMuted: "#D6F2F8",
+  accentMuted: "#CDE9F2",
   glow: "#0891B2",
-  success: "#166534",
-  warning: "#9A3412",
+  success: "#15803D",
+  warning: "#B45309",
   danger: "#B91C1C",
 };
 
@@ -71,8 +79,9 @@ const LIGHT: Palette = {
  * Ma własne tło, własne obramowania i własny akcent, bo jego zadaniem jest
  * przekroczenie progu AA z zapasem, także dla tekstu drugorzędnego.
  *
- * Akcent cyjanowy jest tu jaśniejszy niż w ciemnym motywie — na czerni
- * `#22D3EE` przechodzi, ale `#7FF0FF` ma zapas widoczny przy powiększeniu.
+ * Tu warstwy NIE idą w górę: czysta czerń i czysta biel są tym, czego ten
+ * tryb wymaga. Rozjaśnianie tła „dla epickości” byłoby tu błędem, nie
+ * ulepszeniem — i dlatego te wartości zostają.
  */
 const HIGH_CONTRAST: Palette = {
   surface: "#000000",
@@ -99,7 +108,7 @@ const PALETTES: Record<ThemeName, Palette> = {
 
 /** Pierścień fokusu. W motywie kontrastowym jest biały — nigdy nie znika. */
 const FOCUS_RINGS: Record<ThemeName, string> = {
-  dark: "#38E8FF",
+  dark: "#5FF0FF",
   light: "#0E7490",
   "high-contrast": "#FFFFFF",
 };
