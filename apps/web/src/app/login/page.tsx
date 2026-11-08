@@ -9,21 +9,20 @@ export const metadata: Metadata = { title: "Zaloguj się" };
 /**
  * Strona startowa: logowanie i rejestracja. Nic więcej.
  *
- * ── KTÓRA GRAFIKA TU NALEŻY ─────────────────────────────────────────────
- * Na tym ekranie jest `BRAND.login` — kompozycja z napisami „logowanie”,
- * „BENGOS” i „rejestracja”. Wcześniej stała tu grafika MENU (z podpisami
- * studio, bridge, dev, profil, chat…), i to był błąd: ekran logowania
- * pokazywał spis modułów, czyli treść należącą do pulpitu. Grafika menu
- * wraca tam, gdzie jej miejsce — do siatki na pulpicie.
+ * ── GRAFIKA JEST TŁEM, NIE PROSTOKĄTEM NAD FORMULARZEM ──────────────────
+ * Kompozycja zajmuje górne 58% ekranu, jest przygaszona i rozmyta o 2 px,
+ * a od dołu wchodzi gradient na tło motywu, po którym siada formularz.
+ * Dzięki temu obraz i treść tworzą jedną kompozycję zamiast dwóch
+ * prostokątów jeden nad drugim.
  *
- * ── GRAFIKA JAKO TŁO, NIE JAKO PROSTOKĄT ────────────────────────────────
- * Obraz zajmuje górne 58% ekranu, jest przygaszony i rozmyty o 2 px, a od
- * dołu wchodzi gradient, na którym siada formularz. Dzięki temu nie ma
- * „prostokąta na prostokącie”, a obraz i treść tworzą jedną kompozycję.
+ * ── ZNAK W KOLE, JEDEN NA EKRANIE ───────────────────────────────────────
+ * W kole jest `BRAND.logo` — tygrys w kuli BEZ podpisów modułów. Wersja
+ * z podpisami ma je wypalone tak, że w kole o średnicy 80 px zostałyby
+ * obcięte do połowy i wyglądałyby na uszkodzony obraz.
  *
  * ── JEDNO ZADANIE ───────────────────────────────────────────────────────
- * Znak, nazwa, formularz, jedno wyjście. Żadnych kafli modułów i żadnych
- * kart pulpitu — te należą do ekranu po zalogowaniu.
+ * Znak, nazwa, formularz, jedno wyjście. Żadnych kafli modułów — te należą
+ * do pulpitu, nie do ekranu wejścia.
  *
  * ── WYSOKOŚĆ `dvh` I ZAPAS NA DOLNY PASEK ───────────────────────────────
  * `dvh` liczy się od realnie widocznego obszaru, więc na telefonie treść
@@ -36,16 +35,15 @@ export const metadata: Metadata = { title: "Zaloguj się" };
 export default function LoginPage() {
   return (
     <div className="relative isolate min-h-dvh overflow-hidden">
-      {/*
-        Tło: kompozycja logowania, pod nią tło motywu, a od dołu gradient.
-        Obraz jest przygaszony, bo ma dawać nastrój, nie konkurować z tekstem.
-      */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-[var(--bengos-surface)]" />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={BRAND.login}
           alt=""
+          width={1024}
+          height={1024}
+          fetchPriority="high"
           className="absolute inset-x-0 top-0 h-[58%] w-full object-cover object-top opacity-70 blur-[2px]"
         />
         <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_0%,transparent_34%,var(--bengos-surface)_58%,var(--bengos-surface)_100%)]" />
@@ -54,14 +52,21 @@ export default function LoginPage() {
       </div>
 
       <div className="mx-auto flex min-h-dvh w-full max-w-sm flex-col px-5 pb-28 pt-12 sm:max-w-md sm:pt-16 md:pb-12">
-        {/*
-          Znak w kole. Jedyne miejsce z poświatą na tym ekranie — brief mówi:
-          jeden element z `glow` na ekran, nigdy jako tło pod tekstem.
-        */}
         <div className="flex flex-col items-center text-center">
+          {/*
+            Znak w kole. Jedyne miejsce z poświatą na tym ekranie — brief:
+            jeden element z `glow` na ekran, nigdy jako tło pod tekstem.
+          */}
           <span className="flex size-20 items-center justify-center overflow-hidden rounded-full border border-[var(--bengos-border-strong)] bg-[var(--bengos-surface-sunken)] shadow-[0_0_56px_-10px_var(--bengos-glow)] sm:size-24">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={BRAND.logo} alt="" className="size-full object-cover object-top" />
+            <img
+              src={BRAND.logo}
+              alt=""
+              width={1024}
+              height={1024}
+              fetchPriority="high"
+              className="size-full object-cover object-center"
+            />
           </span>
           <p className="mt-4 text-[var(--bengos-size-caption)] uppercase tracking-[0.32em] text-[var(--bengos-text-muted)]">
             {BRAND.name}
