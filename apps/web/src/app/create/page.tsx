@@ -1,38 +1,26 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { ModulePlaceholder } from "@/components/module-placeholder";
+import { AssistantClient } from "@/components/create/assistant-client";
 
 export const metadata: Metadata = { title: "BENGOS Create" };
 
 /**
  * Ekran asystenta.
  *
- * Plan jest tu ułożony od tego, czym asystent JEST, do tego, skąd bierze
- * wiedzę — bo to drugie jest w tym projekcie decyzją, nie szczegółem.
- * Asystent ma czytać kontekst użytkownika, a nie wiedzę ogólną, i to jest
- * pierwsza rzecz, którą ekran mówi po nagłówku.
+ * Asystent czyta kontekst użytkownika, a nie wiedzę ogólną — i dlatego
+ * pierwszą rzeczą, którą ten ekran mówi, jest droga pytania: zlecenie
+ * odchodzi do modelu (ASSISTANT_LLM_ENDPOINT), odpowiedź wraca zadaniem.
+ * Bez modelu panel pokazuje 503 z wyjaśnieniem, a nie zmyśloną odpowiedź.
  *
  * ── JEDNO WYJŚCIE DO USTAWIEŃ KLUCZY ────────────────────────────────────
- * Czwarta pozycja planu mówi o kluczach do modeli. Bez odnośnika byłaby to
- * obietnica bez drogi — użytkownik dowiedziałby się, że klucze wpisuje się
- * w ustawieniach, i musiałby ich szukać sam. Odnośnik prowadzi wprost na
- * ekran kluczy, który już działa.
+ * Karta kluczy zostaje: to obietnica z wcześniejszego etapu i działa.
+ * Odnośnik prowadzi wprost na ekran kluczy.
  */
 export default function CreatePage() {
   return (
     <div className="space-y-6">
-      <ModulePlaceholder
-        name="Create"
-        stage={5}
-        description="Asystent AI: pomysły, scenariusze, muzyka, kod. Warstwa asystenta to django-ai-assistant z TIKAL — przenoszony jako zależność, nie jako skopiowany kod."
-        planned={[
-          "Asystent kontekstowy w całej aplikacji, nie osobny czat w osobnym oknie",
-          "Kontekst z Twoich projektów, utworów i wideo — nie z cudzej wiedzy ogólnej",
-          "Generowanie scenariusza wideo i szkicu utworu z jednego opisu",
-          "Klucze do modeli wpisywane w ustawieniach, szyfrowane, nigdy w repozytorium",
-        ]}
-      />
+      <AssistantClient />
 
       <section aria-labelledby="create-keys" className="bengos-surface-card mx-auto max-w-2xl">
         <h2
@@ -52,6 +40,22 @@ export default function CreatePage() {
         >
           Zarządzaj kluczami
         </Link>
+      </section>
+
+      <section aria-labelledby="create-later" className="bengos-surface-card mx-auto max-w-2xl">
+        <h2
+          id="create-later"
+          className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-medium)]"
+        >
+          Co dojdzie
+        </h2>
+        <ul className="mt-2 space-y-1 text-[var(--bengos-text-muted)]">
+          <li>Kontekst z Twoich projektów, utworów i wideo — nie z cudzej wiedzy ogólnej</li>
+          <li>Generowanie scenariusza wideo i szkicu utworu z jednego opisu</li>
+        </ul>
+        <p className="mt-2 text-[var(--bengos-text-muted)]">
+          To są plany, nie funkcje — nie działają jeszcze i nie udają, że działają.
+        </p>
       </section>
     </div>
   );

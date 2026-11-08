@@ -1,4 +1,4 @@
-"""
+successfully downloaded text file (SHA: 04225a00ec9533f686d38318bc4f452f8af6067d)"""
 Ustawienia TIKBENGOS API.
 
 Wszystko, co zależy od środowiska, pochodzi z zmiennych środowiskowych —
@@ -61,6 +61,10 @@ INSTALLED_APPS = [
     # BENGOS Beat, zadania generacji z limitem dziennym. Montowana pod
     # prefiks /music z kontraktu API.music.
     "music",
+    # Asystent od Etapu 5: pytania z odpowiedziami modelu LLM i historia
+    # rozmowy. Montowany pod prefiks /ai z kontraktu API.ai; bez endpointu
+    # modelu pytanie dostaje 503 z wyjaśnieniem, a nie zmyśloną odpowiedź.
+    "ai",
 ]
 
 MIDDLEWARE = [
@@ -282,6 +286,19 @@ MUSIC_DAILY_LIMIT = int(os.environ.get("MUSIC_DAILY_LIMIT", "10"))
 # 403 — zamknięte na zawsze, a nie „otwarte, bo nikt nie zna adresu”.
 # Porównanie po stronie serwera jest stałoczasowe (secrets.compare_digest).
 BENGOS_WORKER_TOKEN = os.environ.get("BENGOS_WORKER_TOKEN", "")
+
+# ── BENGOS Asystent: model LLM ──────────────────────────────────────────
+# ASSISTANT_LLM_ENDPOINT to adres usługi z modelem (np. Ollama na tej samej
+# maszynie co API), która przyjmuje zlecenia i oddaje odpowiedź przez
+# endpoint zwrotny /ai/jobs/{id}/complete z sekretem BENGOS_WORKER_TOKEN.
+# Pusto = pytanie do asystenta dostaje 503 z wyjaśnieniem — asystent bez
+# modelu nie udaje myślącego, bo „prawie myśli" nie istnieje.
+ASSISTANT_LLM_ENDPOINT = os.environ.get("ASSISTANT_LLM_ENDPOINT", "")
+
+# Nazwa modelu przekazywana do workera przy zleceniu. Decyzja operatora
+# maszyny (np. "qwen2.5:7b" w Ollama), nie kodu — kod nie wie, jaki model
+# kto wdrożył i nie zgaduje.
+ASSISTANT_MODEL = os.environ.get("ASSISTANT_MODEL", "")
 
 # ── Czas trwania sesji ───────────────────────────────────────────────────
 # 30 dni dla zwykłego logowania. MFA dokłada osobną, krótszą ważność tokenu.

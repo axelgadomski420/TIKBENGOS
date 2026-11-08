@@ -1,4 +1,4 @@
-"""
+successfully downloaded text file (SHA: dcad39abd900a44bce003fc259b2b3c4944d103b)"""
 Adresy API.
 
 Jeden router django-ninja na prefiks `/v1`, tak jak opisuje to `packages/core`.
@@ -26,6 +26,10 @@ proxy, więc ani proxy, ani interfejs nie wymagają zmian.
 Router muzyki jest pod `/music` — prefiks z kontraktu API.music, obecny
 na liście dozwolonych prefiksów proxy od pierwszego commita, więc ścieżka
 `/api/music/...` działa bez zmian w proxy.
+
+Router asystenta jest pod `/ai` — prefiks z kontraktu API.ai, też obecny
+na liście dozwolonych prefiksów proxy, więc `/api/ai/...` działa bez
+zmian w proxy tak jak `/api/music/...` i `/api/git/...`.
 """
 
 from django.http import JsonResponse
@@ -35,6 +39,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET
 from ninja import NinjaAPI
 
+from ai.api import router as ai_router
 from accounts.api import router as accounts_router
 from accounts.keys_api import router as keys_router
 from accounts.oauth import router as oauth_router
@@ -140,6 +145,10 @@ api.add_router("/git", dev_router)
 # zadania generacji, limity dzienne. Osobny router i osobne testy; dostęp
 # z sesją jak wszędzie, bo utwory są prywatne.
 api.add_router("/music", music_router)
+# Asystent pod /ai — prefiks z kontraktu API.ai. Pytanie tworzy zadanie
+# (asynchroniczne jak generacja muzyki), odpowiedź oddaje worker LLM
+# przez endpoint zwrotny z sekretem BENGOS_WORKER_TOKEN.
+api.add_router("/ai", ai_router)
 
 urlpatterns = [
     path("v1/csrf", csrf_view, name="csrf_view"),
