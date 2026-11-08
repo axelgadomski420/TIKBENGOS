@@ -15,29 +15,20 @@ export const metadata: Metadata = { title: "Logowanie" };
  * formularza mieszka w `@/components/auth/login-form`, a tutaj zostaje
  * tylko to, co serwerowe.
  *
- * ── GRAFIKA JEST NA GÓRZE, ALE NIE JEST JEDYNYM ZNAKIEM ─────────────────
- * Na samej górze stoi kompozycja z podpisami „logowanie” i „rejestracja”.
- * Pod nią — już wewnątrz karty formularza — jest znak prosty, obok
- * prawdziwego nagłówka. To nie jest powtórzenie: grafika ustawia nastrój
- * i mówi, gdzie użytkownik trafił, a znak w karcie jest punktem odniesienia
- * dla samego formularza. Czytnik ekranu dostaje z tego tylko jedno:
- * oba obrazy mają `alt=""`, bo napisy i nagłówki są prawdziwym tekstem.
+ * ── PIERWSZY EKRAN JEST TYLKO LOGOWANIEM ────────────────────────────────
+ * Wejście na `/login` NIE wymusza zalogowania — pokazuje tylko ekran
+ * z wyborem drogi. Wymuszenie sesji należy do ekranów modułów, nie tutaj:
+ * użytkownik ma prawo zobaczyć, jak wygląda logowanie, zanim się zaloguje.
  *
- * ── WSZYSTKO ZWRÓCONE DO CZYTNIKA JEST PRAWDZIWE ────────────────────────
- * Napisy „logowanie” i „rejestracja” są WYPALONE w grafice, więc nie istnieją
- * dla czytnika ekranu ani dla wyszukiwarki. To akceptowalne tylko dlatego,
- * że prawdziwe nagłówki i przyciski stoją pod obrazem: funkcja nie zależy
- * od grafiki. Obraz ma `alt=""`, a prawdziwy `h1` mówi to samo.
+ * ── GRAFIKA U GÓRY, ZNAK W KARCIE ───────────────────────────────────────
+ * Kompozycja z podpisami „logowanie” i „rejestracja” ustawia nastrój
+ * i mówi, gdzie użytkownik trafił. Znak prosty w karcie jest punktem
+ * odniesienia dla samego formularza — oba obrazy mają `alt=""`, bo napisy
+ * i nagłówki są prawdziwym tekstem.
  *
- * ── PEŁNOEKRANOWY UKŁAD Z TŁEM Z TOKENÓW ────────────────────────────────
- * Logowanie jest jedynym ekranem bez nagłówka powłoki, więc jako jedyny
- * może wziąć cały ekran. Tło to gradient z tokenów motywu i dwie rozmyte
- * plamy — cyjanowa i pomarańczowa. Ten sam motyw co w znaku, więc ekran
- * czyta się jako jego przedłużenie, a nie jako osobna strona.
- *
- * Wysokość `min-h-dvh` zamiast `min-h-screen`: `dvh` liczy się od realnie
- * widocznego obszaru, więc na telefonie z paskiem adresu treść nie ucieka
- * pod krawędź.
+ * ── WYSOKOŚĆ `dvh`, NIE `screen` ────────────────────────────────────────
+ * `dvh` liczy się od realnie widocznego obszaru, więc na telefonie z paskiem
+ * adresu treść nie ucieka pod krawędź.
  */
 export default function LoginPage() {
   return (
