@@ -3,7 +3,8 @@
 Generacja z workera wymaga maszyny z GPU, więc testy sprawdzają to, co
 jest prawdą na każdej maszynie: zlecenie tworzy zadanie w kolejce,
 limit dzienny działa, upload z sekwencera zapisuje REALNY plik, a dostęp
-do utworu ma tylko właściciel.
+do utworu ma tylko właściciel. Endpoint zwrotny testowany jest jak worker:
+z sekretem z ustawień, bez sieci — bo to kontrakt, nie cudzy serwer.
 """
 
 import tempfile
@@ -124,3 +125,101 @@ class MusicTestCase(TestCase):
         body = response.json()
         self.assertEqual(body["usedToday"], 1)
         self.assertEqual(body["remainingToday"], 0)
+
+
+class CompleteJobTestCase(TestCase):
+    """Endpoint zwrotny workera GPU — kontrakt z sekretem, bez sieci."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="ola", email="ola@example.com", password="haslo-ma-dlugie-12")
+        self.client.force_login(self.user)
+        self.job = GenerationJob.objects.create(
+            owner=self.user,
+            prompt="energetyczny beat lo-fi",
+            model="musicgen-small",
+            duration_seconds=30,
+        )
+
+    def _post(self, data, **extra):
+        return self.client.post(
+            reverse("v1:complete_job", kwargs={"job_id": str(self.job.id)}),
+            data=data,
+            **extra,
+        )
+
+    def test_zamkniety_bez_sekretu(self):
+        # Bez BENGOS_WORKER_TOKEN endpoint jest ZAMKNIĘTY — nawet poprawny
+        # worker nie przejdzie, a już na pewno nie przejdzie obcy.
+        response = self._post({"state": "running"})
+        self.assertEqual(response.status_code, 403)
+
+    @override_settings(BENGOS_WORKER_TOKEN="sekret-workerowi", MEDIA_ROOT="/tmp/tikbengos-test-media")
+    def test_zy_token_odrzucony(self):
+        response = self._post({"state": "running"}, HTTP_X_BENGOS_WORKER="zly-sekret")
+        self.assertEqual(response.status_code, 403)
+        self.job.refresh_from_db()
+        self.assertEqual(self.job.state, "queued")
+
+    @override_settings(BENGOS_WORKER_TOKEN="sekret-workerowi")
+    def test_raport_postepu(self):
+        response = self._post(
+            {"state": "running", "stage": "Generowanie na GPU", "progress": "0.5"},
+            HTTP_X_BENGOS_WORKER="sekret-workerowi",
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+        self.job.refresh_from_db()
+        self.assertEqual(self.job.state, "running")
+        self.assertEqual(self.job.status()["stage"], "Generowanie na GPU")
+
+    @override_settings(BENGOS_WORKER_TOKEN="sekret-workerowi")
+    def test_porazka_zapisuje_ludzki_komunikat(self):
+        response = self._post(
+            {"state": "failed", "error": "Brak GPU na maszynie."},
+            HTTP_X_BENGOS_WORKER="sekret-workerowi",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.job.refresh_from_db()
+        self.assertEqual(self.job.state, "failed")
+        self.assertIn("Brak GPU", self.job.status()["error"]["message"])
+
+    @override_settings(BENGOS_WORKER_TOKEN="sekret-workerowi", MEDIA_ROOT="/tmp/tikbengos-test-media")
+    def test_sukces_tworzy_utwor_z_licencja_modelu(self):
+        response = self._post(
+            {
+                "state": "succeeded",
+                "title": "Mój lo-fi",
+                "durationSeconds": "30",
+                "file": _wav("gen.wav"),
+            },
+            HTTP_X_BENGOS_WORKER="sekret-workerowi",
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+        body = response.json()
+        self.assertEqual(body["state"], "succeeded")
+        self.assertIn("/api/music/tracks/", body["resultRef"])
+
+        track = Track.objects.get(title="Mój lo-fi")
+        self.assertEqual(track.owner, self.user)
+        # Licencja utworu z modelu: CC-BY 4.0 — atrybucja wymagana,
+        # a nie „dzieło autora” jak z sekwencera.
+        self.assertTrue(track.licence["attributionRequired"])
+        self.assertIn("CC-BY", track.licence["notes"])
+
+    @override_settings(BENGOS_WORKER_TOKEN="sekret-workerowi")
+    def test_sukces_bez_pliku_odrzucony(self):
+        response = self._post(
+            {"state": "succeeded"},
+            HTTP_X_BENGOS_WORKER="sekret-workerowi",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.job.refresh_from_db()
+        self.assertEqual(self.job.state, "queued")
+
+    def test_nieznane_zadanie_404(self):
+        import uuid
+
+        response = self.client.post(
+            reverse("v1:complete_job", kwargs={"job_id": str(uuid.uuid4())}),
+            data={"state": "running"},
+        )
+        self.assertEqual(response.status_code, 403)  # najpierw sekret, potem istnienie

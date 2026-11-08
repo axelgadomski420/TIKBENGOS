@@ -275,6 +275,14 @@ MUSICGEN_ENDPOINT = os.environ.get("MUSICGEN_ENDPOINT", "")
 # finansową na słowo honoru.
 MUSIC_DAILY_LIMIT = int(os.environ.get("MUSIC_DAILY_LIMIT", "10"))
 
+# ── BENGOS: sekret workera (endpointy zwrotne) ────────────────────────────
+# Wspólny sekret dla usług wewnętrznych, które oddają wyniki przez
+# endpointy /jobs/{id}/complete: worker GPU muzyki, executor zmian kodu,
+# worker asystenta. Pusto = endpointy zwrotne odrzucają KAŻDE żądanie
+# 403 — zamknięte na zawsze, a nie „otwarte, bo nikt nie zna adresu”.
+# Porównanie po stronie serwera jest stałoczasowe (secrets.compare_digest).
+BENGOS_WORKER_TOKEN = os.environ.get("BENGOS_WORKER_TOKEN", "")
+
 # ── Czas trwania sesji ───────────────────────────────────────────────────
 # 30 dni dla zwykłego logowania. MFA dokłada osobną, krótszą ważność tokenu.
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 30
