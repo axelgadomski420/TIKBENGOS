@@ -67,11 +67,32 @@ INSTALLED_APPS = [
     "ai",
 ]
 
+# ── Middleware ───────────────────────────────────────────────────────────
+#
+# ── UWAGA O CSRF: POPRAWIONA ŚCIEŻKA ────────────────────────────────────
+# Stało tu kiedyś `django.contrib.auth.middleware.CsrfViewMiddleware`.
+# Prawidłowa ścieżka to `django.middleware.csrf.CsrfViewMiddleware` —
+# `CsrfViewMiddleware` należy do modułu `csrf`, a nie do `auth`. Django
+# nie znajdowało klasy i `get_wsgi_application()` rzucało
+# `ImportError: Module "django.contrib.auth.middleware" does not define
+# a "CsrfViewMiddleware" attribute/class`, a **każdy proces gunicorna
+# umierał przy starcie**.
+#
+# Objaw był mylący i dlatego wart zapisania: kontener API raportował `Up`,
+# bo `restart: unless-stopped` wznawiał go w pętli — ale nie odpowiadał
+# ani jednym żądaniem. Interfejs dostawał puste odpowiedzi na
+# `GET /api/users/me`, stan sesji zostawał na `loading`, a brama
+# logowania rysowała w tym stanie tylko jedno zdanie na pustym tle.
+# Użytkownik widział BIAŁĄ STRONĘ i nie było w tym ani śladu Django.
+#
+# Kontrola poprawności tej listy to jedno polecenie:
+#     python manage.py check --deploy
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
-    "django.contrib.auth.middleware.CsrfViewMiddleware",
+    # Poprawna ścieżka — patrz komentarz wyżej.
+    "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
 ]
 
