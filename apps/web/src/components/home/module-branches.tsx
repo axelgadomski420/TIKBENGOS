@@ -27,11 +27,18 @@ import Link from "next/link";
  * pozycje — na telefonie układ po okręgu byłby nieczytelny, a odległości
  * między napisami mniejsze niż 44 px, czyli poniżej progu celu dotykowego.
  *
- * ── KAŻDY KAFEL MA DOKĄD PROWADZIĆ ─────────────────────────────────────
+ * ── KAŻDY KAFEL MA DOKĄD PROWADZIĆ ──────────────────────────────────────
  * Żaden nie jest atrapą. „wyszukiwarka” prowadzi na pulpit, bo tam stoi
  * pole uniwersalne; „asystent” do modułu Create, bo to dawny TIKAL;
  * „bengtok” do feedu, bo to dawny TIKTAK; „bridge” do Access, bo tak
  * potwierdził właściciel projektu.
+ *
+ * ── ORBITA NA EKRANACH DUŻYCH (aktualizacja 2026-11-08, wieczorem) ────
+ * Właściciel wybrał układ 1:1 z grafiki: moduły DOOKOŁA znaku. Od `lg`
+ * rysuje go module-orbit.tsx, importując listę poniżej — kolejność, adresy
+ * i etapy zostają w jednym miejscu. Siatka zostaje na telefonie: napisy
+ * po okręgu o średnicy ekranu telefonu spadałyby poniżej 44 px celu
+ * dotykowego, więc tam czytelność i dostępność wygrywają z obrazem.
  */
 
 type IconProps = { className?: string };
@@ -128,7 +135,7 @@ function IconSearch({ className }: IconProps) {
   );
 }
 
-type Branch = {
+export type Branch = {
   href: string;
   label: string;
   description: string;
@@ -137,8 +144,9 @@ type Branch = {
 };
 
 /** Kolejność idzie za grafiką: moduły pracy u góry, tożsamość po prawej,
- * narzędzia u dołu. */
-const BRANCHES: Branch[] = [
+ * narzędzia u dołu. Orbita (module-orbit.tsx) permutuje tę samą listę
+ * w porządek zegarowy — patrz ORBIT_ORDER w tym komponencie. */
+export const BRANCHES: Branch[] = [
   { href: "/studio", label: "studio", description: "Wideo, muzyka AI, posty, projekty kodu.", stage: 2, Icon: IconStudio },
   { href: "/access", label: "bridge", description: "Język migowy, napisy, TTS, Morse, wibracje.", stage: 4, Icon: IconBridge },
   { href: "/dev", label: "dev", description: "Repozytoria, issue, pull requesty, agent kodujący.", stage: 5, Icon: IconDev },
@@ -179,7 +187,7 @@ export function ModuleBranches() {
                 Tarcza modułu: okrągła jak w znaku marki, ale zbudowana
                 z tokenów. Dzięki temu działa w motywie wysokiego kontrastu,
                 gdzie grafika nie jest używana.
-
+                
                 `aria-hidden` na tarczy, bo znak jest dekoracją: nazwę modułu
                 niesie tekst pod nim — prawdziwy, klikalny, czytany przez
                 czytnik.
