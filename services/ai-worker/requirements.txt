@@ -1,0 +1,21 @@
+# Zależności workera asystenta — `services/ai-worker`.
+#
+# ── CELOWO PUSTA LISTA ───────────────────────────────────────────────────
+# Worker robi trzy rzeczy: odbiera zadanie, woła Ollamę i oddaje odpowiedź
+# endpointem zwrotnym. Do wszystkich trzech wystarcza biblioteka standardowa
+# Pythona — `json`, `urllib.request`, `os`, `sys`.
+#
+# Dlatego NIE MA tu `requests`, `httpx` ani `ollama`. Klient Ollamy to
+# kilkanaście linii `urllib.request` w `worker.py`; zależność ściągnięta
+# na jedną funkcję to waga obrazu i powierzchnia podatności, której nikt
+# nie aktualizuje.
+#
+# NIE MA tu też Django. Ten kontener rozmawia z API po HTTP i podpisuje się
+# wspólnym sekretem — nie potrzebuje modeli, bazy ani kluczy użytkowników.
+# Django w tym obrazie byłby zaproszeniem do sięgnięcia po bazę, a worker
+# do tego nie ma prawa.
+#
+# ── GDY CZEGOŚ ZABRAKNIE ─────────────────────────────────────────────────
+# Gdyby model trzeba było wołać z obsługą strumienia (Ollama ma strumień
+# NDJSON), nadal wystarczy `urllib` — `urlopen` zwraca strumień linia po
+# linii. Dopiero gdyby doszło coś spoza tego, dopisuj to TUTAJ.
