@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { UniversalSearch } from "@/components/home/universal-search";
 import { IdentityBar } from "@/components/home/identity-bar";
 import { ModuleBranches } from "@/components/home/module-branches";
+import { WelcomeGate } from "@/components/home/welcome-gate";
 import { BRAND } from "@/lib/brand";
 
 export const metadata: Metadata = { title: "BENGOS — pulpit" };
@@ -12,10 +13,16 @@ export const metadata: Metadata = { title: "BENGOS — pulpit" };
  *
  * ── MENU JEST PIERWSZE, NIE OSTATNIE ────────────────────────────────────
  * Kolejność idzie od intencji do wejścia:
+ *   0. powitanie, ale TYLKO zaraz po założeniu konta (`?welcome=1`),
  *   1. nagłówek z grafiką menu jako tłem — nastrój, nie plik do przewijania,
  *   2. wyszukiwarka uniwersalna — jedno pole na wszystko,
  *   3. pasek tożsamości — kim jesteś,
  *   4. DZIEWIĘĆ WEJŚĆ — napisy jako prawdziwy tekst, każdy klikalny.
+ *
+ * ── POWITANIE WIDZI SIĘ RAZ I TYLKO PO REJESTRACJI ──────────────────────
+ * `WelcomeGate` czyta `?welcome=1` z adresu, pokazuje pasek i usuwa parametr.
+ * Dzięki temu użytkownik dostaje potwierdzenie, że konto powstało, i swój
+ * uchwyt — a przy kolejnych wejściach na pulpit nic mu nie zasłania treści.
  *
  * ── NAPISY SĄ W KODZIE, NIE W GRAFICE ───────────────────────────────────
  * Grafika menu ma podpisy wypalone w pliku, więc dla przeglądarki jest
@@ -33,6 +40,8 @@ export default function HomePage() {
   return (
     <div className="space-y-6">
       <h1 className="bengos-visually-hidden">BENGOS — pulpit</h1>
+
+      <WelcomeGate />
 
       <section className="bengos-rise bengos-rise-1 relative isolate overflow-hidden rounded-[var(--bengos-radius-card)] border border-[var(--bengos-border)] bg-[var(--bengos-surface-raised)]">
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
