@@ -1,4 +1,4 @@
-successfully downloaded text file (SHA: 5c5898190417363b31220131959838c2d831c59d)"use client";
+"use client";
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -11,9 +11,9 @@ import { ApiRequestError, apiFetch } from "@/lib/api-client";
  * Formularz logowania i rejestracji.
  *
  * ── ZNAK MARKI JEST NA GÓRZE EKRANU, NIE TUTAJ ──────────────────────────
- * Ten komponent NIE rysuje znaku. Był tu znak 88 px, a `login/page.tsx`
- * trzyma drugi nad kartą — dwa znaki marki na jednym ekranie to nie ozdoba,
- * a powtórzenie: oko nie wie, na co patrzeć. Znak jest jeden i stoi wyżej.
+ * Ten komponent NIE rysuje znaku — rysuje go brama (`login-gate.tsx`).
+ * Dwa znaki marki na jednym ekranie to nie ozdoba, a powtórzenie: oko nie
+ * wie, na co patrzeć.
  *
  * ── WALIDACJA PRZED WYSŁANIEM, REGUŁAMI Z KONTRAKTU ─────────────────────
  * Reguły pochodzą z `@bengos/core` — tych samych, których pilnuje serwer.
@@ -25,12 +25,16 @@ import { ApiRequestError, apiFetch } from "@/lib/api-client";
  * zamiast martwego przycisku pojawia się zdanie, które mówi dlaczego —
  * przycisk, który nie reaguje, wygląda na zepsuty, a nie na niegotowy.
  *
+ * ── SKRÓT `#rejestracja` WŁĄCZA ZAKŁADKĘ REJESTRACJI ────────────────────
+ * Brama logowania ma na dole odnośnik „rejestracja” (jak na grafice marki).
+ * Prowadzi on na `/login#rejestracja`, a ten komponent czyta skrót przy
+ * montażu i przełącza tryb. Jedna implementacja formularza, dwa wejścia.
+ *
  * ── PO REJESTRACJI WCHODZI SIĘ Z `?welcome=1` ───────────────────────────
  * Samo przeładowanie na pulpit niczego nie potwierdzało: użytkownik nie
  * wiedział, czy konto powstało, ani jakim uchwytem się loguje. Parametr
- * `welcome` uruchamia na pulpicie pasek powitania, który mówi jedno i drugie.
- * Po zalogowaniu parametru NIE MA — powitanie jest dla nowego konta, a nie
- * dla każdego wejścia.
+ * `welcome` uruchamia pasek powitania, który mówi jedno i drugie.
+ * Po samym zalogowaniu parametru NIE MA — powitanie jest dla nowego konta.
  */
 
 type Mode = "login" | "register";
@@ -102,8 +106,8 @@ export function LoginForm() {
   const isRegister = mode === "register";
   const configured = providers.filter((provider) => provider.configured);
 
-  // Błąd tego żądania NIE jest pokazywany: formularz z hasłem działa
-  // niezależnie, a komunikat o braku listy tylko by mylił.
+  // Błąd tego żądania NIE jest pokazywany użytkownikowi: formularz z hasłem
+  // działa niezależnie, a komunikat o braku listy tylko by go mylił.
   useEffect(() => {
     let cancelled = false;
     apiFetch<OAuthProvider[]>("/api/auth/oauth/providers")
@@ -116,6 +120,11 @@ export function LoginForm() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  // Skrót `#rejestracja` z bramy logowania włącza zakładkę rejestracji.
+  useEffect(() => {
+    if (window.location.hash === "#rejestracja") setMode("register");
   }, []);
 
   // Powód odmowy zapisany przez trasę adresu zwrotnego. Jednorazowy — po
@@ -142,14 +151,6 @@ export function LoginForm() {
     setServerError(null);
     setShowPassword(false);
   }, []);
-
-  // Odnośnik „rejestracja” na dole bramy logowania prowadzi na
-  // /login#rejestracja — pełna trasa montuje formularz od nowa, więc skrót
-  // czytamy PRZY MONTAŻU i włączamy zakładkę rejestracji. Jedna
-  // implementacja formularza, dwa wejścia.
-  useEffect(() => {
-    if (window.location.hash === "#rejestracja") switchMode("register");
-  }, [switchMode]);
 
   const validate = useCallback((): Partial<Record<keyof FormState, string>> => {
     if (isRegister) {
@@ -206,8 +207,7 @@ export function LoginForm() {
             password: form.password,
           },
         });
-        // `?welcome=1` pokazuje na pulpicie pasek powitania z uchwytem —
-        // potwierdzenie, że konto powstało, i informacja, jak się logować.
+        // `?welcome=1` pokazuje na pulpicie pasek powitania z uchwytem.
         window.location.assign("/?welcome=1");
         return;
       }
@@ -405,8 +405,7 @@ export function LoginForm() {
       </form>
 
       <p className="mt-4 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
-        Hasło jest hashowane na serwerze i nigdy nie wraca w żadnej odpowiedzi. Każde konto
-        ma własny uchwyt, własną sesję i własne dane.
+        Hasło jest hashowane na serwerze i nigdy nie wraca w żadnej odpowiedzi.
       </p>
     </section>
   );
@@ -421,8 +420,7 @@ export function LoginForm() {
  *
  * Tło pola to `surface-sunken`, czyli CIEMNIEJSZE niż karta. Poprzednio
  * pole i karta dzieliły prawie ten sam kolor i granica była nie do
- * zauważenia — użytkownik nie widział, gdzie kończy się karta, a zaczyna
- * pole. Fokus dostaje `--bengos-focus-ring`, bo brief zabrania
+ * zauważenia. Fokus dostaje `--bengos-focus-ring`, bo brief zabrania
  * `outline: none` bez zamiennika.
  */
 function Field({
