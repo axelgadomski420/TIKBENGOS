@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { Identity } from "@bengos/core";
 
@@ -10,9 +10,11 @@ import { SessionContext, type SessionContextValue } from "@/lib/session-context"
 /**
  * Sesja po stronie przeglądarki.
  *
- * Serwerowy odczyt sesji dzieje się w `readSession()` i przekazuje wynik do
- * tego dostawcy jako wartość początkową. Dzięki temu pierwszy render nie
- * pokazuje migającego „nie zalogowany”, a wylogowanie nie wymaga przeładowania.
+ * Wartość początkowa z serwera jest przekazywana z `layout.tsx` i od razu
+ * ma prawdziwy stan użytkownika. Przy pierwszym wejściu nie ma migania
+ * „nie zalogowany”, a `refresh()` uzupełnia stan po stronie klienta, jeśli
+ * sesja pojawiła się po renderze albo po wywołaniu `logout()` i ponownym
+ * zalogowaniu.
  */
 export function SessionProvider({
   children,
@@ -23,23 +25,39 @@ export function SessionProvider({
 }) {
   const [identity, setIdentity] = useState<Identity | null>(initialIdentity);
 
+  const refresh = useCallback(async () => {
+    try {
+      const next = await apiFetch<Identity>("/api/users/me", { method: "GET" });
+      setIdentity(next);
+      return next;
+    } catch {
+      setIdentity(null);
+      return null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (initialIdentity !== null) return;
+    void refresh();
+  }, [initialIdentity, refresh]);
+
   const value: SessionContextValue = useMemo(
     () => ({
       identity,
       isAuthenticated: identity !== null,
+      refresh,
       logout: async () => {
         try {
           await apiFetch<void>("/api/auth/logout", { method: "POST" });
         } catch {
-          // Wylogowanie lokalne wykonuje się nawet gdy serwer zawiedzie —
-          // trzymanie sesji w interfejsie po kliknięciu „wyloguj” jest
-          // gorszym błędem niż wiszące ciasteczko po stronie serwera.
+          // Wylogowanie lokalne wykonuje się nawet gdy serwer zawiedzie — to
+          // jest lepsze niż wisząca sesja po stronie klienta.
         }
         setIdentity(null);
         window.location.assign("/");
       },
     }),
-    [identity],
+    [identity, refresh],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
