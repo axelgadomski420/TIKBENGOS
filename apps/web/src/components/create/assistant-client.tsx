@@ -33,8 +33,8 @@ export function AssistantClient() {
     try {
       const data = await apiFetch<{ items: HistoryItem[] }>("/api/ai/history");
       setHistory(data.items);
-    } catch {
-      setHistory([]);
+    } catch (error) {
+      setMessage(error instanceof ApiRequestError ? error.error.message : "Nie udało się wczytać historii Plutera.");
     }
   }, []);
 
@@ -101,7 +101,7 @@ export function AssistantClient() {
         <div>
           <p className="bengos-eyebrow">BENGOS AI · Pluter</p>
           <h2 id="assistant-title" className="mt-1 text-[var(--bengos-size-title)] font-[var(--bengos-weight-medium)]">Co chcesz zrobić?</h2>
-          <p className="mt-1 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">Zapytaj, napisz tekst lub kod. Aktualne wyszukiwanie działa po skonfigurowaniu Tavily przez operatora.</p>
+          <p className="mt-1 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">Zapytaj, napisz tekst lub kod. Aktualne wyszukiwanie wymaga konfiguracji Tavily przez operatora.</p>
         </div>
         <span className="rounded-full border border-[var(--bengos-border)] px-3 py-1 text-[var(--bengos-size-caption)]">Pluter.js</span>
       </div>

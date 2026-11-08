@@ -1,39 +1,3 @@
-# Infrastruktura TIKBENGOS — środowisko produkcyjne.
-#
-# Pięć różnic wobec `docker-compose.yml`, każda jest celowa:
-#
-# 1. HASA WYMAGANE, NIE DOMYŚLNE. W pliku developerskim hasło bazy ma
-#    domyślnkę `change-me`. Tu nie ma żadnej: brak zmiennej w `.env`
-#    zatrzymuje start z błędem. Domyślka na publicznej maszynie to baza
-#    otwarta dla każdego, kto zgadnie port.
-# 2. PORTY NA ZEWNĄTRZ ZAMKNIĘTE. Baza, Redis, API i worker agenta nie są
-#    wystawione na świat — tylko reverse proxy (Caddy) ma porty 80 i 443.
-#    Reszta rozmawia w sieci Dockera, gdzie nie dosięgnie jej nikt z zewnątrz.
-# 3. SERWER PRODUKCYJNY, NIE DEVELOPERSKI. `runserver` i `daphne` są
-#    zastąpione przez gunicorn (WSGI) i uvicorn (ASGI) z kilkoma procesami.
-# 4. USŁUGA `web`. W pliku developerskim jej nie było, więc pod adresem
-#    publicznym widać było samo API, a nie aplikację.
-# 5. USŁUGA `code-worker`. Agent kodujący żyje w OSOBNYM kontenerze, w innej
-#    sieci niż baza — powód jest w komentarzu przy samej usłudze i jest
-#    bezpieczeństwem, nie wygodą.
-#
-# ── UWAGA O PIERWSZEJ LINII TEGO PLIKU ──────────────────────────────────
-# Ten plik zaczynał się kiedyś od tekstu:
-#
-#     successfully downloaded text file (SHA: a135699e…)# Infrastruktura…
-#
-# To komunikat narzędzia, które pobierało plik — wklejony przed komentarzem.
-# Docker Compose czytał go jako klucz najwyższego poziomu i odrzucał cały
-# plik komunikatem `additional properties … not allowed`, więc build nie
-# startował w ogóle. Pierwsza linia MUSI zaczynać się od `#` albo od `name:`.
-#
-# ── JEDNA RZECZ DO ZROBIENIA ────────────────────────────────────────────
-# `api` pisze wgrane utwory do `MEDIA_ROOT` (`/srv/media` w kontenerze),
-# ale NIE MA TU WOLUMENU na tym katalogu. To znaczy, że każde
-# `up -d --build` kasuje wszystkie pliki audio użytkowników. Wolumen
-# `api-media` trzeba dodać razem ze zmianą w `settings.py` na R2 —
-# do tego czasu jest to świadomy dług, nie przeoczenie.
-
 name: tikbengos
 
 services:
@@ -41,7 +5,6 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      # Bez domyślnego hasła. `${VAR:?komunikat}` przerywa start, gdy brak.
       POSTGRES_DB: ${POSTGRES_DB:?Ustaw POSTGRES_DB w .env}
       POSTGRES_USER: ${POSTGRES_USER:?Ustaw POSTGRES_USER w .env}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Ustaw POSTGRES_PASSWORD w .env}
@@ -65,18 +28,30 @@ services:
       timeout: 5s
       retries: 10
 
+  ai-worker:
+    build:
+      context: ..
+      dockerfile: services/ai-worker/Dockerfile
+    restart: unless-stopped
+    environment:
+      BENGOS_API_URL: http://api:8000
+      BENGOS_WORKER_TOKEN: ${BENGOS_WORKER_TOKEN:?Ustaw BENGOS_WORKER_TOKEN w .env}
+      PLUTER_API_BASE_URL: ${PLUTER_API_BASE_URL:-https://api.openai.com/v1}
+      PLUTER_API_KEY: ${PLUTER_API_KEY:-}
+      PLUTER_MODEL: ${PLUTER_MODEL:-}
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8092/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 3s
+
   api:
     build:
       context: ..
       dockerfile: services/api/Dockerfile
     restart: unless-stopped
-    # Trzy procesy gunicorna. Maszyna darmowa ma dwa rdzenie Ampere,
-    # więc więcej procesów nie przyspieszy niczego — będzie tylko kolejkować.
-    #
-    # `collectstatic` jest tu BEZ `|| true`. Poprzednia wersja tłumiła jego
-    # wynik, więc brak aplikacji `django.contrib.staticfiles` w ustawieniach
-    # przechodził niezauważony — komenda nie istniała, a deploy wyglądał
-    # na udany. Teraz brak `staticfiles` zatrzymuje start głośno.
     command: >
       sh -c "python manage.py migrate --noinput &&
              python manage.py collectstatic --noinput &&
@@ -89,45 +64,26 @@ services:
       FIELD_ENCRYPTION_KEY: ${FIELD_ENCRYPTION_KEY:?Ustaw FIELD_ENCRYPTION_KEY w .env}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:?Ustaw ALLOWED_HOSTS w .env}
       CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:?Ustaw CSRF_TRUSTED_ORIGINS w .env}
-      # ── Moduły i dostawcy ─────────────────────────────────────────────
-      # Compose NIE wstrzykuje zmiennych z `.env` do kontenerów sam z siebie:
-      # `.env` służy tylko do podstawień `${...}` w tym pliku. Zmienna, której
-      # tu nie ma, w kontenerze API nie istnieje nawet wtedy, gdy leży w `.env`
-      # na hoście — więc każda zmienna czytana przez settings.py musi tu jawnie
-      # przejść. Wszystkie poniższe są opcjonalne, dokładnie tak samo jak
-      # w ustawieniach: pusto = moduł uczciwie mówi „nie skonfigurowano”.
-      # OAuth (Google, GitHub): pusto = przyciski dostawców nieaktywne.
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GITHUB_OAUTH_CLIENT_ID: ${GITHUB_OAUTH_CLIENT_ID:-}
       GITHUB_OAUTH_CLIENT_SECRET: ${GITHUB_OAUTH_CLIENT_SECRET:-}
-      # Adresy zwrotne OAuth — bez tego Django bierze pierwszy wpis
-      # z CSRF_TRUSTED_ORIGINS, co przy kilku domenach daje rozjazd.
       OAUTH_REDIRECT_BASE: ${OAUTH_REDIRECT_BASE:-}
-      # BENGOS Dev: token do GitHuba (plan + pull request) i adres executora.
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
       BENGOS_CODE_EXECUTOR_URL: ${BENGOS_CODE_EXECUTOR_URL:-}
-      # BENGOS Music: adres workera GPU i limit dzienny na użytkownika.
-      # Limit używa „:-” (domyślna także przy pustym), bo pusty ciąg
-      # trafiłby do int("") i zatrzymał import ustawień.
       MUSICGEN_ENDPOINT: ${MUSICGEN_ENDPOINT:-}
       MUSIC_DAILY_LIMIT: ${MUSIC_DAILY_LIMIT:-10}
-      # Wspólny sekret endpointów zwrotnych /jobs/{id}/complete: worker GPU,
-      # executor zmian, worker asystenta. Pusto = endpointy zwrotne zwracają
-      # 403 dla każdego żądania.
-      BENGOS_WORKER_TOKEN: ${BENGOS_WORKER_TOKEN:-}
-      # BENGOS Asystent: adres usługi z modelem i nazwa modelu.
-      ASSISTANT_LLM_ENDPOINT: ${ASSISTANT_LLM_ENDPOINT:-}
+      BENGOS_WORKER_TOKEN: ${BENGOS_WORKER_TOKEN:?Ustaw BENGOS_WORKER_TOKEN w .env}
+      ASSISTANT_LLM_ENDPOINT: http://ai-worker:8092/jobs
       ASSISTANT_MODEL: ${ASSISTANT_MODEL:-}
-    # Wolumen na media, żeby `up -d --build` nie kasował wgranych utworów.
-    # `MEDIA_ROOT` w `settings.py` to `BASE_DIR / media`, a `BASE_DIR`
-    # to `/srv` w obrazie — więc montujemy dokładnie tam.
     volumes:
       - api-media:/srv/media
     depends_on:
       db:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      ai-worker:
         condition: service_healthy
 
   realtime:
@@ -150,17 +106,10 @@ services:
     build:
       context: ..
       dockerfile: apps/web/Dockerfile
-      # NEXT_PUBLIC_* Next.js wypala w paczce klienta W CZASIE BUDOWY.
-      # Podana tylko w „environment” (runtime) do przeglądarki nie trafia
-      # — po wdrożeniu czat pokazywałby „nieskonfigurowany”, choć `.env`
-      # jest poprawny. Dlatego wartość idzie przez args do etapu builder.
       args:
         NEXT_PUBLIC_REALTIME_URL: ${NEXT_PUBLIC_REALTIME_URL:-}
     restart: unless-stopped
     environment:
-      # Proxy w `apps/web` czyta ten adres po stronie serwera Next.js.
-      # To adres w sieci Dockera, nie publiczny — ciasteczko sesji zostaje
-      # w jednej domenie, więc CORS nie jest potrzebny.
       API_INTERNAL_URL: http://api:8000
       NEXT_PUBLIC_REALTIME_URL: ${NEXT_PUBLIC_REALTIME_URL:-}
       NODE_ENV: production
@@ -171,7 +120,6 @@ services:
     image: caddy:2-alpine
     restart: unless-stopped
     ports:
-      # Jedyne porty wystawione na świat.
       - "80:80"
       - "443:443"
     volumes:
@@ -185,36 +133,6 @@ services:
       - web
       - api
 
-  # ───────────────────────────────────────────────────────────────────────
-  # AGENT KODUJĄCY — BENGOS Dev
-  # ───────────────────────────────────────────────────────────────────────
-  #
-  # ── DLACZEGO OSOBNY KONTENER ───────────────────────────────────────────
-  # Agent wykonuje polecenia powłoki. README TIKCODING mówi to wprost:
-  # uruchamiaj wyłącznie w kontenerze, bo inaczej agent grzebie w systemie
-  # plików hosta. Gdyby chodził w procesie Django, jedno jego polecenie
-  # sięgałoby do bazy i do kluczy dostawców użytkowników.
-  #
-  # ── DLACZEGO W INNEJ SIECI NIŻ BAZA ────────────────────────────────────
-  # Ten kontener NIE JEST w domyślnej sieci `tikbengos`. To nie ostrożność,
-  # a warunek: agent, któremu model każe wysłać dane na zewnątrz, nie może
-  # mieć trasy do bazy ani do Redisa. Do internetu wychodzi (musi — klonuje
-  # repozytorium i woła model), ale do własnej infrastruktury nie.
-  #
-  # ── DLACZEGO `profiles` ────────────────────────────────────────────────
-  # Usługa jest w profilu `worker`, więc NIE startuje przy zwykłym
-  # `docker compose up -d`. Powód jest praktyczny: bez klucza modelu
-  # i bez podłączonego agenta ten kontener nie ma czego robić, a kontener,
-  # który stoi i nic nie robi, wygląda na zepsuty. Włącza się świadomie:
-  #     docker compose --profile worker up -d code-worker
-  #
-  # ── CZEGO TU NIE MA I DLACZEGO ─────────────────────────────────────────
-  # Bez `ports`: ten kontener nie ma portu. Woła go API, nie świat — a brak
-  # portu to brak powierzchni ataku, której nie potrzebujemy.
-  # Bez `DATABASE_URL` i bez `REDIS_URL`, przez co agent nie ma czym sięgnąć
-  # po dane użytkowników, nawet gdyby model go o to poprosił.
-  # Bez `GITHUB_READ_TOKEN` w domyślnym wariancie: klonowanie publicznych
-  # repozytoriów wystarcza do planu, a token dodajesz świadomie w `.env`.
   code-worker:
     build:
       context: ..
@@ -222,38 +140,21 @@ services:
     restart: unless-stopped
     profiles: ["worker"]
     environment:
-      # Klucz modelu — po stronie serwera, nie użytkownika. Bez niego worker
-      # odmawia startu z wyjaśnieniem, a nie pada w połowie zlecenia.
-      # Puste znaczy „pominięty”: nie każdy używa Anthropica.
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
-      # Potwierdzenie, że obraz z agentem jest podniesiony. Bez tego worker
-      # zwraca `unavailable` Z WYJAŚNIENIEM — wołanie agenta, którego nie ma,
-      # zwróciłoby „command not found”, czyli dokładnie tę atrapę, której
-      # brief zakazuje.
       CODE_AGENT_AVAILABLE: ${CODE_AGENT_AVAILABLE:-0}
-      # Token tylko do CZYTANIA prywatnych repozytoriów. Zapis (gałąź, commit,
-      # pull request) robi API, gdzie jest token użytkownika i dziennik audytu.
       GITHUB_READ_TOKEN: ${GITHUB_READ_TOKEN:-}
       CODE_WORK_DIR: /srv/work
     volumes:
-      # Katalog pracy na wolumenie, nie w warstwie obrazu: klony repozytoriów
-      # są duże, a obraz ma zostać mały. `:rw` jest konieczne — worker pisze.
       - code-worker-work:/srv/work
     networks:
-      # Własna sieć z wyjściem na świat i BEZ trasy do bazy oraz Redisa.
-      # `internal: false` znaczy, że internet działa (klonowanie, model),
-      # a brak wpisu o sieci domyślnej odcina drogę do reszty stosu.
       - code-worker-net
 
 networks:
   code-worker-net:
     driver: bridge
-    # Nie `internal: true` — worker MUSI mieć wyjście na świat, żeby
-    # sklonować repozytorium i zawołać model. Izolacja polega na tym, że ta
-    # sieć nie zawiera bazy ani Redisa, a nie na odcięciu internetu.
     internal: false
 
 volumes:
@@ -262,6 +163,4 @@ volumes:
   caddy-data:
   caddy-config:
   code-worker-work:
-  # Media API — wgrane utwory i inne pliki użytkowników. Bez tego wolumenu
-  # każda przebudowa obrazu kasowała zawartość `/srv/media`.
   api-media:

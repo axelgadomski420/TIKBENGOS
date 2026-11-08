@@ -1,8 +1,4 @@
 # Infrastruktura TIKBENGOS — środowisko developerskie
-#
-# Cały stos aplikacyjny: jedna maszyna, kilka kontenerów. Worker muzyczny NIE jest
-# tu zdefiniowany celowo — wymaga karty graficznej z 16 GB pamięci i należy do
-# osobnej usługi, nie do środowiska developerskiego.
 
 name: tikbengos
 
@@ -36,6 +32,27 @@ services:
       timeout: 3s
       retries: 10
 
+  ai-worker:
+    build:
+      context: ..
+      dockerfile: services/ai-worker/Dockerfile
+    restart: unless-stopped
+    environment:
+      BENGOS_API_URL: http://api:8000
+      BENGOS_WORKER_TOKEN: ${BENGOS_WORKER_TOKEN:-dev-only-worker-token-change-me}
+      PLUTER_API_BASE_URL: ${PLUTER_API_BASE_URL:-https://api.openai.com/v1}
+      PLUTER_API_KEY: ${PLUTER_API_KEY:-}
+      PLUTER_MODEL: ${PLUTER_MODEL:-}
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8092/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 3s
+    depends_on:
+      - api
+
   api:
     build:
       context: ..
@@ -45,6 +62,9 @@ services:
       ENVIRONMENT: development
       DATABASE_URL: postgres://${POSTGRES_USER:-tikbengos}:${POSTGRES_PASSWORD:-change-me}@db:5432/${POSTGRES_DB:-tikbengos}
       REDIS_URL: redis://redis:6379/0
+      BENGOS_WORKER_TOKEN: ${BENGOS_WORKER_TOKEN:-dev-only-worker-token-change-me}
+      ASSISTANT_LLM_ENDPOINT: http://ai-worker:8092/jobs
+      ASSISTANT_MODEL: ${ASSISTANT_MODEL:-}
     volumes:
       - ../services/api:/srv
     ports:
