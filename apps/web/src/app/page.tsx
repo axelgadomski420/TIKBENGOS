@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { ModuleBranches } from "@/components/home/module-branches";
+import { ModuleOrbit } from "@/components/home/module-orbit";
 import { UniversalSearch } from "@/components/home/universal-search";
 import { WelcomeBanner } from "@/components/home/welcome-banner";
 import { BRAND } from "@/lib/brand";
@@ -15,7 +16,7 @@ export const metadata: Metadata = { title: "BENGOS" };
  * — dokładnie taki sam, jaki stoi na ekranie logowania. Po zalogowaniu
  * użytkownik lądował więc na ekranie wizualnie NIEROZRÓŻNIALNYM od tego,
  * z którego właśnie wyszedł, a cała różnica (siatka kafli) była pod zgięciem.
- * Właściciel opisał to wprost: „logowanie i rejestracja do menu głównego"
+ * Właściciel opisał to wprost: „logowanie i rejestracja do menu głównego”
  * — czyli po wejściu ma być WIDAĆ, że jest się w innym miejscu.
  *
  * Teraz hierarchia jest odwrócona tak, jak w każdym launcherze:
@@ -31,6 +32,12 @@ export const metadata: Metadata = { title: "BENGOS" };
  * tego samego znaku w tej samej wielkości odbiera uwagę siatce i sprawia,
  * że ekran wygląda jak kopia poprzedniego. Rozmiar 256–320 px w tle, mocno
  * przygaszony, wystarcza, żeby marka była obecna, i nie konkuruje z kaflami.
+ *
+ * ── ORBITA NA DUŻYCH EKRANACH (aktualizacja 2026-11-08, wieczorem) ────
+ * Właściciel wybrał układ 1:1 z grafiki: moduły DOOKOŁA tygrysa. Od `lg`
+ * rysuje go module-orbit.tsx (pierścień dziewięciu odnośników wokół znaku),
+ * a siatka z module-branches zostaje na telefonie. Oba widoki rysują tę
+ * samą listę wejść z module-branches.tsx, więc adresy nie mogą się rozjechać.
  *
  * ── PASEK „KONTO GOTOWE” PO REJESTRACJI ────────────────────────────────
  * Formularz wraca tu z `?welcome=1`. Pasek mówi, że konto powstało
@@ -75,10 +82,17 @@ export default function HomePage() {
           trzy w rzędzie. Znak marki jest już w tle nagłówka, więc nie ma
           tu drugiego okręgu — jest tylko `h1` z nazwą, czytany przez
           czytnik ekranu (`sr-only`), bo nazwę widać na pasku powyżej.
+
+          (Aktualizacja 2026-11-08: na ekranach lg+ siatkę zastępuje orbita —
+          patrz sekcja ORBITA na górze pliku. Siatka zostaje na telefonie.)
         */}
         <div className="mt-6">
           <h1 className="sr-only">{BRAND.name} — menu główne</h1>
-          <ModuleBranches />
+          {/* Orbita: moduły dookoła tygrysa, jak na grafice właściciela. */}
+          <ModuleOrbit />
+          <div className="lg:hidden">
+            <ModuleBranches />
+          </div>
         </div>
 
         {/*
