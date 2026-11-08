@@ -1,4 +1,4 @@
-successfully downloaded text file (SHA: ac14cbf756f61f13a16366fc0b725f66f4ee60bc)"use client";
+"use client";
 
 import Link from "next/link";
 import Image from "next/image";
@@ -21,13 +21,13 @@ import { BRAND } from "@/lib/brand";
  * prawa, nie pojawiało się wcale. Ukrywanie go wizualnie i zostawianie
  * klikalnego jest najgorszym z wariantów: wprowadza w błąd i ujawnia
  * istnienie czegoś, do czego i tak nie ma dostępu.
-  *
+ *
  * ── PODPISY Z GRAFIKI MENU, JEDEN ZESTAW W CAŁEJ APLIKACJI ─────────────
- * Pasek górny mówił „Feed”, „Create”, „Access”, a kaflę pulpitu i nawigacja
+ * Pasek górny mówił „Feed”, „Create”, „Access”, a kafle pulpitu i nawigacja
  * dolna mówią „bengtok”, „asystent”, „bridge” — tak podpisał grafikę
- * właściciel. Dwa języki dla tych samych drzwi to niespójność, więc od dziś
- * wszędzie stoi jeden zestaw podpisów: ten z grafiki marki. Trasy zostają
- * bez zmian — to podpis się zmienia, nie adres.
+ * właściciel. Dwa języki dla tych samych drzwi to niespójność, więc wszędzie
+ * stoi jeden zestaw podpisów: ten z grafiki marki. Trasy zostają bez zmian
+ * — to podpis się zmienia, nie adres.
  */
 const BRANCHES: { href: string; label: string; description: string; permission?: Permission }[] = [
   { href: "/feed", label: "bengtok", description: "Krótkie wideo, dźwięki, twórcy" },
@@ -43,16 +43,17 @@ const BRANCHES: { href: string; label: string; description: string; permission?:
  * Nagłówek powłoki — pasek przyklejony u góry.
  *
  * ── NAZWA: `BENGOS`, NIE `TIKBENGOS` ────────────────────────────────────
- * Interfejs mówi „BENGOS” — tak nazywają się moduły (`BENGOS Home`,
- * `BENGOS Studio`), tak nazywa się marka na logo i tak ma mówić nagłówek.
- * `TIKBENGOS` zostaje wyłącznie jako nazwa repozytorium i pakietów w kodzie;
- * użytkownik nie ma powodu jej oglądać.
+ * Interfejs mówi „BENGOS” — tak nazywają się moduły, tak nazywa się marka
+ * na logo i tak ma mówić nagłówek. `TIKBENGOS` zostaje wyłącznie jako nazwa
+ * repozytorium i pakietów w kodzie; użytkownik nie ma powodu jej oglądać.
  *
  * ── `unoptimized` JEST WYMAGANE PRZY ZEWNĘTRZNYM ADRESIE ────────────────
  * Next.js optymalizuje obrazy na żądanie — pobiera plik i przetwarza go
  * po stronie serwera. Przy adresie z zewnętrznego hostingu bez wpisu
  * w `next.config.ts` ta optymalizacja kończy się błędem, a na ekranie
- * zostaje puste miejsce. `unoptimized` bierze plik wprost, tak jak leży.
+ * zostaje puste miejsce. `unoptimized` bierze plik wprost. Grafiki marki
+ * są już lokalne (`/brand/…`), ale `unoptimized` zostaje: zdjęcie z
+ * zewnątrz może wrócić w polu awatara.
  *
  * ── KONIEC Z SAMYMI NAPISAMI W NAWIGACJI ───────────────────────────────
  * Siedem pozycji to za dużo na same litery: przy 12 px pasek staje się
@@ -167,12 +168,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 
   /*
-   ── BRAMA: BEZ SESJI NIC NIE WIDAĆ ─────────────────────────────────────
-   Decyzja właściciela: aplikacja pokazuje treść wyłącznie zalogowanym.
-   Brama stoi w powłoce, a nie w pojedynczych stronach — jedna brama,
-   zero szczelin. W stanie „loading” krótko stoi zasłona (odpowiedź
-   /users/me musi dociągnąć), po niej brama logowania albo aplikacja.
-   Tokeny motywu trzymają OBA widoki: brama też mówi kolorami marki.
+    ── BRAMA: BEZ SESJI NIC NIE WIDAĆ ─────────────────────────────────────
+    Decyzja właściciela: aplikacja pokazuje treść wyłącznie zalogowanym.
+    Brama stoi w POWŁOCE, a nie w pojedynczych stronach — jedna brama, zero
+    szczelin. Gdyby każda strona pilnowała sama, jedna zapomniana
+    pokazałaby treść bez zalogowania.
+
+    W stanie `loading` krótko stoi zasłona (odpowiedź `/users/me` musi
+    dociągnąć), po niej brama logowania albo aplikacja. Tokeny motywu
+    trzymają OBA widoki: brama też mówi kolorami marki.
   */
   if (status !== "authenticated") {
     return (
