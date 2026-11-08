@@ -359,6 +359,42 @@ export function DevClient() {
         )}
       </div>
 
+      {/* ── Agent kodujący (self-coding) ── */}
+      <div className="bengos-surface-card border-[var(--bengos-accent)]/30">
+        <h2 className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-medium)] text-[var(--bengos-accent)]">
+          Agent kodujący
+        </h2>
+        <p className="mt-2 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
+          Opisz zmianę. Agent tworzy plan, czeka na Twoją zgodę, potem (gdy executor jest podłączony)
+          wykonuje ją w piaskownicy: gałąź, commit, pull request. Na razie plany są zapisywane,
+          zatwierdzenie zwraca uczciwą odmowę — bez udawania, że kod już się zmienił.
+        </p>
+        <label className="mt-4 block text-sm" htmlFor="agent-request">
+          Co ma zmienić agent?
+        </label>
+        <textarea
+          id="agent-request"
+          value={planText}
+          onChange={(e) => setPlanText(e.target.value)}
+          placeholder="np. Dodaj endpoint marketplace do listy zakupów użytkownika"
+          className={INPUT + " mt-1 min-h-[6rem] resize-y"}
+          disabled={!selectedId || busy}
+        />
+        <button
+          type="button"
+          disabled={!selectedId || !planText.trim() || busy}
+          onClick={() => void createPlan()}
+          className={BTN_PRIMARY + " mt-3"}
+        >
+          {busy ? "Tworzę plan…" : "Stwórz plan zmian"}
+        </button>
+        {!selectedId && (
+          <p className="mt-2 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
+            Najpierw podłącz repozytorium powyżej.
+          </p>
+        )}
+      </div>
+
       {/* ── Issue ── */}
       <div className="bengos-surface-card">
         <h2 className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-medium)]">Issue</h2>

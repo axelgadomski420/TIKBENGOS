@@ -6,15 +6,10 @@ import { LoginForm } from "@/components/auth/login-form";
 import { BRAND } from "@/lib/brand";
 
 /**
- * Ekran wejścia BENGOS — logowanie i rejestracja.
+ * Ekran wejścia — logowanie i rejestracja muszą być widoczne i używalne.
  *
- * Układ 1:1 z grafiką właściciela (trzecie zdjęcie):
- * - duże świecące słowo „logowanie” (lub „rejestracja”) NAD znakiem,
- * - duży okrąg HUD z tygrysem w środku (dominujący element),
- * - drugie słowo POD znakiem jako przełącznik,
- * - formularz pod spodem, mniejszy wizualnie.
- *
- * Wszystkie napisy są żywym tekstem (dostępność). Obraz z /brand/logo.jpg.
+ * Na telefonie znak jest mniejszy, formularz jest głównym elementem
+ * i zawsze pełną szerokością pod nim. Przełącznik trybu działa od razu.
  */
 export function EntryScreen() {
   const [mode, setMode] = useState<"logowanie" | "rejestracja">("logowanie");
@@ -27,25 +22,18 @@ export function EntryScreen() {
   const otherMode = isRegister ? "logowanie" : "rejestracja";
 
   return (
-    <div className="relative flex min-h-dvh w-full flex-col items-center justify-center bg-[var(--bengos-surface)] px-4 py-6 overflow-x-hidden">
-      {/* Poświaty w tle */}
+    <div className="relative flex min-h-dvh w-full flex-col items-center justify-start bg-[var(--bengos-surface)] px-4 py-8 overflow-x-hidden">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute left-1/2 top-[38%] size-[48rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--bengos-accent)] opacity-[0.07] blur-3xl" />
-        <div className="absolute -right-32 bottom-16 size-[26rem] rounded-full bg-[var(--bengos-warning)] opacity-[0.05] blur-3xl" />
+        <div className="absolute left-1/2 top-24 size-[36rem] -translate-x-1/2 rounded-full bg-[var(--bengos-accent)] opacity-[0.06] blur-3xl" />
       </div>
 
-      {/* 1. Słowo trybu — nad znakiem */}
-      <h1 className="mb-3 text-center text-4xl font-[var(--bengos-weight-semibold)] lowercase tracking-[0.1em] text-[var(--bengos-accent)] drop-shadow-[0_0_28px_var(--bengos-glow)] sm:text-5xl">
-        {mode}
-      </h1>
-
-      {/* 2. Znak marki w HUD — ograniczony tak, żeby formularz zmieścił się pod spodem */}
-      <div className="relative size-60 shrink-0 sm:size-80">
+      {/* Znak — mniejszy na telefonie, żeby formularz zmieścił się od razu */}
+      <div className="relative mt-4 size-40 shrink-0 sm:size-56">
         <div className="bengos-hud flex size-full items-center justify-center">
           <span className="bengos-hud__ring bengos-hud__ring--static inset-0" />
-          <span className="bengos-hud__ring bengos-hud__ring--ticks -inset-3 sm:-inset-4" />
-          <span className="bengos-hud__ring bengos-hud__ring--arc -inset-6 sm:-inset-8" />
-          <span className="flex h-[78%] w-[78%] items-center justify-center overflow-hidden rounded-full border border-[var(--bengos-border-strong)] bg-[var(--bengos-surface-sunken)] shadow-[0_0_140px_-20px_var(--bengos-glow)]">
+          <span className="bengos-hud__ring bengos-hud__ring--ticks -inset-2 sm:-inset-3" />
+          <span className="bengos-hud__ring bengos-hud__ring--arc -inset-4 sm:-inset-6" />
+          <span className="flex h-[76%] w-[76%] items-center justify-center overflow-hidden rounded-full border border-[var(--bengos-border-strong)] bg-[var(--bengos-surface-sunken)] shadow-[0_0_100px_-16px_var(--bengos-glow)]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={BRAND.logo}
@@ -59,24 +47,26 @@ export function EntryScreen() {
         </div>
       </div>
 
-      {/* 3. Drugie słowo — pod znakiem */}
+      {/* Tryb — duże, klikalne */}
+      <h1 className="mt-6 text-center text-3xl font-[var(--bengos-weight-semibold)] lowercase tracking-[0.08em] text-[var(--bengos-accent)] drop-shadow-[0_0_20px_var(--bengos-glow)] sm:text-4xl">
+        {mode}
+      </h1>
+
       <button
         type="button"
         onClick={() => setMode(isRegister ? "logowanie" : "rejestracja")}
-        className="mt-3 text-center text-3xl font-[var(--bengos-weight-semibold)] lowercase tracking-[0.1em] text-[var(--bengos-accent)] drop-shadow-[0_0_20px_var(--bengos-glow)] underline-offset-8 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bengos-focus-ring)] sm:text-4xl"
+        className="mt-2 text-center text-xl font-[var(--bengos-weight-medium)] lowercase tracking-[0.06em] text-[var(--bengos-accent)] underline underline-offset-4 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bengos-focus-ring)] sm:text-2xl"
         aria-label={`Przełącz na ${otherMode}`}
       >
         {otherMode}
       </button>
 
-      {/* 4. Formularz — wymuszona pełna szerokość, wyśrodkowany, bez paska z lewej */}
-      <div className="mt-6 flex w-full max-w-sm flex-col items-center self-center px-2">
-        <div className="w-full">
-          <LoginForm registerMode={isRegister} />
-        </div>
+      {/* Formularz — główny element, pełna szerokość, zawsze widoczny */}
+      <div className="mt-8 w-full max-w-md">
+        <LoginForm registerMode={isRegister} />
       </div>
 
-      <p className="mt-6 text-center text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
+      <p className="mt-10 text-center text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
         {BRAND.tagline}
       </p>
     </div>
