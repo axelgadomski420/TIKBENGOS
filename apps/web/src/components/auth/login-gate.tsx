@@ -26,8 +26,8 @@ import { useSession } from "@/lib/session-context";
  * do rejestracji.
  *
  * Teraz brama ma DWA tryby i nic więcej: `logowanie` i `rejestracja`.
- * Menu główne widzi wyłącznie użytkownik zalogowany, i tylko on — bo
- * `AppShell` przy braku sesji w ogóle nie renderuje pulpitu, tylko tę bramę.
+ * Menu główne widzi wyłącznie użytkownik zalogowany — bo `AppShell` przy
+ * braku sesji nie renderuje pulpitu w ogóle, tylko tę bramę.
  *
  * ── NAPISY SĄ KLIKALNE ────────────────────────────────────────────────
  * Na grafice właściciela napisy to WYPALONE PIKSELI — nie da się ich
