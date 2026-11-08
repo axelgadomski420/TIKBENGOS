@@ -8,6 +8,7 @@ import { AppShell } from "@/components/app-shell";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
 import { PreferencesProvider } from "@/providers/preferences-provider";
 import { SessionProvider } from "@/providers/session-provider";
+import { BRAND } from "@/lib/brand";
 
 /**
  * Powłoka aplikacji.
@@ -58,7 +59,8 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   // Ikony PWA są zadeklarowane w manifeście; logo znaku jest też tam.
   // Pliki w `public/icons/icon-*.png` nadal nie istnieją — brak jest
-  // zgłoszony osobno, a wskazywanie ścieżek bez plików dałoby pusty kwadrat.
+  // zgłoszony osobno, a wskazywanie ścieżek bez plików dałoby pusty kwadrat
+  // w miejsce ikony, zamiast jej braku.
   appleWebApp: { capable: true, title: "BENGOS", statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
 };
@@ -69,7 +71,7 @@ export const metadata: Metadata = {
  */
 export const viewport: Viewport = {
   colorScheme: "dark light",
-  themeColor: "#0B0B0F",
+  themeColor: "#05070D",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -91,13 +93,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           niesie treści: mówi tylko, że aplikacja nadchodzi. Dla czytnika
           ekranu to szum, a dla oka — zastępstwo za biały prostokąt.
 
-          `fetchPriority` i zwykły `img` zamiast `next/image`: obraz ma
-          pokazać się w pierwszej klatce, a optymalizator Next potrzebuje
-          żądania do serwera, co w tym miejscu jest opóźnieniem, nie zyskiem.
+          Zwykły `img`, a nie `next/image`: obraz ma pokazać się w pierwszej
+          klatce, a optymalizator Next potrzebuje żądania do serwera, co
+          w tym miejscu jest opóźnieniem, nie zyskiem. Dlatego też `src`
+          idzie przez `BRAND.logo` — jedno miejsce, w którym wskazujemy znak.
         */}
         <div className="bengos-boot" aria-hidden="true">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/bengos-logo.jpg" alt="" className="bengos-boot-mark" />
+          <img src={BRAND.logo} alt="" className="bengos-boot-mark" />
           <p className="bengos-boot-name">BENGOS</p>
           <div className="bengos-boot-bar" />
         </div>
