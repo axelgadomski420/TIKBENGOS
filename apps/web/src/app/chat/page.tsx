@@ -1,21 +1,27 @@
 import type { Metadata } from "next";
 import { ModulePlaceholder } from "@/components/module-placeholder";
 import { RealtimeIndicator } from "@/components/realtime-indicator";
+import { ConversationPreview } from "@/components/chat/conversation-preview";
 
 export const metadata: Metadata = { title: "BENGOS Chat" };
 
 /**
  * Ekran czatu.
  *
- * Moduł jest w Etapie 4 i celowo nie ma tu wiadomości ani rozmów. Jedyne, co
- * ten ekran pokazuje ponad zwykły ekran zastępczy, to stan kanału czasu
- * rzeczywistego — bo ten kanał JEST już zaimplementowany i bez tego nie było
- * jak sprawdzić, czy działa.
+ * Moduł jest w Etapie 4 i celowo nie ma tu działających rozmów. Są dwie
+ * rzeczy, które ten ekran pokazuje ponad zwykły ekran zastępczy:
+ *
+ * 1. Stan kanału czasu rzeczywistego — bo ten kanał JEST zaimplementowany
+ *    i bez tego nie było jak sprawdzić, czy działa.
+ * 2. Układ rozmowy w stanie pustym — bo wygląd, który przyjdzie dopiero
+ *    w Etapie 4, można zaprojektować i obejrzeć teraz. Nie jest to atrapa:
+ *    nie ma tu ani jednej zmyślonej wiadomości, a każdy element mówi, czym
+ *    będzie.
  *
  * ── STAN KANAŁU JEST DOWODEM, NIE OZDOBĄ ──────────────────────────────
  * Ten kafelek mówi coś, czego nie mówi żaden inny ekran: czy WebSocket
- * faktycznie się łączy. Dlatego kanał stoi jako osobna sekcja pod planem
- * etapu, z pełnym wyjaśnieniem — a nie jako jedna linia wciśnięta w opis.
+ * faktycznie się łączy. Tożsamość w kanale pochodzi wyłącznie z ciasteczka
+ * sesji; bez sesji serwer zamyka połączenie kodem 4401.
  */
 export default function ChatPage() {
   return (
@@ -52,6 +58,8 @@ export default function ChatPage() {
           <RealtimeIndicator />
         </div>
       </section>
+
+      <ConversationPreview />
     </div>
   );
 }
