@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 
-import { PhoneHub } from "@/components/hub/phone-hub";
+import { HomeDashboard } from "@/components/home/home-dashboard";
 
 export const metadata: Metadata = { title: "Bengos.PL" };
 
 export const dynamic = "force-dynamic";
 
 export default function HomePage() {
-  return <PhoneHub />;
+  return <HomeDashboard />;
 }

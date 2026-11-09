@@ -34,6 +34,7 @@ from .models import (
     MESSAGES_PAGE,
     Conversation,
     ConversationMember,
+    DeviceKey,
     Message,
 )
 from .schemas import (
@@ -41,9 +42,12 @@ from .schemas import (
     ConversationOut,
     CreateConversationIn,
     CreateMessageIn,
+    DeviceKeyIn,
+    DeviceKeyOut,
     MessageListOut,
     MessageOut,
     ParticipantStateOut,
+    PrekeysIn,
 )
 
 router = Router(tags=["chat"])
@@ -109,6 +113,75 @@ def _member_or_404(conversation_id: str, user: User) -> ConversationMember:
     if member is None:
         raise HttpError(404, {"code": "not_found", "message": "Nie znaleziono tej rozmowy."})
     return member
+
+
+SEALED_CT_MAX = 1_200_000
+
+
+def _box(box) -> dict:
+    return {
+        "userId": box.userId,
+        "epk": box.epk,
+        "iv": box.iv,
+        "ct": box.ct,
+        "prekeyId": box.prekeyId,
+    }
+
+
+def _persist_kind(kind) -> dict:
+    if kind.type == "text":
+        body = (kind.body or "").strip()
+        if not body:
+            raise HttpError(
+                400, {"code": "bad_request", "message": "Wiadomość nie może być pusta.", "field": "body"}
+            )
+        if len(body) > MESSAGE_BODY_MAX:
+            raise HttpError(
+                400,
+                {
+                    "code": "bad_request",
+                    "message": f"Wiadomość może mieć najwyżej {MESSAGE_BODY_MAX} znaków.",
+                    "field": "body",
+                },
+            )
+        return {"type": "text", "body": body}
+
+    if not kind.ct or not kind.iv or kind.own is None or not kind.own.ct or not kind.own.epk:
+        raise HttpError(
+            400,
+            {"code": "bad_request", "message": "Pieczęć jest niekompletna.", "field": "kind"},
+        )
+    if len(kind.ct) > SEALED_CT_MAX:
+        raise HttpError(
+            400,
+            {"code": "bad_request", "message": "Zaszyfrowana wiadomość jest za duża.", "field": "ct"},
+        )
+    for box in kind.boxes:
+        if not box.userId or not box.epk or not box.iv or not box.ct:
+            raise HttpError(
+                400,
+                {"code": "bad_request", "message": "Koperta odbiorcy jest niekompletna.", "field": "boxes"},
+            )
+    return {
+        "type": "sealed",
+        "v": 1,
+        "alg": kind.alg or "P256-HKDF-A256GCM",
+        "fp": kind.fp,
+        "iv": kind.iv,
+        "ct": kind.ct,
+        "own": _box(kind.own),
+        "boxes": [_box(box) for box in kind.boxes],
+    }
+
+
+def _device_out(row: DeviceKey, prekey: dict | None = None) -> dict:
+    return {
+        "userId": str(row.user_id),
+        "publicJwk": row.public_jwk,
+        "fingerprint": row.fingerprint,
+        "prekey": prekey,
+        "prekeyCount": len(row.prekeys or []),
+    }
 
 
 def _broadcast_message(message: Message, recipients: list[str]) -> None:
@@ -317,21 +390,7 @@ def send_message(request, conversation_id: str, payload: CreateMessageIn):
     """
     user = current_user(request)
     member = _member_or_404(conversation_id, user)
-
-    body = (payload.kind.body or "").strip()
-    if not body:
-        raise HttpError(
-            400, {"code": "bad_request", "message": "Wiadomość nie może być pusta.", "field": "body"}
-        )
-    if len(body) > MESSAGE_BODY_MAX:
-        raise HttpError(
-            400,
-            {
-                "code": "bad_request",
-                "message": f"Wiadomość może mieć najwyżej {MESSAGE_BODY_MAX} znaków.",
-                "field": "body",
-            },
-        )
+    stored = _persist_kind(payload.kind)
 
     reply_to = None
     if payload.replyToId:
@@ -346,7 +405,7 @@ def send_message(request, conversation_id: str, payload: CreateMessageIn):
         message = Message.objects.create(
             conversation=member.conversation,
             sender=user,
-            kind={"type": "text", "body": body},
+            kind=stored,
             reply_to=reply_to,
         )
         Conversation.objects.filter(id=member.conversation_id).update(updated_at=timezone.now())
@@ -423,3 +482,68 @@ def list_contacts(request):
     followers = set(Follow.objects.filter(followed=user).values_list("follower_id", flat=True))
     ids = (followed | followers) - {user.id}
     return 200, [_author(u) for u in User.objects.filter(id__in=ids)[:CONVERSATIONS_PAGE]]
+
+
+@router.put("/device", response={200: DeviceKeyOut, 400: ErrorOut, 401: ErrorOut})
+def put_device_key(request, payload: DeviceKeyIn):
+    """Zapisuje klucz publiczny tego urządzenia. Prywatnego tu nie ma."""
+    user = current_user(request)
+    public = (payload.publicJwk or "").strip()
+    fingerprint = (payload.fingerprint or "").strip()
+    if len(public) < 20 or len(fingerprint) != 64:
+        raise HttpError(
+            400, {"code": "bad_request", "message": "Klucz urządzenia jest niekompletny.", "field": "publicJwk"}
+        )
+    row, _created = DeviceKey.objects.get_or_create(
+        user=user,
+        defaults={"public_jwk": public, "fingerprint": fingerprint, "prekeys": []},
+    )
+    row.public_jwk = public
+    row.fingerprint = fingerprint
+    row.save(update_fields=["public_jwk", "fingerprint", "updated_at"])
+    return 200, _device_out(row)
+
+
+@router.post("/device/prekeys", response={200: DeviceKeyOut, 400: ErrorOut, 401: ErrorOut})
+def add_prekeys(request, payload: PrekeysIn):
+    """Dokłada jednorazowe preklucze. Nie kasuje tych, których jeszcze nikt nie wziął."""
+    user = current_user(request)
+    row = DeviceKey.objects.filter(user=user).first()
+    if row is None:
+        raise HttpError(400, {"code": "bad_request", "message": "Najpierw zapisz klucz urządzenia.", "field": "prekeys"})
+    current = list(row.prekeys or [])
+    known = {item.get("id") for item in current if isinstance(item, dict)}
+    for item in payload.prekeys:
+        if item.id in known or not item.jwk:
+            continue
+        current.append({"id": item.id, "jwk": item.jwk})
+        known.add(item.id)
+        if len(current) >= 40:
+            break
+    row.prekeys = current
+    row.save(update_fields=["prekeys", "updated_at"])
+    return 200, _device_out(row)
+
+
+@router.get("/device/{user_id}", response={200: DeviceKeyOut, 401: ErrorOut, 404: ErrorOut})
+def get_device_key(request, user_id: str):
+    current_user(request)
+    row = DeviceKey.objects.filter(user_id=user_id).first()
+    if row is None:
+        raise HttpError(404, {"code": "not_found", "message": "Ta osoba nie ma jeszcze klucza czatu."})
+    return 200, _device_out(row)
+
+
+@router.post("/device/{user_id}/take", response={200: DeviceKeyOut, 401: ErrorOut, 404: ErrorOut})
+def take_prekey(request, user_id: str):
+    """Zdejmuje jeden preklucz. Drugi nadawca już go nie dostanie."""
+    current_user(request)
+    with transaction.atomic():
+        row = DeviceKey.objects.filter(user_id=user_id).first()
+        if row is None:
+            raise HttpError(404, {"code": "not_found", "message": "Ta osoba nie ma jeszcze klucza czatu."})
+        current = list(row.prekeys or [])
+        prekey = current.pop(0) if current else None
+        row.prekeys = current
+        row.save(update_fields=["prekeys", "updated_at"])
+    return 200, _device_out(row, prekey if isinstance(prekey, dict) else None)

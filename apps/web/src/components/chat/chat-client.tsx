@@ -5,8 +5,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ApiError, Conversation, Message } from "@bengos/core";
 
 import { Announcement } from "@/components/announcement";
+import { SealedView } from "@/components/chat/sealed-view";
+import { SecureComposer } from "@/components/chat/secure-composer";
 import { apiFetch, ApiRequestError } from "@/lib/api-client";
 import { useRealtime } from "@/lib/realtime-client";
+import {
+  ensureIdentity,
+  markPrekeysSynced,
+  refillPrekeys,
+  safetyNumber,
+  sealPayload,
+  type SealIdentity,
+  type SealPayload,
+} from "@/lib/seal";
 import { useSession } from "@/lib/session-context";
 
 /**
@@ -54,14 +65,13 @@ const BTN =
   "bengos-touch-target inline-flex items-center rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] px-4 text-[var(--bengos-size-caption)]";
 const BTN_PRIMARY =
   "bengos-touch-target inline-flex items-center rounded-[var(--bengos-radius-control)] bg-[var(--bengos-accent)] px-4 font-[var(--bengos-weight-medium)] text-[var(--bengos-text-on-accent)] disabled:opacity-60";
-const INPUT =
-  "min-h-[var(--bengos-touch-target-min)] w-full rounded-[var(--bengos-radius-control)] border border-[var(--bengos-border)] bg-[var(--bengos-surface-sunken)] px-3 py-2 text-[var(--bengos-size-caption)]";
 
 function bodyOf(message: Message): string {
   // Unia typów z kontraktu. Dziś dochodzi text i system; reszta
   // (image, voice, sign, morse) dojdzie z mediami — pokaż to uczciwie.
   if (message.kind.type === "text") return message.kind.body;
   if (message.kind.type === "system") return message.kind.body;
+  if (message.kind.type === "sealed") return "Zapieczętowana wiadomość";
   return "Ten typ wiadomości dojdzie w kolejnym etapie.";
 }
 
@@ -84,11 +94,12 @@ export function ChatClient() {
   const [loadingList, setLoadingList] = useState(true);
   const [loadingThread, setLoadingThread] = useState(false);
   const [sending, setSending] = useState(false);
-  const [draft, setDraft] = useState("");
   const [error, setError] = useState<ApiError | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const [contacts, setContacts] = useState<AuthorInfo[] | null>(null);
   const [showContacts, setShowContacts] = useState(false);
+  const [seal, setSeal] = useState<SealIdentity | null>(null);
+  const [safety, setSafety] = useState("");
 
   // Wątek w efectach czyta aktualnie wybraną rozmowę, a nie stan z
   // domknięcia. Bez tego zdarzenie WS mogłoby trafić do wątku, który
@@ -117,6 +128,33 @@ export function ChatClient() {
       setLoadingList(false);
     }
   }, [isAuthenticated, reloadConversations]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    void (async () => {
+      let record = await ensureIdentity();
+      await apiFetch("/api/chat/device", {
+        method: "PUT",
+        body: { publicJwk: JSON.stringify(record.publicJwk), fingerprint: record.fingerprint },
+      });
+      const refilled = await refillPrekeys(record);
+      record = refilled.record;
+      if (refilled.upload.length > 0) {
+        await apiFetch("/api/chat/device/prekeys", {
+          method: "POST",
+          body: { prekeys: refilled.upload.map((item) => ({ id: item.id, jwk: JSON.stringify(item.jwk) })) },
+        });
+        record = markPrekeysSynced(record, refilled.upload.map((item) => item.id));
+      }
+      if (!cancelled) setSeal(record);
+    })().catch((err: unknown) => {
+      if (!cancelled && err instanceof ApiRequestError) setError(err.error);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
 
   const markRead = useCallback(async (conversationId: string) => {
     // Oznaczenie przeczytanym jest best-effort: porażka nie blokuje
@@ -176,32 +214,58 @@ export function ChatClient() {
     }
   }, [messages, selectedId]);
 
-  const send = useCallback(async () => {
-    const body = draft.trim();
-    if (!body || !selectedId || sending) return;
-    setSending(true);
-    setDraft("");
-    try {
-      const created = await apiFetch<Message>(
-        "/api/chat/conversations/" + selectedId + "/messages",
-        { method: "POST", body: { kind: { type: "text", body }, replyToId: null } }
-      );
-      setMessages((prev) => (prev.some((m) => m.id === created.id) ? prev : [...prev, created]));
-      setConversations((prev) => {
-        const rest = prev.filter((c) => c.id !== selectedId);
-        const current = prev.find((c) => c.id === selectedId);
-        if (!current) return prev;
-        return [{ ...current, lastMessage: created, updatedAt: created.createdAt }, ...rest];
-      });
-    } catch (err) {
-      if (err instanceof ApiRequestError) {
-        setError(err.error);
-        setDraft(body); // szkic wraca — użytkownik nie traci tekstu
+  const sendSealed = useCallback(
+    async (payload: SealPayload) => {
+      if (!selectedId || !seal || sending) return;
+      const conversation = conversations.find((item) => item.id === selectedId);
+      if (!conversation || !identity) return;
+      const others = conversation.participantIds.filter((id) => id !== identity.id);
+      if (others.length === 0) {
+        setError({ code: "bad_request", message: "W tej rozmowie nie ma drugiej osoby." });
+        return;
       }
-    } finally {
-      setSending(false);
-    }
-  }, [draft, selectedId, sending]);
+      setSending(true);
+      setError(null);
+      try {
+        const recipients = [];
+        for (const userId of others) {
+          const device = await apiFetch<{ publicJwk: string; fingerprint: string }>(
+            "/api/chat/device/" + userId,
+          );
+          const taken = await apiFetch<{ prekey: { id: string; jwk: string } | null }>(
+            "/api/chat/device/" + userId + "/take",
+            { method: "POST" },
+          );
+          recipients.push({
+            userId,
+            publicJwk: JSON.parse(device.publicJwk) as JsonWebKey,
+            prekey: taken.prekey
+              ? { id: taken.prekey.id, jwk: JSON.parse(taken.prekey.jwk) as JsonWebKey }
+              : null,
+          });
+          if (others.length === 1) setSafety(await safetyNumber(seal.fingerprint, device.fingerprint));
+        }
+        const envelope = await sealPayload(payload, recipients, seal.publicJwk);
+        const created = await apiFetch<Message>("/api/chat/conversations/" + selectedId + "/messages", {
+          method: "POST",
+          body: { kind: { type: "sealed", ...envelope }, replyToId: null },
+        });
+        setMessages((prev) => (prev.some((item) => item.id === created.id) ? prev : [...prev, created]));
+        setConversations((prev) => {
+          const rest = prev.filter((item) => item.id !== selectedId);
+          const current = prev.find((item) => item.id === selectedId);
+          if (!current) return prev;
+          return [{ ...current, lastMessage: created, updatedAt: created.createdAt }, ...rest];
+        });
+      } catch (err) {
+        if (err instanceof ApiRequestError) setError(err.error);
+        else setError({ code: "bad_request", message: "Nie zapieczętowałem wiadomości. Druga osoba musi otworzyć czat." });
+      } finally {
+        setSending(false);
+      }
+    },
+    [conversations, identity, seal, selectedId, sending],
+  );
 
   const removeMessage = useCallback(async (messageId: string) => {
     try {
@@ -297,7 +361,7 @@ export function ChatClient() {
             Czat
           </h1>
           <p className="text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
-            Lepszy od iMessage i OLX. Wiadomości, grupy, czas rzeczywisty. End-to-end w kolejnym etapie.
+            Pieczęć na urządzeniu: AES-256-GCM, klucz wiadomości owijany P-256 i jednorazowym prekluczem. Serwer nie dostaje treści.
           </p>
         </div>
         <button
@@ -404,8 +468,9 @@ export function ChatClient() {
               <header className="border-b border-[var(--bengos-border)] pb-2">
                 <h2 className="text-[var(--bengos-size-caption)] font-[var(--bengos-weight-semibold)]">{titleOf(selected)}</h2>
                 <p className="text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
-                  Wiadomości tekstowe. Załączniki, głos i tłumaczenia dojdą
-                  w kolejnych etapach.
+                  {safety
+                    ? "Numer bezpieczeństwa: " + safety + ". Porównajcie go poza czatem."
+                    : "Obraz, plik, głos, Morse, gloss migowy i tłumaczenie wychodzą jedną pieczęcią."}
                 </p>
               </header>
 
@@ -432,9 +497,20 @@ export function ChatClient() {
                                 {author?.displayName ?? author?.username ?? "Użytkownik"}
                               </p>
                             ) : null}
-                            <p className="text-[var(--bengos-size-caption)]">
-                              {message.deletedAt ? "Wiadomość usunięta" : bodyOf(message)}
-                            </p>
+                            <div className="text-[var(--bengos-size-caption)]">
+                              {message.deletedAt ? (
+                                "Wiadomość usunięta"
+                              ) : message.kind.type === "sealed" ? (
+                                <SealedView
+                                  message={message}
+                                  identity={seal}
+                                  onIdentity={setSeal}
+                                  onExpire={(id) => void removeMessage(id)}
+                                />
+                              ) : (
+                                bodyOf(message)
+                              )}
+                            </div>
                             <p className="mt-1 flex items-center gap-2 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
                               {timeLabel(message.createdAt)}
                               {own && !message.deletedAt ? (
@@ -455,28 +531,7 @@ export function ChatClient() {
                 )}
               </div>
 
-              <form
-                className="mt-2 flex items-end gap-2 border-t border-[var(--bengos-border)] pt-2"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  void send();
-                }}
-              >
-                <label className="sr-only" htmlFor="chat-draft">
-                  Treść wiadomości
-                </label>
-                <textarea
-                  id="chat-draft"
-                  className={INPUT + " flex-1 resize-y"}
-                  value={draft}
-                  maxLength={2000}
-                  onChange={(e) => setDraft(e.target.value)}
-                  placeholder="Napisz wiadomość…"
-                />
-                <button type="submit" className={BTN_PRIMARY} disabled={sending || draft.trim().length === 0}>
-                  {sending ? "Wysyłam…" : "Wyślij"}
-                </button>
-              </form>
+              <SecureComposer busy={sending || !seal} onSend={sendSealed} />
             </>
           ) : (
             <p className="text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">

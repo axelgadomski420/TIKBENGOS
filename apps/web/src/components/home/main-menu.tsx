@@ -27,10 +27,10 @@ const ORDER = [
 export function MainMenu() {
   const items = ORDER.map((label) => BRANCHES.find((b) => b.label === label)).filter(Boolean) as typeof BRANCHES;
   const count = items.length;
-  const radius = 42;
+  const radius = 46;
 
   return (
-    <div className="relative mx-auto aspect-square w-full max-w-md">
+    <div className="relative mx-auto aspect-square w-full max-w-[min(100%,40rem)]">
       {/* Poświata */}
       <div
         aria-hidden="true"
@@ -44,7 +44,7 @@ export function MainMenu() {
       />
 
       {/* Tygrys w centrum */}
-      <div className="absolute left-1/2 top-1/2 size-[52%] -translate-x-1/2 -translate-y-1/2">
+      <div className="absolute left-1/2 top-1/2 size-[68%] -translate-x-1/2 -translate-y-1/2">
         <div className="bengos-hud flex size-full items-center justify-center">
           <span className="bengos-hud__ring bengos-hud__ring--static inset-0" />
           <span className="bengos-hud__ring bengos-hud__ring--ticks -inset-3" />
@@ -75,7 +75,7 @@ export function MainMenu() {
             className="absolute flex min-h-[44px] min-w-[44px] flex-col items-center justify-center text-center -translate-x-1/2 -translate-y-1/2"
             style={{ left: `${left}%`, top: `${top}%` }}
           >
-            <span className="text-xs font-semibold lowercase tracking-[0.1em] text-[#00F7FF] drop-shadow-[0_0_10px_#14809F] sm:text-sm">
+            <span className="text-sm font-semibold lowercase tracking-[0.14em] text-[#7ef6ff] drop-shadow-[0_0_12px_#39e7ff] sm:text-base">
               {branch.label}
             </span>
           </Link>

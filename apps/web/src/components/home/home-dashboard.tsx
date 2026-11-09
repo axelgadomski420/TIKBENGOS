@@ -7,7 +7,7 @@ import { MainMenu } from "@/components/home/main-menu";
  */
 export function HomeDashboard() {
   return (
-    <div className="flex min-h-[calc(100dvh-8rem)] items-center justify-center bg-[#0A0E18] px-4 py-8">
+    <div className="flex min-h-dvh items-center justify-center bg-[#05070d] px-3 py-6">
       <MainMenu />
     </div>
   );

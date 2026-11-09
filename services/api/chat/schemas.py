@@ -22,16 +22,30 @@ class ParticipantStateOut(Schema):
     lastSeenAt: datetime | None
 
 
-class MessageKindIn(Schema):
-    """Unia typów wiadomości zwężona do tego, co działa TERAZ.
+class SealBoxIn(Schema):
+    userId: str = ""
+    epk: str = ""
+    iv: str = ""
+    ct: str = ""
+    prekeyId: str = ""
 
-    Kontrakt zna obraz, głos, migi i Morse. Żądanie przyjmuje wyłącznie
-    tekst: media wymagają magazynu plików (R2), migi — workera. Przyjęcie
-    typu bez pokrycia byłoby obietnicą bez implementacji.
+
+class MessageKindIn(Schema):
+    """Tekst zostaje dla starych klientów. Nowa rozmowa idzie jako `sealed`.
+
+    W `sealed` nie ma treści. Jest szyfrogram i koperty na klucz wiadomości.
+    Obraz, głos, plik, migi i Morse siedzą w środku szyfrogramu, nie obok.
     """
 
-    type: Literal["text"]
-    body: str
+    type: Literal["text", "sealed"]
+    body: str = ""
+    v: int = 1
+    alg: str = ""
+    fp: str = ""
+    iv: str = ""
+    ct: str = ""
+    own: SealBoxIn | None = None
+    boxes: list[SealBoxIn] = []
 
 
 class CreateMessageIn(Schema):
@@ -90,3 +104,25 @@ class MessageListOut(Schema):
 
     items: list[MessageOut]
     hasMore: bool
+
+
+class PrekeyIn(Schema):
+    id: str
+    jwk: str
+
+
+class DeviceKeyIn(Schema):
+    publicJwk: str
+    fingerprint: str
+
+
+class PrekeysIn(Schema):
+    prekeys: list[PrekeyIn]
+
+
+class DeviceKeyOut(Schema):
+    userId: str
+    publicJwk: str
+    fingerprint: str
+    prekey: PrekeyIn | None = None
+    prekeyCount: int = 0

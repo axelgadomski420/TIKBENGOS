@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { AssistantClient } from "@/components/create/assistant-client";
+import { PhoneHub } from "@/components/hub/phone-hub";
 
 export const metadata: Metadata = { title: "BENGOS Create" };
 
@@ -20,6 +21,7 @@ export const metadata: Metadata = { title: "BENGOS Create" };
 export default function CreatePage() {
   return (
     <div className="space-y-6">
+      <PhoneHub />
       <AssistantClient />
 
       <section aria-labelledby="create-keys" className="bengos-surface-card mx-auto max-w-2xl">

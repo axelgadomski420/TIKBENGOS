@@ -166,7 +166,7 @@ export const BRANCHES: Branch[] = [
   { href: "/create", label: "asystent", description: "Asystent AI, pomysły, scenariusze, muzyka, kod.", stage: 5, Icon: IconAssistant },
   { href: "/feed", label: "bengtok", description: "Krótkie wideo, dźwięki, posty, twórcy.", stage: 2, Icon: IconFeed },
   { href: "/market", label: "market", description: "Presety, dźwięki, szablony i modele od twórców.", stage: null, Icon: IconMarket },
-  { href: "/#wyszukiwarka", label: "wyszukiwarka", description: "Jedno pole na pytanie, tworzenie, szukanie i kod.", stage: null, Icon: IconSearch },
+  { href: "/szukaj", label: "wyszukiwarka", description: "Jedno pole na pytanie, tworzenie, szukanie i kod.", stage: null, Icon: IconSearch },
 ];
 
 export function ModuleBranches() {

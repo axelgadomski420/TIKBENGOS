@@ -123,3 +123,24 @@ class Message(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover
         return f"{self.conversation_id}:{self.id}"
+
+
+class DeviceKey(models.Model):
+    """Publiczny klucz tożsamości i jednorazowe preklucze czatu.
+
+    Prywatna połowa nigdy tu nie wchodzi. `prekeys` to lista
+    ``{"id", "jwk"}`` — same klucze publiczne. Serwer zdejmuje jeden
+    przy wysyłce, więc nie da się nim otworzyć drugiej wiadomości.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="chat_device_key"
+    )
+    public_jwk = models.TextField()
+    fingerprint = models.CharField(max_length=64)
+    prekeys = models.JSONField(default=list)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self) -> str:  # pragma: no cover
+        return self.fingerprint

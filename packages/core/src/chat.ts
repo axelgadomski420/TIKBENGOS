@@ -27,13 +27,31 @@ export interface ParticipantState {
   lastSeenAt: string | null;
 }
 
+export interface SealBox {
+  userId: string;
+  epk: string;
+  iv: string;
+  ct: string;
+  prekeyId: string;
+}
+
 export type MessageKind =
   | { type: "text"; body: string }
   | { type: "image"; url: string; caption: string | null; width: number | null; height: number | null }
   | { type: "voice"; url: string; durationSeconds: number; transcript: string | null }
   | { type: "sign"; clipUrl: string; gloss: string }
   | { type: "morse"; pattern: string; decoded: string }
-  | { type: "system"; body: string };
+  | { type: "system"; body: string }
+  | {
+      type: "sealed";
+      v: number;
+      alg: string;
+      fp: string;
+      iv: string;
+      ct: string;
+      own: SealBox;
+      boxes: SealBox[];
+    };
 
 export interface Message {
   id: string;

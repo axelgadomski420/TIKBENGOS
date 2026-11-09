@@ -13,8 +13,8 @@ from django.urls import reverse
 
 from accounts.models import User
 
-from .models import Conversation, ConversationMember, Follow  # noqa: F401
-from .models import Message
+from feed.models import Follow  # noqa: F401
+from .models import Conversation, ConversationMember, Message
 
 
 def make_user(name: str) -> User:
@@ -194,6 +194,50 @@ class MessageTests(TestCase):
         contacts = self.client.get(reverse("v1:list_contacts"))
         ids = [c["id"] for c in contacts.json()]
         self.assertIn(str(self.alice.id), ids)
+
+    def test_klucz_i_pieczec_bez_tresci(self):
+        put = self.client.put(
+            reverse("v1:put_device_key"),
+            {"publicJwk": "{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"abc\",\"y\":\"def\"}", "fingerprint": "a" * 64},
+            "application/json",
+        )
+        self.assertEqual(put.status_code, 200)
+        added = self.client.post(
+            reverse("v1:add_prekeys"),
+            {"prekeys": [{"id": "pre1", "jwk": "{\"kty\":\"EC\"}"}]},
+            "application/json",
+        )
+        self.assertEqual(added.status_code, 200)
+        self.assertEqual(added.json()["prekeyCount"], 1)
+        taken = self.client.post(reverse("v1:take_prekey", kwargs={"user_id": str(self.alice.id)}))
+        self.assertEqual(taken.status_code, 200)
+        self.assertEqual(taken.json()["prekey"]["id"], "pre1")
+
+        conversation_id = self.client.post(
+            reverse("v1:create_conversation"),
+            {"kind": "direct", "participantIds": [str(self.bob.id)]},
+            "application/json",
+        ).json()["id"]
+        sealed = self.client.post(
+            reverse("v1:send_message", kwargs={"conversation_id": conversation_id}),
+            {
+                "kind": {
+                    "type": "sealed",
+                    "ct": "c2VhbA==",
+                    "iv": "aXY=",
+                    "fp": "b" * 64,
+                    "alg": "P256-HKDF-A256GCM",
+                    "own": {"userId": str(self.alice.id), "epk": "e", "iv": "i", "ct": "k", "prekeyId": ""},
+                    "boxes": [
+                        {"userId": str(self.bob.id), "epk": "e2", "iv": "i2", "ct": "k2", "prekeyId": "pre1"}
+                    ],
+                }
+            },
+            "application/json",
+        )
+        self.assertEqual(sealed.status_code, 201)
+        self.assertEqual(sealed.json()["kind"]["type"], "sealed")
+        self.assertNotIn("czesc", str(sealed.json()["kind"]))
 
 
 class RealtimeEnvelopeTests(TestCase):
