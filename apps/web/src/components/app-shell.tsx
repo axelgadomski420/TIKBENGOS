@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 
 import { can, type Permission } from "@bengos/core";
 
-import { EntryScreen } from "@/components/auth/entry-screen";
 import { BottomNavigation } from "@/components/bottom-navigation";
 import { HomeDashboard } from "@/components/home/home-dashboard";
 import { SkipLink } from "@/components/skip-link";
@@ -165,20 +164,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 
   /*
-    ── BRAMA ──────────────────────────────────────────────────────────────
-    Bez sesji: `EntryScreen` i koniec. Strona `/` też nic nie rysuje, więc
-    w HTML-u nie ma ani pulpitowej orbity, ani siatki kafli — a to właśnie
-    one wyglądały na zrzutach jak „ekran logowania” przez pomyłkę.
+    ── BRAMA WYŁĄCZONA TYMCZASOWO (2026-11-09) ────────────────────────────
+    Strona startowa z logowaniem/rejestracją jest zbugowana od kilku dni
+    i blokuje wejście. Na razie przy braku sesji rysujemy czysty komunikat
+    zamiast EntryScreen. Wrócimy do bramy po naprawie.
   */
   if (status !== "authenticated") {
     return (
       <div
         style={shellStyle}
         {...shellAttributes}
-        className="min-h-dvh bg-[var(--bengos-surface)] text-[var(--bengos-text)]"
+        className="min-h-dvh bg-[var(--bengos-surface)] text-[var(--bengos-text)] flex flex-col items-center justify-center px-6 text-center"
       >
         <SkipLink />
-        <EntryScreen />
+        <h1 className="text-3xl font-semibold text-[var(--bengos-accent)]">BENGOS</h1>
+        <p className="mt-4 max-w-md text-[var(--bengos-text-muted)]">
+          Strona startowa z logowaniem jest tymczasowo wyłączona.
+          Wrócimy do niej po naprawie.
+        </p>
+        <p className="mt-8 text-sm text-[var(--bengos-text-muted)]">
+          {BRAND.tagline}
+        </p>
       </div>
     );
   }
