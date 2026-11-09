@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 
 import { can, type Permission } from "@bengos/core";
 
+import { EntryScreen } from "@/components/auth/entry-screen";
 import { BottomNavigation } from "@/components/bottom-navigation";
 import { HomeDashboard } from "@/components/home/home-dashboard";
 import { SkipLink } from "@/components/skip-link";
@@ -164,27 +165,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 
   /*
-    ── BRAMA WYŁĄCZONA TYMCZASOWO (2026-11-09) ────────────────────────────
-    Strona startowa z logowaniem/rejestracją jest zbugowana od kilku dni
-    i blokuje wejście. Na razie przy braku sesji rysujemy czysty komunikat
-    zamiast EntryScreen. Wrócimy do bramy po naprawie.
+    ── BRAMA MINIMALNA (2026-11-09) ───────────────────────────────────────
+    Poprzednia brama z HUD-em i dużym tygrysem była zbugowana.
+    Tymczasowy komunikat też nie wystarczał. Teraz czysty formularz.
   */
   if (status !== "authenticated") {
     return (
       <div
         style={shellStyle}
         {...shellAttributes}
-        className="min-h-dvh bg-[var(--bengos-surface)] text-[var(--bengos-text)] flex flex-col items-center justify-center px-6 text-center"
+        className="min-h-dvh bg-[var(--bengos-surface)] text-[var(--bengos-text)]"
       >
         <SkipLink />
-        <h1 className="text-3xl font-semibold text-[var(--bengos-accent)]">BENGOS</h1>
-        <p className="mt-4 max-w-md text-[var(--bengos-text-muted)]">
-          Strona startowa z logowaniem jest tymczasowo wyłączona.
-          Wrócimy do niej po naprawie.
-        </p>
-        <p className="mt-8 text-sm text-[var(--bengos-text-muted)]">
-          {BRAND.tagline}
-        </p>
+        <EntryScreen />
       </div>
     );
   }
