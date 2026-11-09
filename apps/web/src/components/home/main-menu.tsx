@@ -6,10 +6,11 @@ import { BRANCHES } from "@/components/home/module-branches";
 import { BRAND } from "@/lib/brand";
 
 /**
- * Menu główne — logo w centrum, moduły w siatce pod spodem.
+ * Menu główne — dokładnie jak na grafice właściciela.
  *
- * Orbita na telefonie rozjeżdżała ikony w pionową kolumnę.
- * Siatka jest stabilna na każdym ekranie i zachowuje 44 px cele.
+ * Duży tygrys w świecącym okręgu, moduły dookoła po okręgu.
+ * Pozycje liczone procentowo od środka kontenera o stałym aspect-ratio,
+ * więc nie rozjeżdżają się w pionową kolumnę.
  */
 const ORDER = [
   "chat",
@@ -18,7 +19,6 @@ const ORDER = [
   "bridge",
   "dev",
   "profil",
-  "market",
   "wyszukiwarka",
   "bengtok",
   "asystent",
@@ -26,16 +26,30 @@ const ORDER = [
 
 export function MainMenu() {
   const items = ORDER.map((label) => BRANCHES.find((b) => b.label === label)).filter(Boolean) as typeof BRANCHES;
+  const count = items.length;
+  const radius = 42;
 
   return (
-    <div className="flex w-full flex-col items-center gap-8 px-4 py-6">
-      {/* Logo */}
-      <div className="relative size-48 shrink-0 sm:size-64">
+    <div className="relative mx-auto aspect-square w-full max-w-md">
+      {/* Poświata */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/2 top-1/2 -z-10 size-[80%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#00F7FF] opacity-[0.08] blur-3xl"
+      />
+
+      {/* Pierścień zewnętrzny */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-[4%] rounded-full border border-dashed border-[#51689B]"
+      />
+
+      {/* Tygrys w centrum */}
+      <div className="absolute left-1/2 top-1/2 size-[52%] -translate-x-1/2 -translate-y-1/2">
         <div className="bengos-hud flex size-full items-center justify-center">
           <span className="bengos-hud__ring bengos-hud__ring--static inset-0" />
           <span className="bengos-hud__ring bengos-hud__ring--ticks -inset-3" />
           <span className="bengos-hud__ring bengos-hud__ring--arc -inset-5" />
-          <span className="flex h-[76%] w-[76%] items-center justify-center overflow-hidden rounded-full border border-[#51689B] bg-[#060A12] shadow-[0_0_100px_-16px_#14809F]">
+          <span className="flex h-[78%] w-[78%] items-center justify-center overflow-hidden rounded-full border border-[#51689B] bg-[#060A12] shadow-[0_0_120px_-16px_#14809F]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={BRAND.logo}
@@ -48,25 +62,25 @@ export function MainMenu() {
         </div>
       </div>
 
-      {/* Moduły — siatka 2 kolumny na telefonie, 5 na większym */}
-      <ul className="grid w-full max-w-md grid-cols-2 gap-4 sm:max-w-2xl sm:grid-cols-3 lg:grid-cols-5">
-        {items.map((branch) => (
-          <li key={branch.label}>
-            <Link
-              href={branch.href}
-              aria-label={branch.label + " — " + branch.description}
-              className="flex min-h-[72px] flex-col items-center justify-center gap-2 rounded-[var(--bengos-radius-card)] border border-[#51689B] bg-[#0F1624] p-3 text-center transition-colors hover:border-[#00F7FF] hover:bg-[#152033]"
-            >
-              <span className="flex size-8 items-center justify-center text-[#00F7FF]">
-                <branch.Icon className="size-5" />
-              </span>
-              <span className="text-xs font-semibold lowercase tracking-[0.06em] text-[#00F7FF]">
-                {branch.label}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+      {/* Moduły po okręgu */}
+      {items.map((branch, i) => {
+        const angle = ((180 + (i * 360) / count) * Math.PI) / 180;
+        const left = 50 + Math.cos(angle) * radius;
+        const top = 50 + Math.sin(angle) * radius;
+        return (
+          <Link
+            key={branch.label}
+            href={branch.href}
+            aria-label={branch.label + " — " + branch.description}
+            className="absolute flex min-h-[44px] min-w-[44px] flex-col items-center justify-center text-center -translate-x-1/2 -translate-y-1/2"
+            style={{ left: `${left}%`, top: `${top}%` }}
+          >
+            <span className="text-xs font-semibold lowercase tracking-[0.1em] text-[#00F7FF] drop-shadow-[0_0_10px_#14809F] sm:text-sm">
+              {branch.label}
+            </span>
+          </Link>
+        );
+      })}
     </div>
   );
 }
