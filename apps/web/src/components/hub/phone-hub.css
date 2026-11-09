@@ -1,0 +1,229 @@
+.phone {
+  width: min(100%, 30rem);
+  height: 100dvh;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  background: #070d18;
+  color: #f4f7fb;
+  font-family: Manrope, "Segoe UI", sans-serif;
+  overflow: hidden;
+}
+
+.phone-top {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.65rem 0.7rem 0.2rem;
+}
+
+.phone-mark {
+  width: 2.6rem;
+  height: 2.6rem;
+  flex: none;
+}
+
+.phone-name {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.phone-sub {
+  color: #93a0b5;
+  font-size: 0.75rem;
+}
+
+.phone-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: grid;
+  place-items: center;
+  color: #93a0b5;
+  background: transparent;
+  border: 0;
+}
+
+.phone-main {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.35rem 0.9rem 0.6rem;
+}
+
+.phone-title {
+  margin: 0;
+  font-size: 1.7rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.phone-card,
+.phone-bubble {
+  background: #141c2c;
+  border: 1px solid #243044;
+  border-radius: 1rem;
+  padding: 0.85rem 1rem;
+}
+
+.phone-kicker {
+  margin: 0;
+  color: #93a0b5;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+}
+
+.phone-card h2,
+.phone-bubble h2 {
+  margin: 0.15rem 0 0;
+  font-size: 1.25rem;
+  letter-spacing: 0.03em;
+}
+
+.phone-meta {
+  margin: 0.35rem 0 0;
+  line-height: 1.45;
+  letter-spacing: 0.03em;
+}
+
+.phone-ok {
+  color: #3ddc84;
+  font-weight: 800;
+}
+
+.phone-bad {
+  color: #ff6b6b;
+  font-weight: 700;
+}
+
+.phone-me {
+  margin-left: 1.5rem;
+  background: #1a2a4a;
+}
+
+.phone-code {
+  margin: 0;
+  background: #0c121c;
+  border: 1px solid #243044;
+  border-radius: 0.9rem;
+  overflow: auto;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  padding: 0.7rem;
+  white-space: pre-wrap;
+}
+
+.phone-ready {
+  margin: 0;
+  color: #3ddc84;
+  text-align: center;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  font-size: 0.78rem;
+}
+
+.phone-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+}
+
+.phone-pair button,
+.phone-save {
+  min-height: 2.85rem;
+  border: 0;
+  border-radius: 0.75rem;
+  font-weight: 800;
+  color: white;
+}
+
+.phone-green {
+  background: #15924a;
+}
+
+.phone-blue {
+  background: #2f7bff;
+}
+
+.phone-field,
+.phone-composer input {
+  width: 100%;
+  min-height: 2.75rem;
+  border-radius: 999px;
+  border: 1px solid #243044;
+  background: #141c2c;
+  color: #f4f7fb;
+  padding: 0 0.95rem;
+  font: inherit;
+}
+
+.phone-composer {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  padding: 0.35rem 0.75rem 0.45rem;
+}
+
+.phone-composer input {
+  flex: 1;
+  min-width: 0;
+}
+
+.phone-round {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.phone-mic {
+  border: 1px solid #243044;
+  background: transparent;
+  color: #93a0b5;
+}
+
+.phone-send {
+  border: 0;
+  background: #2f7bff;
+  color: white;
+}
+
+.phone-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid #243044;
+  background: #0a101b;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.phone-tabs button {
+  min-height: 3.5rem;
+  border: 0;
+  background: transparent;
+  color: #93a0b5;
+  font-size: 0.58rem;
+  letter-spacing: 0.04em;
+  font-weight: 800;
+}
+
+.phone-tabs button[aria-current="page"] {
+  color: #2f7bff;
+}
+
+.phone-cmd {
+  margin: 0.4rem 0 0.7rem;
+  padding: 0.7rem;
+  border-radius: 0.75rem;
+  background: #0c121c;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.68rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

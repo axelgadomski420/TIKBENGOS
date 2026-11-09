@@ -158,8 +158,11 @@ services:
       # Adres musi być osiągalny w sieci Dockera — patrz `expose` przy `api`.
       # Ten adres to podstawa, do której `route.ts` dokłada `/v1/...`.
       API_INTERNAL_URL: http://api:8000
+      OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
       NEXT_PUBLIC_REALTIME_URL: ${NEXT_PUBLIC_REALTIME_URL:-}
       NODE_ENV: production
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     expose:
       - "3000"
     depends_on:
