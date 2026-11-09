@@ -176,6 +176,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   */
   const isHome = pathname === "/";
 
+  if (isHome) {
+    return <>{children}</>;
+  }
+
   return (
     <div
       style={shellStyle}
@@ -238,7 +242,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       <main id="bengos-main" className="mx-auto max-w-5xl px-4 pb-28 pt-6">
-        {isHome ? <HomeDashboard /> : children}
+        {children}
       </main>
 
       <BottomNavigation />
