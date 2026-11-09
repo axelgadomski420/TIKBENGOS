@@ -1,31 +1,18 @@
 import type { Metadata } from "next";
-import { ModulePlaceholder } from "@/components/module-placeholder";
 
 import { FeedList } from "@/components/feed/feed-list";
 
-export const metadata: Metadata = { title: "BENGOS Feed" };
+export const metadata: Metadata = { title: "BENGOS Feed — bengtok" };
 
 export default function FeedPage() {
   return (
     <div className="space-y-6">
-      <ModulePlaceholder
-        name="Feed"
-        stage={2}
-        description="Krótkie wideo, dźwięki, posty i twórcy. Model danych jest gotowy — Post, Tag, Comment, zakładki, reposty i obserwacje przechodzą z TIKTAK bez zmiany kształtu."
-        planned={[
-          "Wgrywanie wideo do magazynu obiektowego i transkodowanie do wariantów jakościowych",
-          "Napisy generowane automatycznie, edytowalne, plus transkrypcja każdego nagrania",
-          "Opis dla ekranu bez obrazu — wymagany, nie opcjonalny",
-          "Polubienia, komentarze z odpowiedziami, zakładki, reposty, obserwacje",
-          "Feed z kursorem: obserwowani, dla Ciebie, odkrywaj z filtrem po tagu",
-        ]}
-      />
-
-      {/*
-        Lista wpisów stoi POD opisem etapu, a nie zamiast niego. Dzięki temu
-        ekran mówi jednocześnie: „to powstaje później” i „to, co już jest,
-        przyjechało z serwera”. Kolejność jest celowa.
-      */}
+      <header>
+        <h1 className="text-3xl font-semibold text-[var(--bengos-accent)]">bengtok</h1>
+        <p className="mt-1 max-w-2xl text-[var(--bengos-text-muted)]">
+          Krótkie wideo, dźwięki, posty i twórcy. Feed, obserwacje, polubienia, komentarze.
+        </p>
+      </header>
       <FeedList />
     </div>
   );
