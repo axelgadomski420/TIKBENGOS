@@ -18,16 +18,37 @@ class CountersOut(Schema):
     views: int
 
 
+class RenditionOut(Schema):
+    label: str
+    url: str
+    width: int = 0
+    height: int = 0
+    bitrateKbps: int = 0
+
+
+class MediaOut(Schema):
+    id: str
+    kind: str
+    renditions: list[RenditionOut]
+    thumbnailUrl: str | None = None
+    subtitles: None = None
+    durationSeconds: float | None = None
+    width: int | None = None
+    height: int | None = None
+
+
+class AudioDescriptionOut(Schema):
+    language: str
+    text: str
+
+
 class PostOut(Schema):
     id: str
     authorId: str
     body: str | None
-    # `media`, `audioDescription` i `trackId` są w kontrakcie, ale nie mają
-    # jeszcze skąd przyjść: upload i transkodowanie to Etap 2. Zwracamy
-    # `None` — to jest prawda o stanie, a nie brak implementacji do ukrycia.
-    media: None = None
+    media: MediaOut | None = None
     tags: list[str]
-    audioDescription: None = None
+    audioDescription: AudioDescriptionOut | None = None
     trackId: None = None
     counters: CountersOut
     repostedBy: str | None
@@ -35,8 +56,10 @@ class PostOut(Schema):
 
 
 class CreatePostIn(Schema):
-    body: str
+    body: str = ""
     tags: list[str] | None = None
+    mediaUrl: str | None = None
+    audioDescription: str | None = None
 
 
 class LikeOut(Schema):

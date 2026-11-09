@@ -29,7 +29,7 @@ from accounts.models import User
 from accounts.permissions import can
 from accounts.schemas import ErrorOut
 
-from .models import BODY_MAX_LENGTH, COMMENT_MAX_LENGTH, Comment, Follow, Like, Post
+from .models import BODY_MAX_LENGTH, COMMENT_MAX_LENGTH, MEDIA_MAX_LENGTH, Comment, Follow, Like, Post
 from .schemas import (
     AuthorOut,
     CommentOut,
@@ -87,6 +87,22 @@ def _author(user: User) -> dict:
     }
 
 
+def _media(post: Post) -> dict | None:
+    url = (post.media_url or "").strip()
+    if not url:
+        return None
+    return {
+        "id": str(post.id),
+        "kind": "image",
+        "renditions": [{"label": "obraz", "url": url, "width": 0, "height": 0, "bitrateKbps": 0}],
+        "thumbnailUrl": url,
+        "subtitles": None,
+        "durationSeconds": None,
+        "width": None,
+        "height": None,
+    }
+
+
 def _serialize(post: Post, viewer_id: uuid.UUID | None = None) -> dict:
     """Wpis w postaci kontraktu.
 
@@ -102,9 +118,13 @@ def _serialize(post: Post, viewer_id: uuid.UUID | None = None) -> dict:
         # Puste `body` oddajemy jako `null`, bo tak mówi kontrakt: brak tekstu
         # to brak, a nie pusty łańcuch do wyświetlenia.
         "body": origin.body or None,
-        "media": None,
+        "media": _media(origin),
         "tags": origin.tags or [],
-        "audioDescription": None,
+        "audioDescription": (
+            {"language": "pl", "text": origin.audio_description}
+            if origin.audio_description
+            else None
+        ),
         "trackId": None,
         "counters": _counters(origin),
         "repostedBy": str(post.reposted_by_id) if post.reposted_by_id else None,
@@ -278,6 +298,30 @@ def list_posts(
     }
 
 
+_MEDIA_PREFIXES = (
+    "data:image/jpeg;base64,",
+    "data:image/jpg;base64,",
+    "data:image/png;base64,",
+    "data:image/webp;base64,",
+)
+
+
+def _clean_media(value: str | None) -> str:
+    url = (value or "").strip()
+    if not url:
+        return ""
+    if len(url) > MEDIA_MAX_LENGTH or not url.startswith(_MEDIA_PREFIXES):
+        raise HttpError(
+            400,
+            {
+                "code": "bad_request",
+                "message": "Obraz musi być zdjęciem JPEG, PNG albo WebP i zmieścić się w limicie.",
+                "field": "mediaUrl",
+            },
+        )
+    return url
+
+
 @router.post("/posts", response={201: PostOut, 400: ErrorOut, 401: ErrorOut, 403: ErrorOut})
 def create_post(request, payload: CreatePostIn):
     user = current_user(request)
@@ -289,7 +333,9 @@ def create_post(request, payload: CreatePostIn):
         )
 
     body = (payload.body or "").strip()
-    if not body:
+    media = _clean_media(payload.mediaUrl)
+    description = (payload.audioDescription or "").strip()[:500]
+    if not body and not media:
         raise HttpError(
             400, {"code": "bad_request", "message": "Wpis nie może być pusty.", "field": "body"}
         )
@@ -315,7 +361,9 @@ def create_post(request, payload: CreatePostIn):
             400, {"code": "bad_request", "message": "Najwyżej 5 tagów na wpis.", "field": "tags"}
         )
 
-    post = Post.objects.create(author=user, body=body, tags=tags)
+    post = Post.objects.create(
+        author=user, body=body, tags=tags, media_url=media, audio_description=description
+    )
     record(user, "feed.post.create", resource=str(post.id))
     return 201, _serialize(post, user.id)
 

@@ -43,22 +43,6 @@ export default function CreatePage() {
           Zarządzaj kluczami
         </Link>
       </section>
-
-      <section aria-labelledby="create-later" className="bengos-surface-card mx-auto max-w-2xl">
-        <h2
-          id="create-later"
-          className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-medium)]"
-        >
-          Co dojdzie
-        </h2>
-        <ul className="mt-2 space-y-1 text-[var(--bengos-text-muted)]">
-          <li>Kontekst z Twoich projektów, utworów i wideo — nie z cudzej wiedzy ogólnej</li>
-          <li>Generowanie scenariusza wideo i szkicu utworu z jednego opisu</li>
-        </ul>
-        <p className="mt-2 text-[var(--bengos-text-muted)]">
-          To są plany, nie funkcje — nie działają jeszcze i nie udają, że działają.
-        </p>
-      </section>
     </div>
   );
 }

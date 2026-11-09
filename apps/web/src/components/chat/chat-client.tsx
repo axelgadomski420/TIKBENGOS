@@ -67,12 +67,13 @@ const BTN_PRIMARY =
   "bengos-touch-target inline-flex items-center rounded-[var(--bengos-radius-control)] bg-[var(--bengos-accent)] px-4 font-[var(--bengos-weight-medium)] text-[var(--bengos-text-on-accent)] disabled:opacity-60";
 
 function bodyOf(message: Message): string {
-  // Unia typów z kontraktu. Dziś dochodzi text i system; reszta
-  // (image, voice, sign, morse) dojdzie z mediami — pokaż to uczciwie.
-  if (message.kind.type === "text") return message.kind.body;
-  if (message.kind.type === "system") return message.kind.body;
+  if (message.kind.type === "text" || message.kind.type === "system") return message.kind.body;
   if (message.kind.type === "sealed") return "Zapieczętowana wiadomość";
-  return "Ten typ wiadomości dojdzie w kolejnym etapie.";
+  if (message.kind.type === "image") return message.kind.caption || "Obraz";
+  if (message.kind.type === "voice") return message.kind.transcript || "Wiadomość głosowa";
+  if (message.kind.type === "sign") return message.kind.gloss || "Język migowy";
+  if (message.kind.type === "morse") return message.kind.decoded || "Morse";
+  return "Wiadomość";
 }
 
 function timeLabel(iso: string | null): string {

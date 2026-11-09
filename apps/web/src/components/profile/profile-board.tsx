@@ -178,7 +178,7 @@ export function ProfileBoard() {
                 />
               </label>
               <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {face.photos.map((photo, index) => (
+                {[...face.photos, ...posts.map((post) => post.media?.thumbnailUrl || "").filter((photo) => photo.startsWith("data:image/"))].map((photo, index) => (
                   <li key={photo.slice(0, 32) + index}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={photo} alt="" className="aspect-square w-full rounded-md object-cover" />

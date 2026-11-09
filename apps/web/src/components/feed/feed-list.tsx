@@ -41,7 +41,7 @@ const REASONS = ["obserwujesz", "podobny temat", "nowy dla Ciebie"] as const;
 const FILTERS = ["wszystko", "obserwowani", "odkrywaj"] as const;
 
 /** Limity z serwera (`feed/models.py` i `feed/api.py`). Trzymane raz. */
-const BODY_MAX = 80;
+const BODY_MAX = 2000;
 const TAGS_MAX = 5;
 
 type Filter = (typeof FILTERS)[number];
@@ -236,6 +236,10 @@ export function FeedList() {
                   </p>
                 ) : null}
                 {post.body ? <p className="mt-2 whitespace-pre-line">{post.body}</p> : null}
+                {post.media?.thumbnailUrl?.startsWith("data:image/") ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={post.media.thumbnailUrl} alt={post.audioDescription?.text || ""} className="mt-3 max-h-80 w-full rounded-md object-contain" />
+                ) : null}
                 {post.tags.length > 0 ? (
                   <p className="mt-1 text-[var(--bengos-size-caption)] text-[var(--bengos-accent)]">
                     {post.tags.map((tag) => "#" + tag).join(" ")}
@@ -379,8 +383,7 @@ function Composer({ onPublished }: { onPublished: () => void }) {
         Nowy wpis
       </label>
       <p id="composer-hint" className="mt-1 text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
-        Krótki opis — do {BODY_MAX} znaków. Wideo, muzyka i projekty dołączą w kolejnych
-        krokach Etapu 2.
+        Krótki opis — do {BODY_MAX} znaków. Zdjęcie dodasz w studio.
       </p>
 
       <textarea

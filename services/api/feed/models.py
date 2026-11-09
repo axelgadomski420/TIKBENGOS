@@ -15,7 +15,8 @@ import uuid
 from django.conf import settings
 from django.db import models
 
-BODY_MAX_LENGTH = 80
+BODY_MAX_LENGTH = 2000
+MEDIA_MAX_LENGTH = 180_000
 
 # Limit treści komentarza. Dłuższy niż wpis, bo komentarz bywa rozwinięciem
 # myśli, a wpis jest zajawką — tak samo było w modelu źródłowym z TIKTAK.
@@ -29,6 +30,10 @@ class Post(models.Model):
     )
     body = models.CharField(max_length=BODY_MAX_LENGTH, blank=True, default="")
     tags = models.JSONField(default=list, blank=True)
+    # Kadry i zdjęcia trzymamy jako data URL JPEG/PNG/WebP. Bez magazynu
+    # obiektowego pełne wideo nie ma gdzie wylądować — na feed idzie kadr.
+    media_url = models.TextField(blank=True, default="")
+    audio_description = models.CharField(max_length=500, blank=True, default="")
 
     # Podniesienie wpisu przez kogoś innego. `reposted_by` jest autorem
     # podniesienia, a `created_at` czasem podniesienia — feed sortuje po nim.
