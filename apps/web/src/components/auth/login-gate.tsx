@@ -104,8 +104,8 @@ function ModeWord({
           : "text-[var(--bengos-size-title)] font-[var(--bengos-weight-medium)]") +
         " " +
         (active
-          ? "text-[var(--bengos-accent)] [text-shadow:0_0_38px_var(--bengos-glow)]"
-          : "text-[var(--bengos-text-muted)] hover:text-[var(--bengos-text)]")
+          ? "text-[#7ef6ff] [text-shadow:0_0_32px_#39e7ff]"
+          : "text-[#9befff] [text-shadow:0_0_16px_#14809F] hover:text-[#7ef6ff]")
       }
     >
       {mode}
@@ -166,21 +166,13 @@ export function LoginGate() {
   }
 
   return (
-    <div className="relative isolate flex min-h-dvh flex-col overflow-hidden">
-      {/*
-        Tło: tylko poświaty z tokenów — żadnej grafiki. Znak jest rysowany
-        raz, niżej, w okręgu; drugi tygrys w tle byłby powtórzeniem, które
-        już raz myliło użytkownika.
-      */}
+    <div className="relative isolate flex min-h-dvh flex-col overflow-hidden bg-[#05070d] text-white">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-[var(--bengos-surface)]" />
-        <div className="absolute left-1/2 top-1/4 size-[26rem] -translate-x-1/2 rounded-full bg-[var(--bengos-accent)] opacity-[0.09] blur-3xl" />
-        <div className="absolute -left-24 bottom-12 size-72 rounded-full bg-[var(--bengos-accent)] opacity-[0.10] blur-3xl" />
-        <div className="absolute -right-20 bottom-8 size-80 rounded-full bg-[var(--bengos-warning)] opacity-[0.08] blur-3xl" />
+        <div className="absolute inset-0 bg-[#05070d]" />
+        <div className="absolute left-1/2 top-1/2 size-[36rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#00e7ff] opacity-[0.08] blur-3xl" />
       </div>
 
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-4 py-5">
-        {/* „logowanie” — NAD tygrysem, jak na grafice. */}
         <ModeWord
           mode="logowanie"
           active={mode === "logowanie"}
@@ -188,21 +180,15 @@ export function LoginGate() {
           size="hero"
         />
 
-        {/*
-          Tygrys w okręgu HUD — jedyna grafika na tym ekranie i jedyne
-          miejsce, w którym `BRAND.logo` jest rysowane. Średnica od
-          WYSOKOŚCI (`dvh`), więc na niskim telefonie znak maleje i formularz
-          zostaje nad zgięciem.
-        */}
         <div
-          className="relative my-3 flex size-[min(30dvh,46vw,200px)] items-center justify-center sm:my-4"
+          className="relative my-2 flex size-[min(70vw,42dvh,26rem)] items-center justify-center"
           aria-hidden="true"
         >
           <div className="bengos-hud flex size-full items-center justify-center">
             <span className="bengos-hud__ring bengos-hud__ring--static inset-0" />
             <span className="bengos-hud__ring bengos-hud__ring--ticks -inset-3 sm:-inset-4" />
-            <span className="bengos-hud__ring bengos-hud__ring--arc -inset-6 sm:-inset-9" />
-            <span className="flex h-[80%] w-[80%] items-center justify-center overflow-hidden rounded-full border border-[var(--bengos-border-strong)] bg-[var(--bengos-surface-sunken)] shadow-[0_0_96px_-16px_var(--bengos-glow)]">
+            <span className="bengos-hud__ring bengos-hud__ring--arc -inset-6 sm:-inset-8" />
+            <span className="flex size-[86%] items-center justify-center overflow-hidden rounded-full border border-[#7ef6ff]/40 bg-[#060A12] shadow-[0_0_80px_-12px_#39e7ff]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={BRAND.logo}
@@ -216,7 +202,6 @@ export function LoginGate() {
           </div>
         </div>
 
-        {/* „rejestracja” — POD tygrysem, jak na grafice. */}
         <ModeWord
           mode="rejestracja"
           active={mode === "rejestracja"}
@@ -224,14 +209,7 @@ export function LoginGate() {
           size="hero"
         />
 
-        {/*
-          Formularz. Karta POWYŻEJ słów w kolejności czytania jest niżej,
-          ale wizualnie stoi pod znakiem — a to jest układ z grafiki:
-          słowo, znak, słowo, formularz. `w-full` i `max-w-sm` na rodzicu
-          `max-w-md`, więc karta zajmuje całą szerokość telefonu, bez
-          ściskania do paska.
-        */}
-        <div className="mt-5 w-full">
+        <div className="mt-4 w-full">
           <LoginForm registerMode={mode === "rejestracja"} />
         </div>
       </main>

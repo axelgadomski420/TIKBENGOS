@@ -174,9 +174,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   /*
     ── PULPIT ─────────────────────────────────────────────────────────────
   */
-  const isHome = pathname === "/";
+  const isBare = pathname === "/" || pathname === "/login";
 
-  if (isHome) {
+  if (isBare) {
     return <>{children}</>;
   }
 
@@ -238,6 +238,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             Ustawienia
           </Link>
+          {status !== "authenticated" ? (
+            <Link
+              href="/login"
+              className="bengos-touch-target rounded-[var(--bengos-radius-control)] px-3 text-[var(--bengos-size-caption)] text-[var(--bengos-accent)]"
+            >
+              Logowanie
+            </Link>
+          ) : null}
         </div>
       </header>
 
