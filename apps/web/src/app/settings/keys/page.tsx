@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { EnginePicker } from "@/components/settings/engine-picker";
 import { ProviderCredentials } from "@/components/settings/provider-credentials";
 
 export const metadata: Metadata = { title: "Klucze API" };
@@ -24,11 +25,12 @@ export default function ApiKeysPage() {
           Klucze API
         </h1>
         <p className="mt-2 text-[var(--bengos-text-muted)]">
-          Twoje klucze do zewnętrznych dostawców. Są szyfrowane na serwerze, nigdy nie
-          opuszczają go w odpowiedzi, a zapisany klucz pokazuje się raz — potem widać
-          już tylko jego początek i ostatnie cztery znaki.
+          Własny klucz do Gemini, Groka, OpenAI, Claude i reszty. Endpoint wybierasz z listy
+          aktualnej na 9 listopada 2026. Klucz jest szyfrowany i nie wraca w odpowiedzi.
         </p>
       </header>
+
+      <EnginePicker />
 
       <ProviderCredentials />
 

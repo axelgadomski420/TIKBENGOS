@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import "./phone-hub.css";
+import { askEngine, readEngine } from "@/lib/engine-client";
 
 type Tab = "dev" | "asystent" | "profil" | "ustawienia";
 type Turn = { id: string; role: "user" | "assistant"; text: string };
@@ -66,6 +67,14 @@ export function PhoneHub() {
   }, []);
 
   async function ask(mode: "assistant" | "dev", messages: { role: "user" | "assistant"; content: string }[]) {
+    if (readEngine()) {
+      try {
+        const text = await askEngine(messages.map((item) => `${item.role}: ${item.content}`).join("\n"));
+        return { ok: true, text };
+      } catch {
+        // Własny klucz nie zadziałał — zostaje model na Oracle.
+      }
+    }
     const res = await fetch("/api/oracle", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

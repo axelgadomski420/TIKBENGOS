@@ -36,9 +36,9 @@ export default function SettingsPage() {
           Klucze API
         </h2>
         <p className="mt-2 text-[var(--bengos-text-muted)]">
-          Klucze do modeli językowych, usług muzycznych i GitHuba wpisujesz tutaj. Nigdy nie
-          trafiają do repozytorium. Zapisany klucz jest szyfrowany i pokazywany dokładnie raz —
-          potem widać już tylko jego ostatnie znaki.
+          Klucze do Gemini, Groka, OpenAI, Claude i pozostałych dostawców wpisujesz sam.
+          Wybierasz endpoint z listy na 9 listopada 2026. Klucz jest szyfrowany i pokazuje
+          się dokładnie raz.
         </p>
         <a
           href="/settings/keys"

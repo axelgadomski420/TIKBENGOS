@@ -220,3 +220,77 @@ def validate_credential(provider_id: str, key: str) -> None:
     # w konfiguracji wychodzącego żądania.
     if has_base_url(provider_id):
         ensure_public_https(PROVIDER_BASE_URLS[provider_id])
+
+
+# Ścieżki i modele z 9 listopada 2026. Muszą zgadzać się z
+# packages/core/src/engine-routes.ts. Ścieżka jest doklejana do bazy
+# z katalogu — nigdy nie pochodzi z formularza.
+LLM_ROUTES: dict[tuple[str, str], dict] = {
+    ("openai", "openai-chat"): {
+        "path": "chat/completions",
+        "protocol": "openai-chat",
+        "models": ["gpt-5.5", "gpt-5.5-pro", "gpt-5.4-mini", "gpt-5.4-nano"],
+    },
+    ("xai", "xai-chat"): {
+        "path": "chat/completions",
+        "protocol": "openai-chat",
+        "models": ["grok-4.7", "grok-4.6", "grok-4.20-beta-latest-non-reasoning", "grok-4.1-fast"],
+    },
+    ("xai", "xai-responses"): {
+        "path": "responses",
+        "protocol": "xai-responses",
+        "models": ["grok-4.7", "grok-4.20-beta-latest-non-reasoning"],
+    },
+    ("google-ai", "gemini-generate"): {
+        "path": "v1beta/models/{model}:generateContent",
+        "protocol": "gemini",
+        "models": ["gemini-4-argon", "gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite"],
+    },
+    ("google-ai", "gemini-openai"): {
+        "path": "v1beta/openai/chat/completions",
+        "protocol": "openai-chat",
+        "models": ["gemini-4-argon", "gemini-3.8-flash", "gemini-3.6-flash"],
+    },
+    ("anthropic", "anthropic-messages"): {
+        "path": "v1/messages",
+        "protocol": "anthropic",
+        "models": ["claude-sonnet-5-5", "claude-sonnet-4-6"],
+    },
+    ("mistral", "mistral-chat"): {
+        "path": "chat/completions",
+        "protocol": "openai-chat",
+        "models": ["mistral-large-latest", "mistral-small-latest"],
+    },
+    ("deepseek", "deepseek-chat"): {
+        "path": "chat/completions",
+        "protocol": "openai-chat",
+        "models": ["deepseek-chat", "deepseek-reasoner"],
+    },
+    ("groq", "groq-chat"): {
+        "path": "chat/completions",
+        "protocol": "openai-chat",
+        "models": ["llama-3.3-70b-versatile", "openai/gpt-oss-120b"],
+    },
+    ("openrouter", "openrouter-chat"): {
+        "path": "chat/completions",
+        "protocol": "openai-chat",
+        "models": ["x-ai/grok-4.7", "google/gemini-3.8-flash", "openai/gpt-5.4-mini"],
+    },
+}
+
+
+def resolve_engine(provider_id: str, route_id: str, model: str) -> tuple[str, str]:
+    """Zwraca pełny adres HTTPS i protokół albo błąd do pokazania użytkownikowi."""
+    route = LLM_ROUTES.get(((provider_id or "").strip(), (route_id or "").strip()))
+    model = (model or "").strip()
+    if route is None or model not in route["models"]:
+        raise ProviderError(
+            "bad_request",
+            "Ten endpoint albo model nie jest na liście z 9 listopada 2026.",
+        )
+    if any(part in model for part in ("..", " ", "\\")) or model.startswith("/"):
+        raise ProviderError("bad_request", "Nazwa modelu jest nieprawidłowa.")
+    path = str(route["path"]).replace("{model}", model).lstrip("/")
+    url = base_url_for(provider_id).rstrip("/") + "/" + path
+    ensure_public_https(url)
+    return url, str(route["protocol"])

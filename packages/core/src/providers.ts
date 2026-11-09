@@ -52,7 +52,7 @@ export interface ProviderDefinition {
   note: string;
 }
 
-const VERIFIED = "2026-11-02";
+const VERIFIED = "2026-11-09";
 
 /**
  * Dostawcy potwierdzeni w oficjalnej dokumentacji. Adresy sprawdzone
@@ -71,7 +71,7 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     docsUrl: "https://developers.openai.com/api/reference",
     keyPrefixes: ["sk-"],
     verifiedAt: VERIFIED,
-    note: "Klucz daje dostęp do wszystkich modeli i generacji obrazów w jednym koncie.",
+    note: "Klucz jest Twój. Na 9 listopada 2026 wołamy Chat Completions: GPT-5.5, GPT-5.5 Pro, GPT-5.4 mini i nano.",
   },
   {
     id: "anthropic",
@@ -84,7 +84,7 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     docsUrl: "https://platform.claude.com/docs/en/api/overview",
     keyPrefixes: ["sk-ant-"],
     verifiedAt: VERIFIED,
-    note: "Każde żądanie musi mieć też nagłówek `anthropic-version` z datą wersji API.",
+    note: "Na 9 listopada 2026: Messages pod /v1/messages. Modele: Claude Sonnet 5.5 i Sonnet 4.6. Nagłówek anthropic-version jest dokładany przez serwer.",
   },
   {
     id: "google-ai",
@@ -97,7 +97,7 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     docsUrl: "https://ai.google.dev/api",
     keyPrefixes: [],
     verifiedAt: VERIFIED,
-    note: "Wersje: `v1beta` dla nowych funkcji, `v1` jako stabilna. Wybieraj świadomie.",
+    note: "Na 9 listopada 2026: Gemini 4 Argon, 3.8 Flash, 3.6 Flash i 3.5 Flash-Lite. Wybierasz generateContent albo ścieżkę zgodną z OpenAI.",
   },
   {
     id: "mistral",
@@ -162,7 +162,7 @@ export const PROVIDERS: readonly ProviderDefinition[] = [
     docsUrl: "https://docs.x.ai/docs/api-reference",
     keyPrefixes: ["xai-"],
     verifiedAt: VERIFIED,
-    note: "Interfejs zgodny z OpenAI.",
+    note: "Na 9 listopada 2026 baza to api.x.ai/v1. Modele: Grok 4.7, 4.6, 4.20 i 4.1 Fast. Endpoint: chat/completions albo responses.",
   },
   {
     id: "together",

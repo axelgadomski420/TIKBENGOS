@@ -24,10 +24,100 @@ from accounts.api import current_user
 from accounts.audit import record
 from accounts.schemas import ErrorOut
 
+from accounts.models import ProviderCredential
+from accounts.providers import ProviderError, auth_headers_for, resolve_engine
+
 from .models import ANSWER_MAX, HISTORY_PAGE, PROMPT_MAX, AssistantJob
-from .schemas import AskIn, AskOut, AssistantCompleteIn, AssistantHistoryOut
+from .schemas import AskIn, AskOut, AssistantCompleteIn, AssistantHistoryOut, EngineIn, EngineOut
 
 router = Router(tags=["ai"])
+
+
+def _extract_text(protocol: str, payload: dict) -> str:
+    if protocol == "gemini":
+        parts = (((payload.get("candidates") or [{}])[0].get("content") or {}).get("parts") or [])
+        return str((parts[0] if parts else {}).get("text") or "")
+    if protocol == "anthropic":
+        blocks = payload.get("content") or []
+        return "".join(str(block.get("text") or "") for block in blocks if isinstance(block, dict))
+    if protocol == "xai-responses":
+        if payload.get("output_text"):
+            return str(payload["output_text"])
+        chunks: list[str] = []
+        for item in payload.get("output") or []:
+            if not isinstance(item, dict):
+                continue
+            for block in item.get("content") or []:
+                if isinstance(block, dict) and block.get("text"):
+                    chunks.append(str(block["text"]))
+        return "".join(chunks)
+    message = ((payload.get("choices") or [{}])[0].get("message") or {})
+    return str(message.get("content") or "")
+
+
+@router.post("/engine", response={200: EngineOut, 400: ErrorOut, 401: ErrorOut, 502: ErrorOut})
+def run_engine(request, payload: EngineIn):
+    """Woła model dostawcy kluczem tego użytkownika.
+
+    Klucz nie wraca w odpowiedzi. Adres bierze się z katalogu.
+    """
+    user = current_user(request)
+    prompt = (payload.prompt or "").strip()[:8000]
+    if not prompt:
+        raise HttpError(400, {"code": "bad_request", "message": "Pytanie nie może być puste.", "field": "prompt"})
+    try:
+        url, protocol = resolve_engine(payload.providerId, payload.routeId, payload.model)
+    except ProviderError as exc:
+        raise HttpError(400, {"code": exc.code, "message": exc.message})
+
+    credential = (
+        ProviderCredential.objects.filter(user=user, provider_id=payload.providerId, revoked_at__isnull=True)
+        .order_by("-created_at")
+        .first()
+    )
+    if credential is None:
+        raise HttpError(
+            400,
+            {"code": "bad_request", "message": "Najpierw dodaj swój klucz tego dostawcy w ustawieniach."},
+        )
+
+    key = credential.reveal()
+    headers = {"Content-Type": "application/json", "User-Agent": "Bengos"}
+    headers.update(auth_headers_for(payload.providerId, key))
+    if protocol == "anthropic":
+        headers["anthropic-version"] = "2023-06-01"
+    if protocol == "gemini":
+        body = {"contents": [{"parts": [{"text": prompt}]}]}
+    elif protocol == "anthropic":
+        body = {"model": payload.model, "max_tokens": 1400, "messages": [{"role": "user", "content": prompt}]}
+    elif protocol == "xai-responses":
+        body = {"model": payload.model, "input": prompt}
+    else:
+        body = {"model": payload.model, "messages": [{"role": "user", "content": prompt}]}
+
+    try:
+        req = urllib.request.Request(url, data=json.dumps(body).encode("utf-8"), method="POST", headers=headers)
+        with urllib.request.urlopen(req, timeout=50) as response:
+            raw = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")[:240]
+        raise HttpError(502, {"code": "unavailable", "message": f"Dostawca odmówił ({exc.code}). {detail}"})
+    except (urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError):
+        raise HttpError(502, {"code": "unavailable", "message": "Dostawca nie odpowiedział."})
+
+    text = _extract_text(protocol, raw if isinstance(raw, dict) else {}).strip()
+    if not text:
+        raise HttpError(502, {"code": "unavailable", "message": "Dostawca nie zwrócił tekstu."})
+    credential.last_used_at = timezone_now()
+    credential.save(update_fields=["last_used_at"])
+    return 200, {"text": text[:ANSWER_MAX] if ANSWER_MAX else text, "providerId": payload.providerId, "model": payload.model, "routeId": payload.routeId}
+
+
+def timezone_now():
+    from django.utils import timezone
+
+    return timezone.now()
+
 
 # Stany, w jakich worker LLM może zameldować się na endpoincie zwrotnym.
 WORKER_STATES = {"running", "succeeded", "failed"}

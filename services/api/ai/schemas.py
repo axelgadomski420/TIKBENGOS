@@ -5,6 +5,20 @@ from datetime import datetime
 from ninja import Schema
 
 
+class EngineIn(Schema):
+    providerId: str
+    routeId: str
+    model: str
+    prompt: str
+
+
+class EngineOut(Schema):
+    text: str
+    providerId: str
+    model: str
+    routeId: str
+
+
 class AskIn(Schema):
     prompt: str
 

@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { Post } from "@bengos/core";
 
 import { apiFetch, ApiRequestError } from "@/lib/api-client";
+import { askEngine, readEngine } from "@/lib/engine-client";
 
 type Tool = "video" | "post" | "music" | "code";
 
@@ -126,17 +127,21 @@ export function StudioClient({ initial = "post" }: { initial?: Tool }) {
     setNote("");
     setCode("");
     try {
+      if (readEngine()) {
+        setCode(await askEngine(prompt.trim()));
+        return;
+      }
       const response = await fetch("/api/oracle", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode: "dev", messages: [{ role: "user", content: prompt.trim() }] }),
       });
-      const data = (await response.json()) as { ok?: boolean; content?: string; error?: string };
+      const data = (await response.json()) as { ok?: boolean; text?: string; content?: string; error?: string };
       if (!response.ok || !data.ok) {
         setNote(data.error || "Qwen nie odpowiedział. Sprawdź Ollamę na Oracle.");
         return;
       }
-      setCode(data.content || "");
+      setCode(data.text || data.content || "");
     } catch {
       setNote("Brak połączenia z asystentem kodu.");
     } finally {
