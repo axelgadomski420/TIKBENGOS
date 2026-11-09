@@ -1,3 +1,0 @@
-import useEmblaCarousel from 'embla-carousel-react';
-
-console.log(useEmblaCarousel);
