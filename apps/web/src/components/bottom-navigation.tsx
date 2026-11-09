@@ -44,6 +44,8 @@ type IconProps = { className?: string };
 
 const ICON_PROPS = {
   viewBox: "0 0 24 24",
+  width: 20,
+  height: 20,
   fill: "none",
   stroke: "currentColor",
   strokeWidth: 1.75,
@@ -112,39 +114,33 @@ export function BottomNavigation() {
       aria-label="Nawigacja główna"
       className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--bengos-border)] bg-[var(--bengos-surface-raised)] pb-[env(safe-area-inset-bottom)] md:hidden"
     >
-      <ul className="mx-auto flex max-w-2xl items-stretch">
+      <ul className="mx-auto flex max-w-2xl items-stretch justify-around">
         {DESTINATIONS.map((destination) => {
           const active =
             destination.href === "/"
               ? pathname === "/"
               : pathname === destination.href || pathname.startsWith(`${destination.href}/`);
           return (
-            <li key={destination.href} className="flex-1">
+            <li key={destination.href} className="flex-1 max-w-[5rem]">
               <Link
                 href={destination.href}
                 aria-current={active ? "page" : undefined}
-                className={`bengos-touch-target bengos-nav-mark w-full flex-col gap-1 !min-w-0 py-1.5 text-[var(--bengos-size-caption)] transition-colors duration-[var(--bengos-motion-fast)] ${
+                className={`bengos-touch-target bengos-nav-mark flex w-full flex-col items-center gap-1 py-2 text-xs ${
                   active
-                    ? "font-[var(--bengos-weight-medium)] text-[var(--bengos-accent)]"
+                    ? "font-medium text-[var(--bengos-accent)]"
                     : "text-[var(--bengos-text-muted)]"
                 }`}
               >
                 <span
-                  className={`flex size-9 items-center justify-center rounded-full border transition-colors duration-[var(--bengos-motion-fast)] ${
+                  className={`flex size-8 items-center justify-center rounded-full border ${
                     active
                       ? "border-[var(--bengos-accent)] bg-[var(--bengos-accent-muted)]"
                       : "border-[var(--bengos-border)]"
                   }`}
                 >
-                  <destination.Icon className="size-5" />
+                  <destination.Icon className="size-4" />
                 </span>
-                {/*
-                  Napis jest widoczny, ale jego treść powtarza `hint` dla
-                  czytnika — dlatego sam napis jest ukryty przed czytnikiem,
-                  a `hint` mówi pełnym zdaniem, dokąd prowadzi odnośnik.
-                */}
-                <span aria-hidden="true">{destination.label}</span>
-                <span className="bengos-visually-hidden">{destination.hint}</span>
+                <span className="truncate">{destination.label}</span>
               </Link>
             </li>
           );
