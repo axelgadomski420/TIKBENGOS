@@ -139,22 +139,24 @@ body {
 
 /* Podziałka: kreskowane obramowanie czyta się jak znaczniki cyfrowego okręgu. */
 .bengos-hud__ring--ticks {
-  border: 1px dashed var(--bengos-accent);
-  opacity: 0.55;
-  animation: bengos-hud-spin calc(var(--bengos-motion-smooth) * 60) linear infinite;
+  border: 1.5px dashed var(--bengos-accent);
+  opacity: 0.75;
+  animation: bengos-hud-spin calc(var(--bengos-motion-smooth) * 40) linear infinite;
 }
 
 /* Łuk: dwa jasne boki obramowania dają wrażenie skanera w ruchu. */
 .bengos-hud__ring--arc {
-  border: 2px solid transparent;
+  border: 2.5px solid transparent;
   border-top-color: var(--bengos-accent);
   border-right-color: var(--bengos-accent);
-  animation: bengos-hud-spin calc(var(--bengos-motion-smooth) * 24) linear infinite;
+  opacity: 0.9;
+  animation: bengos-hud-spin calc(var(--bengos-motion-smooth) * 16) linear infinite;
 }
 
 /* Pierścień statyczny — trzyma kompozycję, także gdy ruch jest wyłączony. */
 .bengos-hud__ring--static {
-  border: 1px solid var(--bengos-border-strong);
+  border: 1.5px solid var(--bengos-border-strong);
+  box-shadow: 0 0 48px -8px var(--bengos-glow);
 }
 
 /*

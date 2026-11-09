@@ -47,13 +47,13 @@ export function MainMenu() {
           className="absolute inset-[8%] rounded-full border border-dashed border-[#51689B]"
         />
 
-        {/* Logo w centrum */}
-        <div className="absolute left-1/2 top-1/2 size-[46%] -translate-x-1/2 -translate-y-1/2">
+        {/* Logo w centrum — większy, mocniejszy glow */}
+        <div className="absolute left-1/2 top-1/2 size-[50%] -translate-x-1/2 -translate-y-1/2">
           <div className="bengos-hud flex size-full items-center justify-center">
             <span className="bengos-hud__ring bengos-hud__ring--static inset-0" />
-            <span className="bengos-hud__ring bengos-hud__ring--ticks -inset-3" />
-            <span className="bengos-hud__ring bengos-hud__ring--arc -inset-5" />
-            <span className="flex h-[78%] w-[78%] items-center justify-center overflow-hidden rounded-full border border-[#51689B] bg-[#060A12] shadow-[0_0_120px_-20px_#14809F]">
+            <span className="bengos-hud__ring bengos-hud__ring--ticks -inset-4" />
+            <span className="bengos-hud__ring bengos-hud__ring--arc -inset-7" />
+            <span className="flex h-[76%] w-[76%] items-center justify-center overflow-hidden rounded-full border border-[#51689B] bg-[#060A12] shadow-[0_0_140px_-16px_#14809F]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={BRAND.logo}
