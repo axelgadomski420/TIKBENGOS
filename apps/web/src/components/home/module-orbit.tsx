@@ -65,22 +65,21 @@ export function ModuleOrbit() {
   );
 
   return (
-    <section aria-label="Moduły BENGOS" className="hidden lg:block">
+    <section aria-label="Moduły BENGOS" className="block">
       <h2 className="sr-only">Gdzie chcesz wejść</h2>
-      <div className="relative mx-auto aspect-square w-full max-w-xl">
-        {/* Pierscien prowadzacy oko — ta sama kreskowana mowa co HUD
-            na ekranie logowania, wiec oba ekrany mowia jednym jezykiem. */}
+      <div className="relative mx-auto aspect-square w-full max-w-2xl">
+        {/* Pierscien prowadzacy */}
         <div
           aria-hidden="true"
-          className="absolute inset-[6%] rounded-full border border-dashed border-[var(--bengos-border-strong)]"
+          className="absolute inset-[4%] rounded-full border border-dashed border-[var(--bengos-border-strong)]"
         />
-        {/* Tygrys w srodku — większy, bliżej kompozycji ze zdjęcia menu. */}
-        <div aria-hidden="true" className="absolute left-1/2 top-1/2 size-[42%] -translate-x-1/2 -translate-y-1/2">
+        {/* Tygrys w srodku — duzy, dominujacy */}
+        <div aria-hidden="true" className="absolute left-1/2 top-1/2 size-[48%] -translate-x-1/2 -translate-y-1/2">
           <div className="bengos-hud flex size-full items-center justify-center">
             <span className="bengos-hud__ring bengos-hud__ring--static inset-0" />
-            <span className="bengos-hud__ring bengos-hud__ring--ticks -inset-3" />
-            <span className="bengos-hud__ring bengos-hud__ring--arc -inset-5" />
-            <span className="flex h-[82%] w-[82%] items-center justify-center overflow-hidden rounded-full border border-[var(--bengos-border-strong)] bg-[var(--bengos-surface-sunken)] shadow-[0_0_140px_-24px_var(--bengos-glow)]">
+            <span className="bengos-hud__ring bengos-hud__ring--ticks -inset-4" />
+            <span className="bengos-hud__ring bengos-hud__ring--arc -inset-7" />
+            <span className="flex h-[80%] w-[80%] items-center justify-center overflow-hidden rounded-full border border-[var(--bengos-border-strong)] bg-[var(--bengos-surface-sunken)] shadow-[0_0_160px_-20px_var(--bengos-glow)]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={BRAND.logo}

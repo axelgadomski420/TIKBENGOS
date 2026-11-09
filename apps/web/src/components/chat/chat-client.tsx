@@ -291,10 +291,15 @@ export function ChatClient() {
 
   return (
     <section aria-labelledby="chat-title" className="space-y-4">
-      <header className="flex items-center justify-between gap-4">
-        <h1 id="chat-title" className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-semibold)]">
-          Czat
-        </h1>
+      <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 id="chat-title" className="text-[var(--bengos-size-title)] font-[var(--bengos-weight-semibold)] text-[var(--bengos-accent)]">
+            Czat
+          </h1>
+          <p className="text-[var(--bengos-size-caption)] text-[var(--bengos-text-muted)]">
+            Lepszy od iMessage i OLX. Wiadomości, grupy, czas rzeczywisty. End-to-end w kolejnym etapie.
+          </p>
+        </div>
         <button
           type="button"
           className={BTN_PRIMARY}
