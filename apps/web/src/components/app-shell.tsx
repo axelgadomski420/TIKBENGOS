@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 
 import { can, type Permission } from "@bengos/core";
 
-import { EntryScreen } from "@/components/auth/entry-screen";
 import { BottomNavigation } from "@/components/bottom-navigation";
 import { HomeDashboard } from "@/components/home/home-dashboard";
 import { SkipLink } from "@/components/skip-link";
@@ -165,29 +164,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 
   /*
-    ── BRAMA MINIMALNA (2026-11-09) ───────────────────────────────────────
-    Poprzednia brama z HUD-em i dużym tygrysem była zbugowana.
-    Tymczasowy komunikat też nie wystarczał. Teraz czysty formularz.
+    ── BRAMA WYŁĄCZONA (2026-11-09) ───────────────────────────────────────
+    Użytkownik prosi o natychmiastowe menu główne, żeby testować resztę
+    aplikacji. Logowanie/rejestracja wróci po naprawie. Na razie każdy
+    widzi pulpit.
   */
-  if (status !== "authenticated") {
-    return (
-      <div
-        style={shellStyle}
-        {...shellAttributes}
-        className="min-h-dvh bg-[var(--bengos-surface)] text-[var(--bengos-text)]"
-      >
-        <SkipLink />
-        <EntryScreen />
-      </div>
-    );
-  }
+  // if (status !== "authenticated") { ... } — wyłączone
 
   /*
     ── PULPIT ─────────────────────────────────────────────────────────────
-    Trasa `/` nie dostarcza już treści (`page.tsx` zwraca `HomeDashboard`,
-    ale ta sama treść jest tu, w powłoce). Zeby nie rysowac jej dwa razy,
-    na trasie `/` powłoka wstawia `HomeDashboard` zamiast `children`.
-    Na pozostałych trasach `children` to ekran modułu — bez zmian.
   */
   const isHome = pathname === "/";
 
