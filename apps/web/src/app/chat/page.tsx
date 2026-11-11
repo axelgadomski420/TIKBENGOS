@@ -4,25 +4,20 @@ import { ChatClient } from "@/components/chat/chat-client";
 import { RealtimeIndicator } from "@/components/realtime-indicator";
 
 export const metadata: Metadata = {
-  title: "BENGOS Chat — TIKBENGOS",
+  title: "BengMess",
 };
 
-/**
- * Czat — Etap 4 (tekst).
- *
- * Działa TERAZ: rozmowy 1:1 (idempotentne — jedna rozmowa na parę osób),
- * grupy przez API, wiadomości tekstowe do 2000 znaków, licznik
- * nieprzeczytanych, oznaczanie przeczytane, miękkie usuwanie własnych
- * wiadomości, kontakty z obserwacji, powiadomienia w czasie rzeczywistym
- * przez osobisty kanał.
- *
- * Dojdzie w kolejnych etapach (i nie jest ukrywane w interfejsie):
- * załączniki (wymaga magazynu R2), tłumaczenia i napisy per rozmowa,
- * reakcje emoji, obecność "na żywo", głos i migi.
- */
 export default function ChatPage() {
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-5xl space-y-4">
+      <header className="rounded-[var(--bengos-radius-card)] border border-[#14515c] bg-[#071018] px-4 py-4">
+        <p className="text-xs uppercase tracking-[0.32em] text-[#7ef6ff]">BengMess</p>
+        <h1 className="mt-1 text-3xl font-semibold">Rozmowy pod pieczęcią</h1>
+        <p className="mt-2 max-w-2xl text-[var(--bengos-text-muted)]">
+          Tekst, głos, obraz, plik, Morse, gloss migowy i tłumaczenie wychodzą jedną kopertą.
+          Klucz zostaje na urządzeniu. Serwer nie czyta treści. Wiadomość może zniknąć po odczycie.
+        </p>
+      </header>
       <ChatClient />
       <RealtimeIndicator />
     </div>

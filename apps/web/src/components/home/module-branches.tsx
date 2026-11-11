@@ -161,7 +161,7 @@ export const BRANCHES: Branch[] = [
   { href: "/access", label: "bridge", description: "Język migowy, napisy, TTS, Morse, wibracje.", stage: 4, Icon: IconBridge },
   { href: "/dev", label: "dev", description: "Repozytoria, issue, pull requesty, agent kodujący.", stage: 5, Icon: IconDev },
   { href: "/profile", label: "profil", description: "Tożsamość, twórczość, projekty, ustawienia asystenta.", stage: null, Icon: IconProfile },
-  { href: "/chat", label: "chat", description: "Wiadomości, grupy, tłumaczenia, dostępność.", stage: 4, Icon: IconChat },
+  { href: "/chat", label: "chat", description: "BengMess: pieczęć, głos, obraz, plik, Morse, migowy, tłumaczenie.", stage: 4, Icon: IconChat },
   { href: "/settings", label: "ustawienia", description: "Język, wygląd, dostępność, klucze API, zgody.", stage: null, Icon: IconSettings },
   { href: "/create", label: "asystent", description: "Asystent AI, pomysły, scenariusze, muzyka, kod.", stage: 5, Icon: IconAssistant },
   { href: "/feed", label: "bengtok", description: "Krótkie wideo, dźwięki, posty, twórcy.", stage: 2, Icon: IconFeed },

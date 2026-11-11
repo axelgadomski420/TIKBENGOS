@@ -40,15 +40,19 @@ export function EnginePicker() {
   function pickProvider(providerId: string) {
     const next = ENGINE_ROUTES.find((item) => item.providerId === providerId);
     if (!next) return;
+    const model = next.models[0]?.id;
+    if (!model) return;
     setSaved(false);
-    setChoice({ providerId, routeId: next.id, model: next.models[0].id });
+    setChoice({ providerId, routeId: next.id, model });
   }
 
   function pickRoute(routeId: string) {
     const next = routes.find((item) => item.id === routeId);
     if (!next) return;
+    const model = next.models[0]?.id;
+    if (!model) return;
     setSaved(false);
-    setChoice({ ...choice, routeId: next.id, model: next.models[0].id });
+    setChoice({ ...choice, routeId: next.id, model });
   }
 
   function remember() {

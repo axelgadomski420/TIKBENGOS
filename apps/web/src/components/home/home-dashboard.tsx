@@ -23,7 +23,7 @@ function FreshHello() {
  */
 export function HomeDashboard() {
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center bg-[#05070d] px-3 py-6">
+    <div className="flex min-h-dvh flex-col items-center justify-center bg-black px-1 py-3">
       <FreshHello />
       <MainMenu />
     </div>
