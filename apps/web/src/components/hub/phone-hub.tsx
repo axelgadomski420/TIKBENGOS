@@ -114,7 +114,7 @@ export function PhoneHub() {
       if (!res.ok || !res.text) setNote(res.error ?? "Qwen nie odpowiedział.");
       else {
         const fenced = res.text.match(/```[a-zA-Z0-9]*\n([\s\S]*?)```/);
-        setCode((fenced ? fenced[1] : res.text).trim());
+        setCode((fenced?.[1] ?? res.text).trim());
         setReady(true);
       }
     } finally {
