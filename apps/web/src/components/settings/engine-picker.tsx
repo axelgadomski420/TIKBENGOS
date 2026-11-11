@@ -10,6 +10,11 @@ import { useSession } from "@/lib/session-context";
 
 const FEATURED = ["xai", "google-ai", "openai", "anthropic"];
 
+function firstModel(models: readonly { id: string }[]): string | undefined {
+  for (const model of models) return model.id;
+  return undefined;
+}
+
 export function EnginePicker() {
   const { isAuthenticated } = useSession();
   const [choice, setChoice] = useState<EngineChoice>({
@@ -30,7 +35,7 @@ export function EnginePicker() {
     () => ENGINE_ROUTES.filter((route) => route.providerId === choice.providerId),
     [choice.providerId],
   );
-  const route = routes.find((item) => item.id === choice.routeId) ?? routes[0];
+  const route = routes.find((item) => item.id === choice.routeId) ?? routes.find((item) => item.id.length > 0);
   const provider = PROVIDERS.find((item) => item.id === choice.providerId);
   const fullUrl =
     provider?.baseUrl && route
@@ -40,7 +45,7 @@ export function EnginePicker() {
   function pickProvider(providerId: string) {
     const next = ENGINE_ROUTES.find((item) => item.providerId === providerId);
     if (!next) return;
-    const model = next.models[0]?.id;
+    const model = firstModel(next.models);
     if (!model) return;
     setSaved(false);
     setChoice({ providerId, routeId: next.id, model });
@@ -49,7 +54,7 @@ export function EnginePicker() {
   function pickRoute(routeId: string) {
     const next = routes.find((item) => item.id === routeId);
     if (!next) return;
-    const model = next.models[0]?.id;
+    const model = firstModel(next.models);
     if (!model) return;
     setSaved(false);
     setChoice({ ...choice, routeId: next.id, model });
