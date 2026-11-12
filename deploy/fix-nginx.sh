@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# PURRE PETS — naprawa Nginx (port 80 / konflikty)
+# PURRE PETS — zabij Caddy / zwolnij :80 / uruchom Nginx + backend
 # curl -fsSL https://raw.githubusercontent.com/axelgadomski420/TIKBENGOS/main/deploy/fix-nginx.sh | sudo bash
-set -euo pipefail
+set -uo pipefail
 
 APP_DIR="${APP_DIR:-/opt/purre-pets}"
 BACKEND_PORT=8087
@@ -11,50 +11,53 @@ log() { echo -e "\n\033[1;35m[PURRE NGX]\033[0m $*"; }
 ok()  { echo -e "\033[1;32m✓\033[0m $*"; }
 warn(){ echo -e "\033[1;33m!\033[0m $*"; }
 
-if [[ $EUID -ne 0 ]]; then echo "Uruchom jako root (sudo)."; exit 1; fi
+if [[ $EUID -ne 0 ]]; then echo "sudo required"; exit 1; fi
 
-log "1. Diagnostyka — port 80/443"
-ss -tlnp | grep -E ':80 |:443 ' || echo "(nic nie słucha na 80/443)"
-systemctl status nginx --no-pager -l 2>/dev/null || true
-journalctl -u nginx -n 25 --no-pager 2>/dev/null || true
+log "1. Co trzyma :80 / :443"
+ss -tlnp | grep -E ':80 |:443 ' || echo "(wolne)"
 
-log "2. Zwolnij port 80"
+log "2. Zabij Caddy / Apache / stare proxy"
+systemctl stop caddy 2>/dev/null || true
+systemctl disable caddy 2>/dev/null || true
 systemctl stop apache2 2>/dev/null || true
 systemctl disable apache2 2>/dev/null || true
-systemctl stop caddy 2>/dev/null || true
+pkill -9 caddy 2>/dev/null || true
+pkill -9 apache2 2>/dev/null || true
+# Docker publish 80
 if command -v docker >/dev/null 2>&1; then
-  docker ps --format '{{.ID}} {{.Ports}}' 2>/dev/null | grep -E ':80->' | awk '{print $1}' | while read -r id; do
-    warn "Zatrzymuję kontener na :80 → $id"
-    docker stop "$id" 2>/dev/null || true
+  docker ps -q 2>/dev/null | while read -r id; do
+    ports=$(docker port "$id" 2>/dev/null || true)
+    if echo "$ports" | grep -qE '80/tcp|443/tcp'; then
+      warn "docker stop $id (publikuje 80/443)"
+      docker stop "$id" 2>/dev/null || true
+    fi
   done
 fi
 fuser -k 80/tcp 2>/dev/null || true
-sleep 1
+fuser -k 443/tcp 2>/dev/null || true
+sleep 2
+ss -tlnp | grep -E ':80 |:443 ' || ok "Porty 80/443 wolne"
 
-log "3. Wyczyść sitey Nginx"
+log "3. Konfiguracja Nginx"
 rm -f /etc/nginx/sites-enabled/default
-rm -f /etc/nginx/sites-enabled/purre-pets
-ls -la /etc/nginx/sites-enabled/ 2>/dev/null || true
+rm -f /etc/nginx/sites-enabled/* 2>/dev/null || true
 
 DIST_DIR="${APP_DIR}/frontend/dist/frontend/browser"
-if [[ ! -d "$DIST_DIR" ]]; then DIST_DIR="${APP_DIR}/frontend/dist/frontend"; fi
-if [[ ! -d "$DIST_DIR" ]]; then DIST_DIR="${APP_DIR}/frontend/dist"; fi
+[[ -d "$DIST_DIR" ]] || DIST_DIR="${APP_DIR}/frontend/dist/frontend"
+[[ -d "$DIST_DIR" ]] || DIST_DIR="${APP_DIR}/frontend/dist"
 if [[ ! -d "$DIST_DIR" ]]; then
-  warn "Brak dist — minimalny index"
   mkdir -p /var/www/purre-pets
-  printf '%s\n' '<!doctype html><html><head><meta charset="utf-8"><title>PURRE PETS</title></head><body style="font-family:sans-serif;background:#050507;color:#f5f5f7;display:grid;place-items:center;min-height:100vh"><h1>PURRE PETS</h1><p>API: /elif/</p></body></html>' > /var/www/purre-pets/index.html
+  echo '<!doctype html><title>PURRE PETS</title><body style="background:#050507;color:#fff;font-family:sans-serif;display:grid;place-items:center;min-height:100vh"><h1>PURRE PETS</h1></body>' > /var/www/purre-pets/index.html
   DIST_DIR=/var/www/purre-pets
 fi
-ok "root = $DIST_DIR"
+ok "root=$DIST_DIR"
 
-log "4. Konfiguracja Nginx"
 cat > /etc/nginx/sites-available/purre-pets <<NGX
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
     server_name _;
     client_max_body_size 25M;
-
     root ${DIST_DIR};
     index index.html;
 
@@ -85,15 +88,10 @@ server {
     }
 }
 NGX
-
 ln -sfn /etc/nginx/sites-available/purre-pets /etc/nginx/sites-enabled/purre-pets
+nginx -t
 
-if ! nginx -t; then
-  warn "nginx -t FAILED"
-  exit 1
-fi
-
-log "5. Start Nginx"
+log "4. Start Nginx"
 systemctl reset-failed nginx 2>/dev/null || true
 systemctl enable nginx
 systemctl restart nginx
@@ -101,18 +99,17 @@ sleep 1
 if systemctl is-active --quiet nginx; then
   ok "Nginx ACTIVE"
 else
-  warn "Nginx nadal nie działa"
   systemctl status nginx --no-pager -l
-  journalctl -xeu nginx.service -n 40 --no-pager
+  journalctl -xeu nginx -n 20 --no-pager
   exit 1
 fi
 
-log "6. Backend"
+log "5. Backend"
 JAR=$(ls -1 "$APP_DIR"/backend/target/*.jar 2>/dev/null | grep -v original | head -1 || true)
 if [[ -n "$JAR" ]]; then
   cat > /etc/systemd/system/purre-pets.service <<EOF
 [Unit]
-Description=PURRE PETS Spring Boot API
+Description=PURRE PETS API
 After=network.target mysql.service
 [Service]
 Type=simple
@@ -127,21 +124,16 @@ EOF
   systemctl daemon-reload
   systemctl enable purre-pets
   systemctl restart purre-pets
-  ok "Backend restarted ($JAR)"
-else
-  warn "Brak JAR w $APP_DIR/backend/target"
+  ok "Backend: $JAR"
 fi
 systemctl restart purre-ai 2>/dev/null || true
 
-sleep 4
-log "7. Health"
-echo -n "nginx :80 → "
-curl -sS -m 3 -o /dev/null -w "%{http_code}\n" http://127.0.0.1/ || echo FAIL
-echo -n "backend    → "
-curl -sS -m 5 "http://127.0.0.1:${BACKEND_PORT}/elif/api/health" || curl -sS -m 5 "http://127.0.0.1:${BACKEND_PORT}/elif/" || echo FAIL
+sleep 3
+log "6. Health"
+echo -n "HTTP  : "; curl -sS -m 3 -o /dev/null -w "%{http_code}\n" http://127.0.0.1/ || echo FAIL
+echo -n "API   : "; curl -sS -m 5 http://127.0.0.1:${BACKEND_PORT}/elif/api/health || echo FAIL
 echo
-systemctl is-active nginx purre-pets 2>/dev/null || true
-echo ""
+systemctl is-active nginx purre-pets
 echo "============================================================"
-echo "  PURRE PETS — http://${PUBLIC_IP}"
+echo "  PURRE PETS → http://${PUBLIC_IP}"
 echo "============================================================"
