@@ -1,2 +1,0 @@
-# Aider przynosi własne zależności (git, LLM-y); reszta executora to stdlib.
-aider-chat>=0.51

@@ -1,3 +1,0 @@
-"""
-Migracje aplikacji chat.
-"""

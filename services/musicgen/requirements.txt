@@ -1,5 +1,0 @@
-# Jedyny ciężki zestaw workera: generacja bez torch i transformers
-# nie istnieje, a wszystko pozostałe (serwer, callbacki, WAV) to stdlib.
-torch>=2.2
-transformers>=4.40
-accelerate>=0.30
