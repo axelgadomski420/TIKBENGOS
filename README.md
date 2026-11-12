@@ -1,8 +1,8 @@
 # PURRE PETS
-
 <p align="center">
-  <img src="[![IMG-4778.jpg](https://i.postimg.cc/QNBwVKvL/IMG-4778.jpg)](https://postimg.cc/bdh3BrzL)" alt="Logo PURRE PETS" width="260" />
+  <img src="https://i.postimg.cc/QNBwVKvL/IMG-4778.jpg" alt="Logo PURRE PETS" width="260" />
 </p>
+
 
 <p align="center">
   <strong>Where exceptional breeds find exceptional homes.</strong><br />
