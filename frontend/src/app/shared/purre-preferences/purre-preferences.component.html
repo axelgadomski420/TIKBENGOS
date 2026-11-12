@@ -1,0 +1,35 @@
+<div class="purre-preferences" [class.purre-preferences--open]="isOpen">
+  <section class="purre-preferences__panel" *ngIf="isOpen" aria-labelledby="purre-preferences-title">
+    <div class="purre-preferences__glow" aria-hidden="true"></div>
+    <header class="purre-preferences__header">
+      <div class="purre-preferences__brand"><span class="purre-preferences__brand-mark">P</span><span>PURRE PETS</span></div>
+      <button class="purre-preferences__close" type="button" (click)="isOpen = false" [attr.aria-label]="t('preferences.close')">×</button>
+    </header>
+    <p class="purre-preferences__eyebrow">{{ t('preferences.brand') }}</p>
+    <h2 id="purre-preferences-title">{{ t('preferences.title') }}</h2>
+    <p class="purre-preferences__subtitle">{{ t('preferences.subtitle') }}</p>
+
+    <label class="purre-preferences__field">
+      <span>{{ t('preferences.language') }}</span>
+      <select [ngModel]="locale" (ngModelChange)="changeLocale($event)">
+        <option *ngFor="let language of locales" [ngValue]="language.value">{{ language.label }}</option>
+      </select>
+    </label>
+
+    <label class="purre-preferences__field">
+      <span>{{ t('preferences.theme') }}</span>
+      <select [ngModel]="theme" (ngModelChange)="changeTheme($event)">
+        <option *ngFor="let option of themes" [ngValue]="option.value">{{ t(option.key) }}</option>
+      </select>
+    </label>
+
+    <div class="purre-preferences__footnote"><span class="purre-preferences__status-dot"></span>{{ t('preferences.saved') }}</div>
+    <p class="purre-preferences__privacy">{{ t('preferences.privacy') }}</p>
+  </section>
+
+  <button class="purre-preferences__trigger" type="button" (click)="isOpen = !isOpen"
+          [attr.aria-expanded]="isOpen" [attr.aria-label]="t('preferences.open')" [title]="t('preferences.open')">
+    <span class="purre-preferences__trigger-icon" aria-hidden="true">✦</span>
+    <span>{{ t('preferences.open') }}</span>
+  </button>
+</div>

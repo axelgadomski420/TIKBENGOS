@@ -1,0 +1,20 @@
+{
+  "preferences.open": "Вигляд",
+  "preferences.title": "Ваш досвід",
+  "preferences.subtitle": "Налаштуйте PURRE PETS на свій смак.",
+  "preferences.language": "Мова застосунку",
+  "preferences.theme": "Тема",
+  "preferences.close": "Закрити налаштування",
+  "preferences.saved": "Зміни зберігаються автоматично",
+  "preferences.system": "Як на вашому пристрої",
+  "preferences.brand": "PURRE AURA",
+  "preferences.privacy": "Ваші налаштування зберігаються на цьому пристрої.",
+  "theme.aura": "PURRE AURA · Темна розкіш",
+  "theme.light": "PURRE LIGHT · Світлий мінімалізм",
+  "theme.midnight": "PURRE MIDNIGHT · Опівнічний синій",
+  "theme.forest": "PURRE FOREST · Лісовий спокій",
+  "theme.royal": "PURRE ROYAL · Синій і золото",
+  "theme.sunset": "PURRE SUNSET · Теплі сутінки",
+  "theme.mono": "PURRE MONO · Чорно-білий",
+  "theme.highContrast": "PURRE HIGH CONTRAST · Високий контраст"
+}

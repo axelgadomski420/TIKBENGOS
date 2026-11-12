@@ -1,0 +1,20 @@
+{
+  "preferences.open": "Darstellung",
+  "preferences.title": "Dein Erlebnis",
+  "preferences.subtitle": "Gestalte PURRE PETS ganz nach deinem Geschmack.",
+  "preferences.language": "App-Sprache",
+  "preferences.theme": "Design",
+  "preferences.close": "Einstellungen schließen",
+  "preferences.saved": "Änderungen werden automatisch gespeichert",
+  "preferences.system": "Wie auf deinem Gerät",
+  "preferences.brand": "PURRE AURA",
+  "preferences.privacy": "Deine Einstellungen werden auf diesem Gerät gespeichert.",
+  "theme.aura": "PURRE AURA · Dark Luxury",
+  "theme.light": "PURRE LIGHT · Helle Eleganz",
+  "theme.midnight": "PURRE MIDNIGHT · Mitternachtsblau",
+  "theme.forest": "PURRE FOREST · Waldgrün",
+  "theme.royal": "PURRE ROYAL · Marineblau und Gold",
+  "theme.sunset": "PURRE SUNSET · Warmer Abend",
+  "theme.mono": "PURRE MONO · Schwarz und Weiß",
+  "theme.highContrast": "PURRE HIGH CONTRAST · Hoher Kontrast"
+}
