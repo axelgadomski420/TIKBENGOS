@@ -1,7 +1,7 @@
 # PURRE PETS
 
 <p align="center">
-  <img src="frontend/public/images/logo/logo-full-transparent.png" alt="Logo PURRE PETS" width="260" />
+  <img src="https://ibb.co/N2D97SsC" alt="Logo PURRE PETS" width="260" />
 </p>
 
 <p align="center">
