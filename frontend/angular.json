@@ -6,15 +6,9 @@
     "frontend": {
       "projectType": "application",
       "schematics": {
-        "@schematics/angular:component": {
-          "standalone": false
-        },
-        "@schematics/angular:directive": {
-          "standalone": false
-        },
-        "@schematics/angular:pipe": {
-          "standalone": false
-        }
+        "@schematics/angular:component": { "standalone": false },
+        "@schematics/angular:directive": { "standalone": false },
+        "@schematics/angular:pipe": { "standalone": false }
       },
       "root": "",
       "sourceRoot": "src",
@@ -26,52 +20,34 @@
             "outputPath": "dist/frontend",
             "index": "src/index.html",
             "browser": "src/main.ts",
-            "polyfills": [
-              "zone.js"
-            ],
+            "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.app.json",
             "assets": [
-              {
-                "glob": "**/*",
-                "input": "public"
-              },
-              {
-                "glob": "**/*",
-                "input": "node_modules/leaflet/dist/images",
-                "output": "assets/leaflet"
-              }
+              { "glob": "**/*", "input": "public" },
+              { "glob": "**/*", "input": "node_modules/leaflet/dist/images", "output": "assets/leaflet" }
             ],
             "styles": [
               "node_modules/@fortawesome/fontawesome-free/css/all.min.css",
               "@angular/material/prebuilt-themes/indigo-pink.css",
               "node_modules/leaflet/dist/leaflet.css",
               "src/styles.css",
-              "src/purre-premium.css"
+              "src/purre-premium.css",
+              "src/purre-design-system.css"
             ],
             "scripts": []
           },
           "configurations": {
             "production": {
               "budgets": [
-                {
-                  "type": "initial",
-                  "maximumWarning": "2MB",
-                  "maximumError": "8MB"
-                },
-                {
-                  "type": "anyComponentStyle",
-                  "maximumWarning": "16kB",
-                  "maximumError": "100kB"
-                }
+                { "type": "initial", "maximumWarning": "2MB", "maximumError": "8MB" },
+                { "type": "anyComponentStyle", "maximumWarning": "16kB", "maximumError": "100kB" }
               ],
               "outputHashing": "all"
             },
             "development": {
               "fileReplacements": [
-                {
-                  "replace": "src/environments/environment.ts",
-                  "with": "src/environments/environment.development.ts"
-                }
+                { "replace": "src/environments/environment.ts", "with": "src/environments/environment.development.ts" },
+                { "replace": "src/environments/environment.ts", "with": "src/environments/environment.development.ts" }
               ],
               "optimization": false,
               "extractLicenses": false,
@@ -83,51 +59,34 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
-            "production": {
-              "buildTarget": "frontend:build:production"
-            },
-            "development": {
-              "buildTarget": "frontend:build:development"
-            }
+            "production": { "buildTarget": "frontend:build:production" },
+            "development": { "buildTarget": "frontend:build:development" }
           },
           "defaultConfiguration": "development"
         },
-        "extract-i18n": {
-          "builder": "@angular-devkit/build-angular:extract-i18n"
-        },
+        "extract-i18n": { "builder": "@angular-devkit/build-angular:extract-i18n" },
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
-            "polyfills": [
-              "zone.js",
-              "zone.js/testing"
-            ],
+            "polyfills": ["zone.js", "zone.js/testing"],
             "tsConfig": "tsconfig.spec.json",
             "assets": [
-              {
-                "glob": "**/*",
-                "input": "public"
-              },
-              {
-                "glob": "**/*",
-                "input": "node_modules/leaflet/dist/images",
-                "output": "assets/leaflet"
-              }
+              { "glob": "**/*", "input": "public" },
+              { "glob": "**/*", "input": "node_modules/leaflet/dist/images", "output": "assets/leaflet" }
             ],
             "styles": [
               "node_modules/@fortawesome/fontawesome-free/css/all.min.css",
               "@angular/material/prebuilt-themes/indigo-pink.css",
               "node_modules/leaflet/dist/leaflet.css",
               "src/styles.css",
-              "src/purre-premium.css"
+              "src/purre-premium.css",
+              "src/purre-design-system.css"
             ],
             "scripts": []
           }
         }
       }
-    }
+    },
   },
-  "cli": {
-    "analytics": false
-  }
+  "cli": { "analytics": false }
 }
