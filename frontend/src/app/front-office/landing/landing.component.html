@@ -1,114 +1,72 @@
-<section class="landing-shell" aria-label="PURRE PETS">
-  <header class="landing-hero">
-    <div class="mx-auto max-w-7xl px-4 py-20 md:px-8">
-      <div class="hero-grid">
-        <div class="hero-copy">
-          <p class="hero-kicker">Dla rasowych kotów i psów</p>
-          <h1 class="hero-title">
-            PURRE PETS
-            <span class="typewriter-wrap" aria-live="polite">
-              <span class="typewriter-text">{{ heroTypedText }}</span><span class="typewriter-caret" aria-hidden="true"></span>
-            </span>
-          </h1>
-          <p class="hero-description">Where exceptional breeds find exceptional homes. Hodowle, adopcje, tranzyt i społeczność rasowych kotów i psów w jednym miejscu.</p>
-
-          <div class="hero-actions">
-            <button (click)="goToDashboard()" class="btn-primary">
-              {{ isLoggedIn ? 'Open Dashboard' : 'Open Workspace' }}
-            </button>
-            <a routerLink="/app/services" class="btn-secondary">Explore Modules</a>
-          </div>
-
+<main class="landing-shell">
+  <section class="landing-hero" aria-labelledby="landing-title">
+    <div class="hero-glow hero-glow--violet" aria-hidden="true"></div>
+    <div class="hero-glow hero-glow--green" aria-hidden="true"></div>
+    <div class="hero-layout">
+      <div class="hero-copy">
+        <a class="brand-lockup" routerLink="/app" aria-label="PURRE PETS — strona główna">
+          <span class="brand-mark" aria-hidden="true">P</span>
+          <span>PURRE <strong>PETS</strong></span>
+        </a>
+        <p class="eyebrow"><span class="eyebrow-dot"></span> Miejsce stworzone z myślą o zwierzętach</p>
+        <h1 id="landing-title">Wyjątkowe więzi<br><span>zaczynają się tutaj.</span></h1>
+        <p class="hero-description">Odkrywaj zwierzęta, poznawaj odpowiedzialne organizacje i dołącz do społeczności, która stawia ich dobro na pierwszym miejscu.</p>
+        <div class="hero-actions">
+          <a routerLink="/app/adoption" class="button button-primary">Poznaj zwierzaki <span aria-hidden="true">↗</span></a>
+          <a routerLink="/app/community" class="button button-secondary">Dołącz do społeczności</a>
+        </div>
+        <div class="hero-proof" aria-label="PURRE PETS wspiera odpowiedzialne wybory">
+          <span class="proof-icon" aria-hidden="true">✦</span>
+          <span><strong>Dobro zwierząt na pierwszym miejscu</strong><small>Odkrywaj odpowiedzialnie. Wybieraj świadomie.</small></span>
         </div>
       </div>
-    </div>
-  </header>
 
-  <section class="overview-band" aria-label="Operational overview">
-    <div class="mx-auto max-w-7xl px-4 py-10 md:px-8">
-      <div class="overview-grid">
-        <article *ngFor="let card of overviewCards" class="overview-card" [ngClass]="'overview-tone-' + card.tone">
-          <div class="overview-head">
-            <span class="overview-icon"><i class="fas" [ngClass]="card.icon"></i></span>
-            <h3>{{ card.title }}</h3>
-          </div>
-          <p class="overview-value">{{ card.value }}</p>
-          <p class="overview-detail">{{ card.detail }}</p>
-          <a [routerLink]="card.route" class="overview-link">{{ card.action }} <i class="fas fa-arrow-right"></i></a>
-        </article>
+      <div class="hero-visual">
+        <img class="hero-image" src="https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=1200&q=85" alt="Golden retriever odpoczywający na łące" fetchpriority="high">
+        <div class="image-shade" aria-hidden="true"></div>
+        <div class="image-caption"><span class="caption-pulse"></span><span>Każda historia zasługuje na dobry początek</span></div>
+        <div class="floating-note"><span class="note-icon" aria-hidden="true">♡</span><span><strong>Miłość, która zostaje</strong><small>Znajdź swoją historię</small></span></div>
       </div>
+    </div>
+    <div class="hero-bottomline"><span>ODKRYWAJ</span><span class="bottomline-rule"></span><span>POZNAWAJ</span><span class="bottomline-rule"></span><span>DBAJ</span></div>
+  </section>
+
+  <section class="proof-strip" aria-label="Społeczność PURRE PETS">
+    <div class="proof-item"><span class="proof-number">{{ stats.availablePets | number }}</span><span class="proof-label">zwierząt czeka<br>na nowy dom</span></div>
+    <div class="proof-divider" aria-hidden="true"></div>
+    <div class="proof-item"><span class="proof-number">{{ stats.verifiedShelters | number }}</span><span class="proof-label">zweryfikowanych<br>organizacji</span></div>
+    <div class="proof-divider" aria-hidden="true"></div>
+    <div class="proof-item"><span class="proof-number">{{ stats.communityCount | number }}</span><span class="proof-label">społeczności<br>do odkrycia</span></div>
+    <p class="proof-note"><span aria-hidden="true">✧</span> Razem tworzymy lepszy świat dla zwierząt.</p>
+  </section>
+
+  <section class="discover-section" aria-labelledby="discover-title">
+    <div class="section-heading">
+      <div><p class="eyebrow">PURRE PETS — Twoje miejsce</p><h2 id="discover-title">Więcej niż nowy dom.<br><span>Cała społeczność w jednym miejscu.</span></h2></div>
+      <p class="section-intro">Szukasz wiernego przyjaciela, inspiracji czy ludzi, którzy rozumieją Twoją miłość do zwierząt? Zacznij odkrywać.</p>
+    </div>
+    <div class="feature-grid">
+      <a routerLink="/app/adoption" class="feature-card feature-card--adoption">
+        <span class="feature-icon" aria-hidden="true">♡</span><span class="feature-index">01 / ODKRYWAJ</span>
+        <h3>Znajdź przyjaciela</h3><p>Poznaj zwierzaki szukające domu i organizacje, które troszczą się o ich przyszłość.</p><span class="feature-link">Zobacz zwierzaki <span aria-hidden="true">↗</span></span>
+      </a>
+      <a routerLink="/app/community" class="feature-card feature-card--community">
+        <span class="feature-icon" aria-hidden="true">✳</span><span class="feature-index">02 / POZNAWAJ</span>
+        <h3>Znajdź swoją społeczność</h3><p>Rozmawiaj, dziel się doświadczeniem i odkrywaj grupy bliskie Twoim zainteresowaniom.</p><span class="feature-link">Odkryj społeczności <span aria-hidden="true">↗</span></span>
+      </a>
+      <a routerLink="/app/events" class="feature-card feature-card--events">
+        <span class="feature-icon" aria-hidden="true">⌖</span><span class="feature-index">03 / SPOTYKAJ SIĘ</span>
+        <h3>Przeżywaj razem</h3><p>Odkrywaj wydarzenia i spotkania, które łączą ludzi kochających zwierzęta.</p><span class="feature-link">Zobacz wydarzenia <span aria-hidden="true">↗</span></span>
+      </a>
     </div>
   </section>
 
-  <section class="activity-section" aria-label="Recent activity">
-    <div class="mx-auto max-w-6xl px-4 py-8 md:px-8">
-      <div class="section-head">
-        <p class="section-kicker">Recent activity</p>
-        <h2>Current updates across modules</h2>
-      </div>
-
-      <div class="activity-grid">
-        <article *ngFor="let item of activityItems" class="activity-card" [ngClass]="'activity-tone-' + item.tone">
-          <div class="activity-head">
-            <span class="activity-icon"><i class="fas" [ngClass]="item.icon"></i></span>
-            <h3>{{ item.title }}</h3>
-          </div>
-          <p class="activity-detail">{{ item.detail }}</p>
-          <a [routerLink]="item.route" class="activity-link">Open <i class="fas fa-arrow-right"></i></a>
-        </article>
-      </div>
-    </div>
+  <section class="values-section" aria-label="Wartości PURRE PETS">
+    <div class="values-mark" aria-hidden="true">P</div>
+    <div class="values-copy"><p class="eyebrow">Z troską, zawsze</p><h2>Bo każda łapa<br>zasługuje na <span>dobry los.</span></h2></div>
+    <p class="values-description">Budujemy przestrzeń, w której odpowiedzialność, wiedza i prawdziwa miłość do zwierząt spotykają się każdego dnia.</p>
+    <a routerLink="/app" class="values-link">Odkrywaj PURRE PETS <span aria-hidden="true">↗</span></a>
   </section>
 
-  <section class="modules-section">
-    <div class="mx-auto max-w-7xl px-4 py-16 md:px-8">
-      <div class="section-head">
-        <p class="section-kicker">Platform modules</p>
-        <h2>Explore platform modules</h2>
-        <p>Each module supports browse-first access with role-based actions after sign-in.</p>
-      </div>
-
-      <div class="modules-grid">
-        <a *ngFor="let module of moduleCards" [routerLink]="module.route" class="module-card">
-          <div class="module-head">
-            <span class="module-icon"><i class="fas" [ngClass]="[module.icon, module.accent]"></i></span>
-            <span class="module-access">{{ module.statLabel }}</span>
-          </div>
-          <h3>{{ module.title }}</h3>
-          <p>{{ module.description }}</p>
-          <p class="module-metric">{{ module.statValue }}</p>
-          <span class="module-link">Open module <i class="fas fa-arrow-right"></i></span>
-        </a>
-      </div>
-    </div>
-  </section>
-
-  <section class="journey-section">
-    <div class="mx-auto max-w-6xl px-4 py-16 md:px-8">
-      <div class="section-head center">
-        <p class="section-kicker">Highlights</p>
-        <h2>Current platform highlights</h2>
-      </div>
-
-      <div class="journey-grid">
-        <article *ngFor="let item of highlights; index as idx" class="journey-step">
-          <span class="step-index">{{ idx + 1 }}</span>
-          <h3>{{ item.title }}</h3>
-          <p>{{ item.description }}</p>
-          <a [routerLink]="item.route" class="journey-link">{{ item.cta }} <i class="fas fa-arrow-right"></i></a>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <section class="cta-section">
-    <div class="mx-auto max-w-5xl px-4 py-16 text-center md:px-8">
-      <h2>PURRE PETS dla rasowych kotów i psów</h2>
-      <p>Hodowla, adopcja, społeczność, usługi i tranzyt w jednym miejscu.</p>
-      <div class="cta-actions">
-        <button (click)="goToDashboard()" class="btn-primary btn-light">{{ isLoggedIn ? 'Open Dashboard' : 'Create Account' }}</button>
-        <a routerLink="/app/community" class="btn-secondary btn-light-outline">Visit Community</a>
-      </div>
-    </div>
-  </section>
-</section>
+  <footer class="landing-footer"><a class="footer-brand" routerLink="/app">PURRE <strong>PETS</strong></a><span>Tam, gdzie wyjątkowe rasy znajdują wyjątkowe domy.</span><a routerLink="/app/community">Dołącz do nas <span aria-hidden="true">↗</span></a></footer>
+</main>
