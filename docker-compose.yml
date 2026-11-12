@@ -1,18 +1,21 @@
+name: tikbengos
+
 services:
   mysql:
     image: mysql:8.4
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Ustaw MYSQL_ROOT_PASSWORD w .env}
       MYSQL_DATABASE: Elif
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${MYSQL_ROOT_PASSWORD}"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      start_period: 40s
       interval: 10s
       timeout: 5s
-      retries: 20
+      retries: 18
 
   api:
     build:
@@ -21,7 +24,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/Elif?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=utf8&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Ustaw MYSQL_ROOT_PASSWORD w .env}
       APP_WS_ALLOWED_ORIGIN_PATTERNS: ${APP_WS_ALLOWED_ORIGIN_PATTERNS:-*}
       SERVER_FORWARD_HEADERS_STRATEGY: framework
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
