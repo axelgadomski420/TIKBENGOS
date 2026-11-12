@@ -73,11 +73,14 @@ class Command(BaseCommand):
         except Exception as exc:  # noqa: BLE001
             bledy.append(f"Nie mogę sprawdzić migracji: {exc}")
 
-        # 4. Odpowiedź Django bez sieci — test klienta testowego.
+        # 4. Odpowiedź Django bez sieci. Klient testowy uderza w host
+        # `testserver`, którego nie ma w ALLOWED_HOSTS produkcji — Django
+        # zwraca wtedy 400, choć API żyje. Bierzemy prawdziwy host.
         try:
             from django.test import Client
 
-            odp = Client().get("/v1/health")
+            host = next((item for item in settings.ALLOWED_HOSTS if item and item != "*"), "testserver")
+            odp = Client().get("/v1/health", HTTP_HOST=host)
             if odp.status_code == 200:
                 self.stdout.write(self.style.SUCCESS("OK   Blueprint odpowiada na /v1/health"))
             else:

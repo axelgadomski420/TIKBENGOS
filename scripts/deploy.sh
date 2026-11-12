@@ -169,6 +169,16 @@ EOF
   note "$ENV_FILE utworzony (uprawnienia 600 — czyta tylko właściciel)."
 fi
 
+# Drugie wdrożenie czyta gotowy .env i NIE wchodzi w gałąź, która ustawia
+# SCHEME. Zmienna nie jest w pliku, a `set -u` urywa skrypt na ostatniej
+# linijce — gdy stos już stoi. Schemat wynika z adresu, nie z pliku.
+if printf '%s' "${DOMAIN:-}" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
+  SCHEME="http"
+else
+  SCHEME="https"
+fi
+[ -n "${DOMAIN:-}" ] || fail "Brak DOMAIN. Ustaw ją w .env albo podaj TIKBENGOS_DOMAIN."
+
 # Kontrola przed startem: plik konfiguracji musi być czytelny dla compose.
 # Sprawdzamy osobną komendą, żeby komunikat wskazywał przyczynę, a nie listę
 # jedenastu brakujących zmiennych.
@@ -252,7 +262,7 @@ step "Sprawdzenie z zewnątrz"
 note "Adres: $SCHEME://$DOMAIN"
 OK=0
 for i in $(seq 1 12); do
-  if curl -fsS --max-time 10 "$SCHEME://$DOMAIN/api/health" -o /dev/null 2>/dev/null; then
+  if curl -fsS --max-time 10 "$SCHEME://$DOMAIN/v1/health" -o /dev/null 2>/dev/null; then
     OK=1
     break
   fi
