@@ -7,6 +7,15 @@ export type PurreMessages = Record<string, string>;
 
 const SUPPORTED_LOCALES: PurreLocale[] = ['pl', 'en', 'de', 'es', 'fr', 'it', 'uk'];
 const FALLBACK_MESSAGES: PurreMessages = {
+  'app.name': 'PURRE PETS',
+  'app.tagline': 'Tam, gdzie wyjątkowe rasy znajdują wyjątkowe domy',
+  'nav.discover': 'Odkrywaj',
+  'nav.explore': 'Eksploruj',
+  'nav.add': 'Dodaj',
+  'nav.messenger': 'Wiadomości',
+  'nav.profile': 'Profil',
+  'nav.login': 'Zaloguj się',
+  'nav.register': 'Dołącz',
   'preferences.open': 'Ustawienia wyglądu',
   'preferences.title': 'Twoje doświadczenie',
   'preferences.subtitle': 'Dopasuj PURRE PETS do siebie.',
@@ -16,7 +25,11 @@ const FALLBACK_MESSAGES: PurreMessages = {
   'preferences.saved': 'Zmiany zapisują się automatycznie',
   'preferences.system': 'Zgodny z urządzeniem',
   'preferences.brand': 'PURRE AURA',
-  'preferences.privacy': 'Twoje ustawienia są przechowywane na tym urządzeniu.'
+  'preferences.privacy': 'Twoje ustawienia są przechowywane na tym urządzeniu.',
+  'common.loading': 'Ładowanie…',
+  'common.error': 'Coś poszło nie tak',
+  'common.save': 'Zapisz',
+  'common.cancel': 'Anuluj'
 };
 
 @Injectable({ providedIn: 'root' })
