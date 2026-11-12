@@ -169,3 +169,68 @@ body {
     animation: none;
   }
 }
+
+/* Ekran startowy. Pozycje są w CSS, nie w klasach, których build może nie złapać. */
+.orbit {
+  --orbit: min(100vw - 1.25rem, 46rem);
+  position: relative;
+  width: var(--orbit);
+  aspect-ratio: 1;
+  margin-inline: auto;
+}
+
+.orbit-mark {
+  position: absolute;
+  left: 21%;
+  top: 21%;
+  width: 58%;
+  height: 58%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+.orbit-spoke {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1px;
+  height: calc(var(--orbit) * 0.1);
+  transform-origin: top center;
+  transform: translateX(-50%) rotate(calc(var(--a) - 90deg)) translateY(calc(var(--orbit) * 0.29));
+  background: linear-gradient(#7ef6ff, transparent);
+  pointer-events: none;
+}
+
+.orbit-arm {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  color: #d8fbff;
+  font-weight: 600;
+  font-size: clamp(0.72rem, 2.1vw, 1.02rem);
+  letter-spacing: 0.14em;
+  text-decoration: none;
+  text-transform: lowercase;
+  white-space: nowrap;
+  text-shadow: 0 0 14px rgba(0, 210, 230, 0.45);
+  transform: translate(-50%, -50%) rotate(calc(var(--a) - 90deg)) translateY(calc(var(--orbit) * -0.4))
+    rotate(calc(90deg - var(--a)));
+}
+
+.orbit-arm--long {
+  letter-spacing: 0.02em;
+  font-size: clamp(0.64rem, 1.8vw, 0.9rem);
+}
+
+.orbit-arm:hover,
+.orbit-arm:focus-visible {
+  color: #fff;
+  outline: 2px solid #7ef6ff;
+  outline-offset: 4px;
+}
+
