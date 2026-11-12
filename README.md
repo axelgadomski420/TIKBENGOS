@@ -1,411 +1,167 @@
 # PURRE PETS
 
 <p align="center">
-  <img src="frontend/public/images/logo/logo-full-transparent.png" alt="PURRE PETS logo" width="260" />
+  <img src="frontend/public/images/logo/logo-full-transparent.png" alt="Logo PURRE PETS" width="260" />
 </p>
 
 <p align="center">
-  Platforma dla rasowych kotów i psów. Where exceptional breeds find exceptional homes. Angular (front-office i back-office) oraz jedno API Spring Boot.
+  <strong>Where exceptional breeds find exceptional homes.</strong><br />
+  Platforma społecznościowa dla opiekunów, organizacji, ekspertów i osób szukających zwierzęcia z odpowiedzialnego źródła.
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Angular-18.2-DD0031?style=for-the-badge&logo=angular&logoColor=white" alt="Angular" />
-  <img src="https://img.shields.io/badge/TypeScript-5.5-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/Spring_Boot-3.5-6DB33F?style=for-the-badge&logo=springboot&logoColor=white" alt="Spring Boot" />
-  <img src="https://img.shields.io/badge/Java-17-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" alt="Java" />
-  <img src="https://img.shields.io/badge/MySQL-8-4479A1?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL" />
+  <img src="https://img.shields.io/badge/Angular-18.2-DD0031?style=for-the-badge&logo=angular&logoColor=white" alt="Angular 18" />
+  <img src="https://img.shields.io/badge/TypeScript-5.5-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript 5.5" />
+  <img src="https://img.shields.io/badge/Spring_Boot-3.5-6DB33F?style=for-the-badge&logo=springboot&logoColor=white" alt="Spring Boot 3.5" />
+  <img src="https://img.shields.io/badge/Java-17-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" alt="Java 17" />
+  <img src="https://img.shields.io/badge/MySQL-8-4479A1?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL 8" />
 </p>
 
-## Wdrożenie na Oracle
+> **Status produktu:** repozytorium zawiera działające obszary odziedziczone po Elif oraz pierwsze elementy brandingu PURRE PETS. To nie jest jeszcze kompletna implementacja wszystkich funkcji z wizji produktu. W sekcji [Dostępne i planowane funkcje](#dostępne-i-planowane-funkcje) rozdzielamy istniejące moduły od planu rozwoju.
 
-Jedna komenda na Ubuntu (aarch64 albo x86_64), katalog `~/TIKBENGOS`. Istniejący `.env` nie jest nadpisywany.
+## Spis treści
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/axelgadomski420/TIKBENGOS/main/scripts/wdroz.sh | bash
-```
+- [Uruchomienie lokalne](#uruchomienie-lokalne)
+- [Konfiguracja](#konfiguracja)
+- [Dane demonstracyjne](#dane-demonstracyjne)
+- [Testy i build](#testy-i-build)
+- [Dostępne i planowane funkcje](#dostępne-i-planowane-funkcje)
+- [Architektura i katalogi](#architektura-i-katalogi)
+- [Wdrożenie](#wdrożenie)
 
-Skład: MySQL 8.4, API Spring Boot (`/elif`), Angular za nginx na porcie 80. Zdrowie API: `GET /elif/api/health`.
+## Uruchomienie lokalne
 
-Pakiet Java zostaje `com.elif` (ścieżka API `/elif`) — to nie jest stary produkt BENGOS. Z repozytorium zeszły resztki poprzedniej aplikacji (`PROMPT.md`, `brand/logo.jpg`), wrzucone pliki z podróży (`backend/uploads`) oraz `skills-lock.json` (skille Obsidiana, nie używane przez aplikację).
+### Wymagania
 
-## Overview
-
-Elif is a monorepo for a pet platform that combines:
-
-- a public-facing app for pet owners, shelters, providers, and admins
-- an admin workspace for operational workflows
-- a Spring Boot backend that serves REST APIs, file uploads, scheduled jobs, email flows, PDF exports, and realtime notifications
-
-The project is organized by business domain rather than by technical feature alone. The major product areas currently present in code are:
-
-- Community: communities, posts, comments, votes, realtime chat, mentions, moderation, notifications
-- Marketplace: product catalog, cart, Stripe checkout, orders, invoices, reclamations
-- Pet Profiles: pet records and admin pet management
-- Pet Transit: destinations, travel plans, OCR document analysis, checklist flows, feedback, exports
-- Adoption: shelters, appointments, animals, contracts, PDFs, approval emails
-- Events: listings, registration, waitlist, reminders, virtual sessions, certificates
-- Services: service discovery and management
-- Users/Auth: login, registration, roles, back-office user administration
-
-## Architecture
-
-```mermaid
-graph TD
-  FE[Angular app] --> API[Spring Boot REST API]
-  FE --> WS[STOMP WebSocket]
-  API --> SVC[Service layer]
-  SVC --> REPO[JPA repositories]
-  REPO --> DB[(MySQL)]
-  API --> FILES[uploads/]
-  API --> EXT[Stripe / Mail / OCR / AI / Giphy]
-```
-
-## Repository Layout
-
-```text
-Elif/
-  backend/         Spring Boot application
-  frontend/        Angular application
-  design-system/   design references and UI guidance
-  .github/         repo-level assistant/editor guidance
-  README.md
-  MARKETPLACE_QUICK_START.md
-  MARKETPLACE_IMPLEMENTATION.md
-```
-
-### Frontend
-
-Main app areas under `frontend/src/app`:
-
-- `auth`
-- `front-office`
-  - `landing`
-  - `dashboard`
-  - `community`
-  - `marketplace`
-  - `pet-profiles`
-  - `pet-transit`
-  - `adoption`
-  - `events`
-  - `services`
-- `back-office`
-  - `users`
-  - `community`
-  - `pets`
-  - `transit`
-  - `service-management`
-  - `adoption`
-  - `events`
-  - `marketplace`
-- `shared`
-
-### Backend
-
-Main backend packages under `backend/src/main/java/com/elif`:
-
-- `controllers`
-  - `adoption`
-  - `community`
-  - `events`
-  - `marketplace`
-  - `notification`
-  - `pet_profile`
-  - `pet_transit`
-  - `user`
-- `services`
-  - `adoption`
-  - `community`
-  - `events`
-  - `marketplace`
-  - `notification`
-  - `pet_profile`
-  - `pet_transit`
-  - `user`
-- `repositories`
-- `entities`
-- `dto`
-- `config`
-- `exceptions`
-- `scheduler`
-
-## Current Runtime Stack
-
-| Layer | Technology |
-| --- | --- |
-| Frontend | Angular 18.2, TypeScript 5.5, RxJS 7.8, Angular Material 18, Tailwind CSS 3.4 |
-| Backend | Spring Boot 3.5.11, Java 17, Spring Web, Spring Data JPA, Validation, WebSocket/STOMP |
-| Database | MySQL 8 via `mysql-connector-j` |
-| Payments | Stripe |
-| Messaging / Email | Spring Mail |
-| Media / Docs | Multipart uploads, PDF generation/export |
-| Maps / UI extras | Leaflet, Chart.js, Font Awesome, Lucide |
-| Realtime | STOMP over WebSocket |
-
-Sources: [frontend/package.json](frontend/package.json), [backend/pom.xml](backend/pom.xml), [backend/src/main/resources/application.properties](backend/src/main/resources/application.properties)
-
-## Frontend Route Map
-
-### Front Office
-
-Top-level app shell lives under `/app`:
-
-- `/app`
-- `/app/dashboard`
-- `/app/pets`
-- `/app/transit`
-- `/app/services`
-- `/app/adoption`
-- `/app/events`
-- `/app/marketplace`
-- `/app/community`
-
-### Back Office
-
-Admin shell lives under `/admin`:
-
-- `/admin/users`
-- `/admin/community`
-- `/admin/pets`
-- `/admin/transit`
-- `/admin/services`
-- `/admin/adoption`
-- `/admin/events`
-- `/admin/marketplace`
-
-The app also includes redirects such as `/community -> /app/community` and `/events -> /app/events`.
-
-## Realtime Features
-
-The backend enables a STOMP broker and exposes the WebSocket endpoint:
-
-- WebSocket endpoint: `/elif/ws-community`
-- Broker topics: `/topic/...`
-- App destinations: `/app/...`
-
-Realtime is actively used for:
-
-- community presence
-- community chat messages
-- typing and seen indicators
-- navbar notification updates
-
-Key files:
-
-- [backend/src/main/java/com/elif/config/CommunityWebSocketConfig.java](backend/src/main/java/com/elif/config/CommunityWebSocketConfig.java)
-- [frontend/src/app/front-office/community/services/community-realtime.service.ts](frontend/src/app/front-office/community/services/community-realtime.service.ts)
-- [backend/src/main/java/com/elif/services/notification/AppNotificationService.java](backend/src/main/java/com/elif/services/notification/AppNotificationService.java)
-
-## Integrations and External Services
-
-The codebase currently integrates with or prepares for:
-
-- Stripe checkout for marketplace payments
-- SMTP email delivery for events, adoption, transit, and marketplace invoice workflows
-- Giphy search for community messaging
-- OCR service for transit document analysis
-- AI-backed summary/config support via OpenAI, Groq, and Gemini configuration
-- a separate Community AI Agent microservice for natural-language community search
-
-Important backend config values are defined in [backend/src/main/resources/application.properties](backend/src/main/resources/application.properties).
-
-## Companion Service: Community AI Agent
-
-Elif is linked to a separate repo at:
-
-- [AtfastrSlushyMaker/elif-community-ai-agent-nl](https://github.com/AtfastrSlushyMaker/elif-community-ai-agent-nl)
-
-That repo is a standalone FastAPI microservice that powers the natural-language "ask the community" experience. Elif’s frontend points to it through:
-
-- `communityAgentApiUrl: http://localhost:8095`
-
-and calls:
-
-- `POST /v1/community/agent-search`
-
-Integration points inside this repo:
-
-- [frontend/src/environments/environment.ts](frontend/src/environments/environment.ts)
-- [frontend/src/environments/environment.development.ts](frontend/src/environments/environment.development.ts)
-- [frontend/src/app/front-office/community/services/post.service.ts](frontend/src/app/front-office/community/services/post.service.ts)
-
-How the companion service works at a high level:
-
-- it receives a natural-language query from Elif
-- it fetches seed evidence from Elif community APIs
-- it asks an LLM for a constrained JSON action plan
-- it executes those actions itself against Elif backend endpoints
-- it synthesizes a grounded answer with referenced posts, communities, comments, flairs, and follow-up questions
-
-Request context passed through the agent:
-
-- `user_id` is forwarded to Elif backend requests as `X-User-Id`
-- `act_as_user_id`, when used, is forwarded as `X-Act-As-User-Id`
-
-From the companion repo’s implementation, the service currently uses:
-
-- FastAPI + Uvicorn
-- httpx for calling Elif backend APIs
-- Groq as the active LLM provider
-- a plan-and-execute agent loop with typed action contracts and fallback behavior
-
-The backend URL expected by that service is:
-
-- `BACKEND_BASE_URL=http://localhost:8087/elif`
-
-and the community API prefix is:
-
-- `BACKEND_COMMUNITY_PREFIX=/api/community`
-
-That means the microservice is not embedded into the Spring Boot app. It is a separate process that depends on the Elif backend being up first.
-
-## Local Development
-
-### Prerequisites
-
-- Node.js 20+ recommended
-- npm
+- Node.js 20+ i npm
 - Java 17
 - MySQL 8+
-- MySQL CLI if you want to use the seed script
+- Git
 
-### 1. Configure MySQL
-
-Default backend database config:
-
-- host: `localhost`
-- port: `3306`
-- database: `Elif`
-- user: `root`
-- password: empty
-
-The backend uses:
-
-- `spring.jpa.hibernate.ddl-auto=update`
-- `server.port=8087`
-- `server.servlet.context-path=/elif`
-
-### 2. Optional `.env`
-
-The backend reads env values from these locations if present:
-
-- `.env`
-- `backend/.env`
-- `../backend/.env`
-- `../.env`
-
-Useful variables:
-
-| Variable | Purpose |
-| --- | --- |
-| `STRIPE_SECRET_KEY` | Stripe checkout |
-| `SPRING_MAIL_HOST` | SMTP host |
-| `SPRING_MAIL_PORT` | SMTP port |
-| `SPRING_MAIL_USERNAME` | SMTP username |
-| `SPRING_MAIL_PASSWORD` | SMTP password |
-| `APP_MAIL_FROM` | sender override |
-| `APP_FRONTEND_BASE_URL` | link generation in emails |
-| `APP_BACKEND_BASE_URL` | backend link generation |
-| `OPENAI_API_KEY` | AI integration config |
-| `GROQ_API_KEY` | AI summary config |
-| `GEMINI_API_KEY` | AI summary config |
-| `GIPHY_API_KEY` | community GIF search |
-| `APP_NOTIFICATIONS_COMMUNITY_NEW_POST_ENABLED` | enables broad new-post notifications |
-
-### 3. Seed Demo Data
-
-Run from the repo root:
+### 1. Pobierz repozytorium
 
 ```bash
-bash backend/run_demo_seeds.sh
+git clone https://github.com/axelgadomski420/TIKBENGOS.git
+cd TIKBENGOS
 ```
 
-Optional overrides:
+### 2. Uruchom MySQL
+
+Backend domyślnie łączy się z `localhost:3306`, bazą `Elif`, użytkownikiem `root` i pustym hasłem. Utwórz bazę, jeśli nie istnieje:
+
+```sql
+CREATE DATABASE IF NOT EXISTS Elif CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+Jeśli lokalny MySQL wymaga hasła lub innego użytkownika, ustaw standardowe zmienne Spring Boot przed uruchomieniem backendu, np.:
 
 ```bash
-DB_HOST=127.0.0.1 DB_PORT=3306 DB_NAME=Elif DB_USER=root DB_PASSWORD='' bash backend/run_demo_seeds.sh
+export SPRING_DATASOURCE_URL='jdbc:mysql://localhost:3306/Elif?createDatabaseIfNotExist=true'
+export SPRING_DATASOURCE_USERNAME='root'
+export SPRING_DATASOURCE_PASSWORD='twoje-lokalne-haslo'
 ```
 
-Seed files applied by the script:
+Nie używaj pustego hasła ani domyślnego `root`-a w środowisku produkcyjnym.
 
-- `backend/user_demo_seed.sql`
-- `backend/community_demo_seed.sql`
-- `backend/pet_profile_demo_seed.sql`
-- `backend/adoption_demo_seed.sql`
-- `backend/marketplace_demo_seed.sql`
-- `backend/pet_transit_demo_seed.sql`
+### 3. Uruchom backend
 
-### 4. Run the Backend
-
-macOS/Linux:
+W osobnym terminalu:
 
 ```bash
 cd backend
 ./mvnw spring-boot:run
 ```
 
-Windows:
+Windows PowerShell:
 
 ```powershell
 cd backend
 mvnw.cmd spring-boot:run
 ```
 
-Backend base URL:
+API działa pod `http://localhost:8087/elif`. Szybki test zdrowia:
 
-- `http://localhost:8087/elif`
+```bash
+curl http://localhost:8087/elif/api/health
+```
 
-### 5. Run the Frontend
+### 4. Uruchom frontend
+
+W kolejnym terminalu:
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm start
 ```
 
-Frontend app URL:
+Otwórz `http://localhost:4200`. Jeżeli repo nie ma zgodnego `package-lock.json`, użyj `npm install` zamiast `npm ci`.
 
-- `http://localhost:4200`
+Frontend korzysta z lokalnego API na porcie 8087. Aplikacja używa Angulara, Spring Boot i MySQL; nie trzeba uruchamiać alternatywnego stacka.
 
-### 6. Run the Community AI Agent
+## Konfiguracja
 
-If you want the natural-language community search experience to work locally, also start the companion repo:
+Backend ładuje opcjonalne pliki `.env` z katalogu repozytorium lub `backend/`. Nie commituj sekretów. Najważniejsze zmienne integracyjne:
 
-```bash
-cd /Users/malek/Documents/GitHub/community-ai-agent-nl
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.local.example .env
-uvicorn app.main:app --host 0.0.0.0 --port 8095
+| Zmienna | Zastosowanie |
+| --- | --- |
+| `STRIPE_SECRET_KEY` | Płatności marketplace — wymagany klucz Stripe dla operacji płatniczych |
+| `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD` | Wysyłka poczty SMTP |
+| `APP_MAIL_FROM` | Adres nadawcy e-maili |
+| `APP_FRONTEND_BASE_URL` | Linki do aplikacji w wiadomościach |
+| `APP_BACKEND_BASE_URL` | Publiczny adres API używany m.in. w linkach |
+| `GOOGLE_CLIENT_ID` | Logowanie Google po skonfigurowaniu zgodnego klienta OAuth |
+| `OPENAI_API_KEY`, `GROQ_API_KEY`, `GEMINI_API_KEY` | Integracje AI używane przez wybrane istniejące przepływy |
+| `GIPHY_API_KEY` | Wyszukiwanie GIF-ów w komunikacji społecznościowej |
+| `WEATHER_API_KEY` | Funkcje korzystające z danych pogodowych |
+| `APP_NOTIFICATIONS_COMMUNITY_NEW_POST_ENABLED` | Powiadomienia o nowych postach w społeczności; domyślnie wyłączone |
+
+Przykładowy lokalny `.env` (uzupełnij tylko integracje, których używasz):
+
+```dotenv
+SPRING_MAIL_HOST=smtp.gmail.com
+SPRING_MAIL_PORT=587
+SPRING_MAIL_USERNAME=
+SPRING_MAIL_PASSWORD=
+APP_MAIL_FROM=
+APP_FRONTEND_BASE_URL=http://localhost:4200
+APP_BACKEND_BASE_URL=http://localhost:8087/elif
+STRIPE_SECRET_KEY=
+GOOGLE_CLIENT_ID=
+GIPHY_API_KEY=
 ```
 
-Agent service URL:
+Nie wklejaj prawdziwych tokenów do repozytorium ani zgłoszeń. Niektóre funkcje dostępne w UI wymagają zewnętrznych kluczy i usług.
 
-- `http://localhost:8095`
+## Dane demonstracyjne
 
-Health check:
+Opcjonalne seedy SQL znajdują się w `backend/*_demo_seed.sql`. Uruchom je po skonfigurowaniu MySQL:
 
-- `GET http://localhost:8095/health`
+```bash
+bash backend/run_demo_seeds.sh
+```
 
-Important notes:
+Możesz nadpisać parametry seedowania:
 
-- the Elif backend should already be running on `http://localhost:8087/elif`
-- the frontend community "ask" flow will show an error if the agent is unreachable
-- the companion repo needs a Groq API key or key list in its `.env`
+```bash
+DB_HOST=127.0.0.1 DB_PORT=3306 DB_NAME=Elif DB_USER=root DB_PASSWORD='twoje-haslo' bash backend/run_demo_seeds.sh
+```
 
-## Build and Test
+Skrypt seedujący modyfikuje bazę. Uruchamiaj go wyłącznie na lokalnej/testowej instancji i upewnij się, że rozumiesz jego działanie przed użyciem.
+
+Dane kont demonstracyjnych są opisane w `backend/user_demo_seed.sql`. Hasła z seedów są przeznaczone wyłącznie do lokalnych testów — nie używaj ich publicznie.
+
+## Testy i build
 
 ### Frontend
 
 ```bash
 cd frontend
 npm run build
-npm run test
+npm test -- --watch=false
 ```
 
 ### Backend
-
-macOS/Linux:
 
 ```bash
 cd backend
@@ -413,81 +169,92 @@ cd backend
 ./mvnw test
 ```
 
-Windows:
+Windows PowerShell: użyj `mvnw.cmd` zamiast `./mvnw`.
 
-```powershell
-cd backend
-mvnw.cmd -DskipTests compile
-mvnw.cmd test
+## Dostępne i planowane funkcje
+
+### Obszary już obecne w kodzie repozytorium
+
+To istniejące moduły aplikacji bazowej. Ich zakres i kompletność różnią się; obecność modułu nie oznacza, że każdy przepływ jest gotowy do produkcji.
+
+- **Konta i role:** rejestracja/logowanie, role użytkowników i administracyjne widoki.
+- **Community:** grupy/społeczności, posty, komentarze, głosowanie, moderowanie oraz część realtime messaging/presence przez STOMP.
+- **Adoption:** zwierzęta, schroniska/organizacje, wnioski, terminy i dokumenty związane z adopcją.
+- **Pet Profiles:** profile zwierząt i narzędzia administracyjne.
+- **Marketplace:** katalog, koszyk, zamówienia, Stripe i dokumenty rozliczeniowe — wymagają konfiguracji usług zewnętrznych.
+- **Pet Transit:** kierunki i przepływy transportowe, checklisty oraz wybrane funkcje dokumentów/OCR.
+- **Events:** wydarzenia, zapisy, listy oczekujących i przypomnienia w istniejących przepływach.
+- **Services:** obszar wyszukiwania i zarządzania usługami.
+- **Powiadomienia i e-mail:** zapis powiadomień, wybrane komunikaty realtime i e-maile przez SMTP.
+- **Pierwszy etap PURRE PETS:** polskojęzyczny redesign strony głównej oraz istniejący panel ustawień języka i motywu. Nie oznacza to jeszcze pełnej lokalizacji każdego ekranu ani zapisu tych preferencji do konta po stronie backendu.
+
+### Planowane — jeszcze nie należy zakładać, że działa
+
+- pełna lokalizacja wszystkich widoków, walidacji, wiadomości i e-maili (PL domyślny; EN, DE, ES, FR, IT, UK; opcjonalnie RTL dla AR)
+- zapisywanie preferencji języka/motywu w profilu użytkownika i synchronizacja między urządzeniami
+- nowe przepływy marketplace dla odpowiedzialnych hodowli: mioty, profile hodowców, rodowody i rezerwacje
+- PURRE Discover oraz HoloFeed z krótkimi filmami
+- kompletne PURRE Messenger dla rozmów 1:1 i grupowych
+- Pet Passport, Smart Match, Breed Explorer, Event Radar i PURRE Assistant
+- pipeline weryfikacji hodowców, moderacja, wykrywanie nadużyć i ocena ryzyka z udziałem człowieka
+- integracja Puter.js/Workers AI jako warstwa wspomagająca weryfikację; wyniki AI nie powinny zastępować decyzji człowieka
+- storage S3/MinIO, Redis/cache/kolejki, produkcyjna konfiguracja obserwowalności i rate limiting
+- dokumentacja prawna, pełne procesy RODO oraz audyt bezpieczeństwa
+
+Zaawansowane szyfrowanie end-to-end, escrow i inne funkcje wymagające osobnego audytu nie należą do pierwszego MVP.
+
+## Architektura i katalogi
+
+```text
+.
+├── backend/       Spring Boot 3, Java 17, JPA, REST, STOMP, MySQL
+├── frontend/      Angular 18, TypeScript, Tailwind CSS, Angular Material
+├── scripts/       skrypty operacyjne i wdrożeniowe
+├── design-system/ materiały i wytyczne interfejsu
+└── README.md
 ```
 
-## Demo Accounts
+Frontend ma moduły front-office (`frontend/src/app/front-office`), back-office (`frontend/src/app/back-office`), auth i shared. Backend jest aplikacją Spring Boot z domenami pod `backend/src/main/java/com/elif`.
 
-From [backend/user_demo_seed.sql](backend/user_demo_seed.sql):
+| Warstwa | Technologia / szczegóły |
+| --- | --- |
+| UI | Angular 18.2, TypeScript, Tailwind CSS, Angular Material |
+| API | Spring Boot 3.5, Java 17, REST i WebSocket/STOMP |
+| Dane | MySQL 8, Spring Data JPA |
+| Płatności | Stripe (wymaga klucza) |
+| Powiadomienia | SMTP i wybrane zdarzenia realtime |
+| Pliki | lokalny katalog uploadów `backend/uploads` |
 
-- `admin1@elif.com / password`
-- `admin2@elif.com / password`
-- `vet1@elif.com / password`
-- `provider1@elif.com / password`
-- `user1@elif.com / password`
-- `user2@elif.com / password`
-- `user3@elif.com / password`
-- `user4@elif.com / password`
-- `user5@elif.com / password`
-- `user6@elif.com / password`
-- `user7@elif.com / password`
-- `user8@elif.com / password`
-- `user9@elif.com / password`
-- `user10@elif.com / password`
-- `user11@elif.com / password`
-- `shelter.approved@elif.com / password`
-- `shelter.pending@elif.com / password`
+API ma kontekst `/elif`, domyślnie na porcie 8087. WebSocket community korzysta z `/elif/ws-community`. Nie wystawiaj publicznie portów bazy danych ani usług wewnętrznych.
 
-## Notable Operational Details
+## Wdrożenie
 
-- The backend is a single Spring Boot app serving all domains.
-- Notifications are persisted and broadcast in realtime through the shared notification service.
-- Community new-post notifications are disabled by default to reduce feed noise.
-- Runtime uploads are stored under `backend/uploads` and should be treated as environment-specific state.
-- The repo already contains generated/runtime folders like `backend/target` and `backend/uploads`, so keep that in mind when packaging or cleaning environments.
-- There is no root Docker Compose setup in this repo at the moment.
+Repo zawiera skrypt wdrożeniowy dla Ubuntu/Oracle Cloud:
 
-## Documentation Index
+```bash
+curl -fsSL https://raw.githubusercontent.com/axelgadomski420/TIKBENGOS/main/scripts/wdroz.sh -o /tmp/purre-deploy.sh
+less /tmp/purre-deploy.sh  # przejrzyj skrypt przed uruchomieniem
+bash /tmp/purre-deploy.sh
+```
 
-Primary docs already in the repo:
+Skrypt używa Docker Compose, pobiera aktualną gałąź `main` i może zbudować/uruchomić usługi. Перед запуском проверьте `compose.yaml`/`docker-compose.yml`, `.env`, firewall и персистентность томов в своём окружении. Для продакшена:
 
-- [MARKETPLACE_QUICK_START.md](MARKETPLACE_QUICK_START.md)
-- [MARKETPLACE_IMPLEMENTATION.md](MARKETPLACE_IMPLEMENTATION.md)
-- [design-system/elif/MASTER.md](design-system/elif/MASTER.md)
-- [design-system/elif/pages/community.md](design-system/elif/pages/community.md)
-- [frontend/README.md](frontend/README.md)
+- ustaw silne, unikalne sekrety i nie zapisuj ich w repozytorium;
+- sprawdź reguły firewall — publiczne powinny być tylko potrzebne porty HTTP/HTTPS i SSH; MySQL nie powinien być dostępny z Internetu;
+- skonfiguruj HTTPS, DNS, backup bazy i katalogu uploadów oraz monitoring;
+- przetestuj migracje, odtworzenie backupu, logowanie i integracje na stagingu;
+- nie uruchamiaj automatycznie skryptu wdrożeniowego bez wcześniejszego audytu jego treści i plików Compose.
 
-Community-specific deeper docs:
+Po wdrożeniu skrypt sprawdza `GET /elif/api/health` na porcie z konfiguracji `HTTP_PORT` (domyślnie 80). Szczegóły infrastruktury zależą od aktualnych plików Compose oraz ustawień konkretnej instancji.
 
-- [frontend/src/app/front-office/community/README.md](frontend/src/app/front-office/community/README.md)
-- [frontend/src/app/front-office/community/components/README.md](frontend/src/app/front-office/community/components/README.md)
-- [frontend/src/app/front-office/community/models/README.md](frontend/src/app/front-office/community/models/README.md)
-- [frontend/src/app/front-office/community/services/README.md](frontend/src/app/front-office/community/services/README.md)
-- [backend/src/main/java/com/elif/controllers/community/README.md](backend/src/main/java/com/elif/controllers/community/README.md)
-- [backend/src/main/java/com/elif/services/community/README.md](backend/src/main/java/com/elif/services/community/README.md)
-- [backend/src/main/java/com/elif/entities/community/README.md](backend/src/main/java/com/elif/entities/community/README.md)
-- [backend/src/main/java/com/elif/repositories/community/README.md](backend/src/main/java/com/elif/repositories/community/README.md)
-- [backend/src/main/java/com/elif/dto/community/README.md](backend/src/main/java/com/elif/dto/community/README.md)
+## Dokumentacja uzupełniająca
 
-Companion repo docs worth reading when touching AI community search:
+- [Quick start Marketplace](MARKETPLACE_QUICK_START.md)
+- [Implementacja Marketplace](MARKETPLACE_IMPLEMENTATION.md)
+- [README frontendu](frontend/README.md)
+- [Dokumentacja Community](frontend/src/app/front-office/community/README.md)
+- [Design system](design-system/elif/MASTER.md)
 
-- [Agent README](https://github.com/AtfastrSlushyMaker/elif-community-ai-agent-nl/blob/main/README.md)
-- [Agent Architecture](https://github.com/AtfastrSlushyMaker/elif-community-ai-agent-nl/blob/main/ARCHITECTURE.md)
-- [Agent Scoped Search Notes](https://github.com/AtfastrSlushyMaker/elif-community-ai-agent-nl/blob/main/SCOPED_SEARCH.md)
+---
 
-## Summary
-
-This repo is no longer just a simple Angular + Spring starter. It is a fairly broad multi-domain product with:
-
-- separate front-office and back-office experiences
-- domain-organized backend packages
-- realtime community and notification flows
-- scheduled event and transit workflows
-- payment, email, OCR, PDF, and AI-related integrations
-
-If you are onboarding to the project, start with this file, then jump into the domain-specific docs for the area you plan to work on.
+PURRE PETS rozwija się na istniejącej architekturze Angular + Spring Boot + MySQL. Nazwy pakietów Java i część tras API nadal korzystają z `com.elif` oraz `/elif`; branding produktu nie zmienia automatycznie identyfikatorów backendu ani kontraktów API.
