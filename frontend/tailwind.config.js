@@ -1,21 +1,26 @@
+const withOpacity = (token) => ({ opacityValue } = {}) => {
+  if (opacityValue === undefined) return `var(${token})`;
+  return `color-mix(in srgb, var(${token}) ${Number(opacityValue) * 100}%, transparent)`;
+};
+
 module.exports = {
   content: ['./src/**/*.{html,ts}'],
   theme: {
     extend: {
       colors: {
         brand: {
-          teal: 'var(--purre-violet)',
-          orange: 'var(--purre-amber)',
-          yellow: 'var(--purre-amber)',
-          peach: 'var(--purre-card)',
-          red: 'var(--purre-red)',
-          violet: 'var(--purre-violet)',
-          green: 'var(--purre-green)',
-          blue: 'var(--purre-blue)',
-          surface: 'var(--purre-surface)',
-          card: 'var(--purre-card)',
-          border: 'var(--purre-border)',
-          muted: 'var(--purre-text-muted)'
+          teal: withOpacity('--purre-violet'),
+          orange: withOpacity('--purre-amber'),
+          yellow: withOpacity('--purre-amber'),
+          peach: withOpacity('--purre-card'),
+          red: withOpacity('--purre-red'),
+          violet: withOpacity('--purre-violet'),
+          green: withOpacity('--purre-green'),
+          blue: withOpacity('--purre-blue'),
+          surface: withOpacity('--purre-surface'),
+          card: withOpacity('--purre-card'),
+          border: withOpacity('--purre-border'),
+          muted: withOpacity('--purre-text-muted')
         }
       },
       fontFamily: {
