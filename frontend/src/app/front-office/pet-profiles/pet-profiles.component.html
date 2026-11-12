@@ -1,0 +1,494 @@
+<div class="pets-shell">
+
+  <!-- ── HERO HEADER ── -->
+  <header class="page-hero">
+    <div class="hero-blob hero-blob-1"></div>
+    <div class="hero-blob hero-blob-2"></div>
+    <div class="hero-paw hero-paw-1"><i class="fas fa-paw"></i></div>
+    <div class="hero-paw hero-paw-2"><i class="fas fa-paw"></i></div>
+    <div class="hero-paw hero-paw-3"><i class="fas fa-paw"></i></div>
+    <div class="hero-inner">
+      <div class="hero-copy">
+        <div class="hero-text">
+          <span class="page-kicker"><i class="fas fa-paw"></i> Pet Profiles</span>
+          <h1>Your Pets, Beautifully Organized</h1>
+          <p class="page-subtitle">A calm, clean space to keep every companion profile in one place.</p>
+          <div class="hero-quote-chip">
+            <i class="fas fa-heart"></i>
+            <span>Every wag, purr, and chirp belongs here.</span>
+          </div>
+        </div>
+
+        <div class="hero-quick-stats">
+          <div>
+            <strong>{{ pets.length }}</strong>
+            <span>Total pets</span>
+          </div>
+          <div>
+            <strong>{{ petsWithLocationCount }}</strong>
+            <span>GPS tracked</span>
+          </div>
+          <div>
+            <strong>{{ displayedPets.length }}</strong>
+            <span>Visible now</span>
+          </div>
+        </div>
+      </div>
+
+      <aside class="hero-map-card" role="button" tabindex="0" (click)="openMapModal()" (keydown.enter)="openMapModal()" (keydown.space)="openMapModal()" aria-label="Open large GPS map">
+        <div class="hero-map-card-head">
+          <div>
+            <span class="section-kicker">Live Tracker</span>
+            <h2>Where your pets are now</h2>
+            <p>{{ petsWithLocationCount }} tracked right now</p>
+          </div>
+          <span class="hero-map-chip">
+            <i class="fas fa-up-right-and-down-left-from-center"></i>
+            Open
+          </span>
+        </div>
+
+        <div class="hero-map-frame">
+          <div #petsMapPreview class="pets-map-preview" role="region" aria-label="Map preview of pet locations"></div>
+          <div class="hero-map-overlay">
+            <span>Tap to expand</span>
+            <i class="fas fa-arrow-right"></i>
+          </div>
+        </div>
+
+        <div class="hero-map-footnote">
+          <span><i class="fas fa-location-dot"></i> Compact preview</span>
+          <span>OSM + Carto</span>
+        </div>
+      </aside>
+    </div>
+    <div class="hero-wave">
+      <svg viewBox="0 0 1440 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0,40 C360,80 1080,0 1440,40 L1440,60 L0,60 Z" fill="#f8fafc"/>
+      </svg>
+    </div>
+  </header>
+
+  <!-- ── MINI ACTION BAR ── -->
+  <section class="mini-action-bar" aria-label="Pet quick tools">
+    <div class="bar-heading">
+      <h2>Quick Tools</h2>
+      <p>{{ filterSummary }}</p>
+    </div>
+
+    <div class="bar-search-wrap">
+      <i class="fas fa-search"></i>
+      <input [(ngModel)]="searchTerm" placeholder="Search by name, breed, or species..." id="pet-search-input" />
+      <button *ngIf="searchTerm" type="button" class="clear-search" (click)="clearSearch()" aria-label="Clear search" id="clear-search-btn">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="bar-controls">
+      <select [(ngModel)]="sortMode" aria-label="Sort pets" id="sort-mode-select">
+        <option value="name">Sort by Name</option>
+        <option value="species">Sort by Species</option>
+        <option value="recent">Sort by Recent Updates</option>
+      </select>
+      <select [(ngModel)]="selectedSpecies" aria-label="Filter by species" id="species-filter-select">
+        <option value="">All Species</option>
+        <option *ngFor="let species of speciesOptions" [value]="species">{{ species }}</option>
+      </select>
+    </div>
+
+    <div class="bar-actions">
+      <button type="button" class="btn-ghost" (click)="openCreateForm()" id="quick-add-pet-btn">Manual Add</button>
+      <button *ngIf="hasActiveFilters" type="button" class="btn-ghost" (click)="resetFilters()" id="reset-filters-btn">Reset Filters</button>
+    </div>
+  </section>
+
+  <!-- ── ERROR BANNER ── -->
+  <div *ngIf="error" class="error-banner">
+    <i class="fas fa-triangle-exclamation"></i>
+    <span>{{ error }}</span>
+    <button *ngIf="error.includes('session is invalid')" (click)="logoutAndRedirect()">Logout &amp; Login Again</button>
+  </div>
+
+  <div *ngIf="success" class="success-banner">
+    <i class="fas fa-circle-check"></i>
+    <span>{{ success }}</span>
+  </div>
+
+  <div *ngIf="mapModalOpen" class="gps-modal-backdrop" (click)="closeMapModal()">
+    <section class="gps-modal" role="dialog" aria-modal="true" aria-label="Expanded pet GPS map" (click)="$event.stopPropagation()">
+      <header class="gps-modal-head">
+        <div>
+          <h2>Pet GPS Tracker</h2>
+          <p>{{ petsWithLocationCount }} of {{ pets.length }} pets currently have a tracked location.</p>
+        </div>
+        <button type="button" class="gps-modal-close" (click)="closeMapModal()" aria-label="Close map modal">
+          <i class="fas fa-times"></i>
+        </button>
+      </header>
+
+      <div class="gps-modal-grid">
+        <div class="gps-map-panel">
+          <div class="gps-map-panel-head">
+            <span class="section-kicker">Map View</span>
+            <p>Clean tracking view for all pets with GPS locations.</p>
+          </div>
+          <div #petsMapModal class="pets-map-modal" role="region" aria-label="Large map of pet locations"></div>
+          <div class="gps-map-panel-footnote">
+            <span>Tap a marker for details.</span>
+            <span>Map data from OpenStreetMap and Carto.</span>
+          </div>
+        </div>
+
+        <aside class="gps-side-card">
+          <h3>Tracking Overview</h3>
+          <p>Tap Track GPS on any pet card to capture your current location and pin it on the map.</p>
+
+          <div class="gps-metric-grid">
+            <div>
+              <strong>{{ petsWithLocationCount }}</strong>
+              <span>Tracked</span>
+            </div>
+            <div>
+              <strong>{{ pets.length - petsWithLocationCount }}</strong>
+              <span>Untracked</span>
+            </div>
+          </div>
+
+          <div class="gps-side-actions">
+            <button type="button" class="gps-side-button" (click)="refreshMapMarkers()">
+              <i class="fas fa-arrows-rotate"></i>
+              Refresh map
+            </button>
+            <button type="button" class="gps-side-button gps-side-button--ghost" (click)="centerFirstTrackedPet()" [disabled]="!petsWithLocationCount">
+              <i class="fas fa-crosshairs"></i>
+              Focus first tracked pet
+            </button>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </div>
+
+  <!-- ── ADD / EDIT MODAL ── -->
+  <div *ngIf="formOpen" class="pet-form-backdrop" (click)="cancelForm()">
+    <section class="pet-form-shell" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Pet profile form">
+      <header class="form-header">
+        <div class="form-title-group">
+          <div class="form-icon-wrap">
+            <i class="fas" [class.fa-pen]="editingPetId" [class.fa-plus]="!editingPetId"></i>
+          </div>
+          <h2>{{ editingPetId ? 'Edit Pet Profile' : (isAiCreationMode ? 'AI Profile Assistant' : 'Add New Pet') }}</h2>
+        </div>
+        <button type="button" class="form-close-btn" (click)="cancelForm()" aria-label="Close form">
+          <i class="fas fa-times"></i>
+        </button>
+      </header>
+
+      <div *ngIf="isCreateMode" class="creation-stepper" aria-label="Profile creation steps">
+        <div class="step-item" [class.active]="creationStep >= 1" [class.current]="creationStep === 1">
+          <span>1</span>
+          <label>{{ isAiCreationMode ? 'Upload Photo' : 'Basics' }}</label>
+        </div>
+        <div class="step-item" [class.active]="creationStep >= 2" [class.current]="creationStep === 2">
+          <span>2</span>
+          <label>{{ isAiCreationMode ? 'AI Auto-fill' : 'Photo & Details' }}</label>
+        </div>
+        <div class="step-item" [class.active]="creationStep >= 3" [class.current]="creationStep === 3">
+          <span>3</span>
+          <label>Review & Save</label>
+        </div>
+      </div>
+
+      <form [formGroup]="petForm" (ngSubmit)="submitForm()" class="pet-form-grid">
+        <div class="form-field" *ngIf="!isCreateMode || creationStep >= 2 || isManualCreationMode">
+          <label>Name</label>
+          <input formControlName="name" placeholder="e.g. Buddy" id="pet-name-input" />
+          <p class="field-error" *ngIf="hasFieldError('name', 'required')">Name is required.</p>
+          <p class="field-error" *ngIf="hasFieldError('name', 'maxlength')">Name must be 100 characters or fewer.</p>
+          <p class="field-error" *ngIf="hasFieldError('name', 'pattern')">Name can only contain letters and spaces.</p>
+        </div>
+        <div class="form-field" *ngIf="!isCreateMode || creationStep >= 2 || isManualCreationMode">
+          <label>Species</label>
+          <select formControlName="species" id="pet-species-select">
+            <option *ngFor="let species of speciesOptions" [value]="species">{{ species }}</option>
+          </select>
+        </div>
+        <div class="form-field" *ngIf="!isCreateMode || creationStep >= 2 || isManualCreationMode">
+          <label>Breed</label>
+          <input formControlName="breed" placeholder="e.g. Golden Retriever" id="pet-breed-input" />
+          <p class="field-error" *ngIf="hasFieldError('breed', 'maxlength')">Breed must be 100 characters or fewer.</p>
+          <p class="field-error" *ngIf="hasFieldError('breed', 'pattern')">Breed can only contain letters and spaces.</p>
+        </div>
+        <div class="form-field" *ngIf="!isCreateMode || creationStep >= 2 || isManualCreationMode">
+          <label>Gender</label>
+          <select formControlName="gender" id="pet-gender-select">
+            <option *ngFor="let gender of genderOptions" [value]="gender">{{ gender }}</option>
+          </select>
+        </div>
+        <div class="form-field" *ngIf="!isCreateMode || creationStep >= 2 || (isManualCreationMode && creationStep >= 1)">
+          <label>Weight (kg)</label>
+          <input type="number" step="0.01" formControlName="weight" placeholder="e.g. 5.2" id="pet-weight-input" />
+          <p class="field-error" *ngIf="isFieldInvalid('weight')">Weight must be greater than 0.</p>
+        </div>
+        <div class="form-field" *ngIf="!isCreateMode || creationStep >= 2 || (isManualCreationMode && creationStep >= 1)">
+          <label>Date of Birth</label>
+          <input type="date" formControlName="dateOfBirth" id="pet-dob-input" />
+          <p class="field-error" *ngIf="hasFieldError('dateOfBirth', 'futureDate')">Date of birth cannot be in the future.</p>
+        </div>
+        <div class="form-field form-field-wide photo-upload-field" *ngIf="!isCreateMode || creationStep >= 2 || isAiCreationMode">
+          <label>Upload Photo</label>
+          <div
+            class="upload-dropzone"
+            [class.drag-active]="isDragActive"
+            (click)="openFilePicker(fileInput)"
+            (dragover)="onUploadDragOver($event)"
+            (dragleave)="onUploadDragLeave($event)"
+            (drop)="onUploadDrop($event)"
+            (paste)="onUploadPaste($event)"
+            tabindex="0"
+            role="button"
+            aria-label="Upload pet image"
+          >
+            <input #fileInput type="file" accept="image/*" (change)="onPhotoSelected($event)" id="pet-photo-file-input" />
+            <i class="fas fa-cloud-arrow-up"></i>
+            <p>Drag and drop an image, click to browse, or press Ctrl+V to paste.</p>
+            <span class="field-hint">You can also drop or paste an image URL link.</span>
+          </div>
+
+          <p class="field-hint" *ngIf="isAiCreationMode && creationStep === 1">
+            Step 1: upload a clear pet photo, then continue to AI analysis.
+          </p>
+
+          <div class="photo-preview" *ngIf="photoPreviewUrl">
+            <img [src]="photoPreviewUrl" alt="Selected pet photo preview" />
+            <div class="photo-preview-actions">
+              <button
+                type="button"
+                class="btn-primary"
+                (click)="analyzePhotoForProfile()"
+                [disabled]="analyzingPhoto || !selectedPhotoFile || (!editingPetId && creationStep < 2 && !isAiCreationMode)"
+                id="analyze-photo-profile-btn"
+              >
+                <i class="fas" [ngClass]="analyzingPhoto ? 'fa-spinner fa-spin' : 'fa-sparkles'"></i>
+                {{ analyzingPhoto ? 'Analyzing...' : 'Auto-fill with AI' }}
+              </button>
+              <button type="button" class="btn-ghost" (click)="removeSelectedPhoto()" id="remove-selected-photo-btn">
+                Remove photo
+              </button>
+            </div>
+          </div>
+
+          <div class="ai-analysis-panel" *ngIf="aiPhotoHints.length || aiPhotoConfidence !== null">
+            <div class="ai-analysis-head">
+              <h4>AI profile suggestions</h4>
+              <span *ngIf="aiPhotoConfidence !== null" class="ai-confidence-pill">{{ aiPhotoConfidence }}% confidence</span>
+            </div>
+            <ul>
+              <li *ngFor="let hint of aiPhotoHints">{{ hint }}</li>
+            </ul>
+            <p class="field-hint">Always verify species, breed, and gender before creating the profile.</p>
+          </div>
+        </div>
+
+        <div class="form-field form-field-wide review-panel" *ngIf="isCreateMode && creationStep === 3">
+          <h4>Review profile before saving</h4>
+          <p><strong>Name:</strong> {{ petForm.get('name')?.value || 'Not set' }}</p>
+          <p><strong>Species:</strong> {{ petForm.get('species')?.value || 'Not set' }}</p>
+          <p><strong>Breed:</strong> {{ petForm.get('breed')?.value || 'Not set' }}</p>
+          <p><strong>Gender:</strong> {{ petForm.get('gender')?.value || 'Not set' }}</p>
+          <p><strong>Weight:</strong> {{ petForm.get('weight')?.value || 'Not set' }}</p>
+          <p><strong>Date of Birth:</strong> {{ petForm.get('dateOfBirth')?.value || 'Not set' }}</p>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn-ghost" (click)="cancelForm()" id="cancel-form-btn">Cancel</button>
+          <button *ngIf="isCreateMode && creationStep > 1" type="button" class="btn-ghost" (click)="previousCreationStep()" id="previous-step-btn">
+            Back
+          </button>
+          <button
+            *ngIf="isCreateMode && creationStep < 3"
+            type="button"
+            class="btn-primary"
+            [disabled]="!canMoveToNextStep()"
+            (click)="nextCreationStep()"
+            id="next-step-btn"
+          >
+            Continue
+          </button>
+          <button type="submit" class="btn-primary" [disabled]="saving" id="submit-form-btn">
+            <i class="fas" [class.fa-spinner]="saving" [class.fa-spin]="saving" [class.fa-check]="!saving"></i>
+            {{ saving ? (uploadingPhoto ? 'Uploading photo…' : 'Saving…') : (editingPetId ? 'Update Profile' : (isAiCreationMode ? 'Create with AI Data' : 'Create Profile')) }}
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <!-- ── LOADING ── -->
+  <div *ngIf="loading" class="loading-state">
+    <i class="fas fa-circle-notch fa-spin"></i>
+    <p>Loading your pets…</p>
+  </div>
+
+  <!-- ── PET GRID ── -->
+  <section class="pet-grid" *ngIf="!loading">
+
+    <!-- Empty -->
+    <article *ngIf="!pets.length" class="empty-card">
+      <i class="fas fa-paw empty-icon"></i>
+      <h3>No pets yet</h3>
+      <p>Use the Add a Pet card to create your first profile.</p>
+    </article>
+
+    <!-- No results -->
+    <article *ngIf="pets.length && !displayedPets.length" class="empty-card">
+      <i class="fas fa-magnifying-glass empty-icon"></i>
+      <h3>No results found</h3>
+      <p>Try a different search or clear your filters.</p>
+      <button type="button" class="btn-ghost" (click)="resetFilters()" id="reset-empty-filters-btn">
+        Reset Filters
+      </button>
+    </article>
+
+    <!-- Pet cards -->
+    <article
+      *ngFor="let pet of displayedPets; let i = index"
+      class="pet-card clickable"
+      role="button"
+      tabindex="0"
+      (click)="openPetDetails(pet.id)"
+      (keydown.enter)="openPetDetails(pet.id)"
+      (keydown.space)="openPetDetails(pet.id)"
+      [attr.aria-label]="'Open details for ' + pet.name"
+      [attr.id]="'pet-card-' + pet.id"
+      [style.--i]="i"
+    >
+      <!-- Photo cover -->
+      <div class="pet-cover">
+        <img
+          [src]="pet.photoUrl || 'https://images.unsplash.com/photo-1450778869180-41d0601e046e?q=80&w=800&auto=format&fit=crop'"
+          [alt]="pet.name"
+          loading="lazy"
+        />
+        <div class="cover-scrim"></div>
+
+        <!-- Dark FA species chip -->
+        <span class="species-chip">
+          <i class="fas" [ngClass]="getSpeciesIcon(pet.species)"></i>
+          {{ pet.species }}
+        </span>
+
+        <!-- Pet name over photo -->
+        <div class="pet-name-overlay">
+          <h3>{{ pet.name }}</h3>
+          <p>{{ pet.breed || 'Breed not specified' }}</p>
+        </div>
+      </div>
+
+      <!-- Card body -->
+      <div class="pet-card-body">
+        <ul class="pet-info-list">
+          <li>
+            <span class="info-pill teal"><i class="fas fa-birthday-cake"></i></span>
+            <span>{{ getDisplayAge(pet) }}</span>
+          </li>
+          <li>
+            <span class="info-pill orange"><i class="fas fa-weight"></i></span>
+            <span>{{ pet.weight != null ? pet.weight + ' kg' : 'Unknown' }}</span>
+          </li>
+          <li>
+            <span class="info-pill dark"><i class="fas fa-venus-mars"></i></span>
+            <span>{{ pet.gender }}</span>
+          </li>
+        </ul>
+
+        <div class="card-footer-row">
+          <span class="card-link">View profile <i class="fas fa-arrow-right"></i></span>
+          <button
+            type="button"
+            class="pet-card-action"
+            (click)="editPetFromCard(pet, $event)"
+          >
+            <i class="fas fa-pen"></i>
+            Edit
+          </button>
+          <button
+            type="button"
+            class="gps-action-btn"
+            [disabled]="locatingPetId === pet.id"
+            (click)="trackCurrentLocationForPet(pet, $event)"
+          >
+            <i class="fas" [ngClass]="locatingPetId === pet.id ? 'fa-spinner fa-spin' : 'fa-satellite-dish'"></i>
+            {{ locatingPetId === pet.id ? 'Tracking...' : 'Track GPS' }}
+          </button>
+          <button
+            type="button"
+            class="gps-focus-btn"
+            [disabled]="!hasGpsLocation(pet)"
+            (click)="centerPetOnMap(pet, $event)"
+          >
+            <i class="fas fa-map-pin"></i>
+            Locate
+          </button>
+          <button
+            type="button"
+            class="pet-card-action pet-card-action-danger"
+            (click)="deletePetFromCard(pet, $event)"
+          >
+            <i class="fas fa-trash"></i>
+            Delete
+          </button>
+        </div>
+        <p class="pet-location-row">
+          <i class="fas fa-location-dot"></i>
+          {{ formatLocation(pet) }}
+          <span>•</span>
+          {{ formatLocationUpdated(pet) }}
+        </p>
+      </div>
+    </article>
+
+    <!-- Add pet split card -->
+    <article class="add-pet-card add-pet-card-split" aria-label="Create pet profile options" id="add-pet-card">
+      <header class="split-card-header">
+        <h3>Create New Pet Profile</h3>
+        <p>Choose your preferred flow</p>
+      </header>
+
+      <div class="split-card-actions">
+        <button
+          type="button"
+          class="split-action split-action-manual"
+          (click)="openCreateForm('manual')"
+          id="add-pet-manual-btn"
+          aria-label="Create pet profile manually"
+        >
+          <span class="add-pet-ring"><i class="fas fa-plus"></i></span>
+          <strong>Add Manually</strong>
+          <span>Classic quick form</span>
+        </button>
+
+        <button
+          type="button"
+          class="split-action split-action-ai"
+          (click)="openWizard()"
+          id="add-pet-ai-card"
+          aria-label="Try AI Smart Create wizard"
+        >
+          <span class="add-pet-ring"><i class="fas fa-wand-magic-sparkles"></i></span>
+          <strong>AI Smart Create</strong>
+          <span>Upload photo and auto-fill fields</span>
+        </button>
+      </div>
+    </article>
+
+  </section>
+
+  <!-- ── AI PROFILE WIZARD MODAL ── -->
+  <app-ai-profile-wizard
+    *ngIf="wizardOpen"
+    (wizardComplete)="onWizardComplete($event)"
+    (wizardCancelled)="closeWizard()"
+  ></app-ai-profile-wizard>
+
+</div>

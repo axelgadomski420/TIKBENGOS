@@ -1,0 +1,298 @@
+<section class="community-page min-h-screen py-10 px-4 md:px-8">
+  <div class="max-w-6xl mx-auto">
+    <header class="community-hero mb-8">
+      <div class="community-hero-grid">
+        <div class="community-hero-copy">
+          <p class="text-xs font-bold uppercase tracking-[0.24em] text-brand-teal">Back Office / Marketplace</p>
+          <h1 class="mt-4 text-4xl font-black leading-[1.02] text-slate-950 md:text-5xl">Inventory health dashboard</h1>
+          <p class="mt-4 max-w-2xl text-sm leading-7 text-slate-600 md:text-base">
+            See what to reorder, what to reduce, and where demand is moving so your next inventory decisions are easier.
+          </p>
+
+          <div class="mt-6 flex flex-wrap gap-3">
+            <a routerLink="/admin/marketplace" class="community-hero-action community-hero-action-secondary">
+              <i class="fas fa-arrow-left mr-2"></i>Back to Marketplace
+            </a>
+            <a routerLink="/admin/marketplace/products" class="community-hero-action community-hero-action-secondary">
+              <i class="fas fa-store mr-2"></i>Manage Products
+            </a>
+            <a routerLink="/admin/marketplace/orders" class="community-hero-action community-hero-action-secondary">
+              <i class="fas fa-receipt mr-2"></i>Review Orders
+            </a>
+            <button type="button" (click)="generateReport()" class="community-hero-action community-hero-action-primary" [disabled]="loading">
+              <i class="fas fa-rotate-right mr-2"></i>{{ loading ? 'Generating...' : 'Refresh Forecast' }}
+            </button>
+          </div>
+        </div>
+
+        <div class="community-hero-stats">
+          <article class="community-hero-stat-card forecast-stat">
+            <span class="community-hero-stat-label">Products reviewed</span>
+            <strong class="community-hero-stat-value">{{ productsAnalyzed }}</strong>
+            <p class="community-hero-stat-copy">Items included in this snapshot.</p>
+          </article>
+          <article class="community-hero-stat-card forecast-stat">
+            <span class="community-hero-stat-label">Critical alerts</span>
+            <strong class="community-hero-stat-value">{{ criticalCount }}</strong>
+            <p class="community-hero-stat-copy">Items that may run out before your next safe reorder date.</p>
+          </article>
+          <article class="community-hero-stat-card forecast-stat">
+            <span class="community-hero-stat-label">Items to reorder</span>
+            <strong class="community-hero-stat-value">{{ reorderCount }}</strong>
+            <p class="community-hero-stat-copy">Products with a recommended order quantity above zero.</p>
+          </article>
+          <article class="community-hero-stat-card forecast-stat">
+            <span class="community-hero-stat-label">Items to trim</span>
+            <strong class="community-hero-stat-value">{{ overstockCount }}</strong>
+            <p class="community-hero-stat-copy">Inventory likely above expected demand for the next 90 days.</p>
+          </article>
+        </div>
+      </div>
+    </header>
+
+    <section class="community-surface rounded-2xl p-6 mb-8">
+      <h2 class="text-xl font-black text-gray-900">Planning assumptions</h2>
+      <p class="text-sm text-slate-600 mt-1">Adjust these settings to better match your current supplier and demand reality.</p>
+
+      <div class="forecast-controls-grid mt-5">
+        <label class="forecast-control">
+          <span class="forecast-label">How many past days should we analyze?</span>
+          <input type="number" [(ngModel)]="historyDays" min="30" max="365" class="forecast-input" />
+        </label>
+
+        <label class="forecast-control">
+          <span class="forecast-label">Average supplier lead time (days)</span>
+          <input type="number" [(ngModel)]="defaultLeadTimeDays" min="1" max="120" class="forecast-input" />
+        </label>
+
+        <label class="forecast-control">
+          <span class="forecast-label">Safety stock floor</span>
+          <input type="number" [(ngModel)]="defaultMinStockThreshold" min="0" max="10000" class="forecast-input" />
+        </label>
+
+        <label class="forecast-control">
+          <span class="forecast-label">Comfort stock ceiling</span>
+          <input type="number" [(ngModel)]="defaultMaxStockThreshold" min="1" max="100000" class="forecast-input" />
+        </label>
+      </div>
+
+      <div class="forecast-controls-grid mt-4">
+        <label class="forecast-control forecast-control-wide">
+          <span class="forecast-label">Upcoming events or seasons (comma-separated)</span>
+          <input type="text" [(ngModel)]="upcomingEventsInput" placeholder="summer, ramadan, eid" class="forecast-input" />
+        </label>
+
+        <label class="forecast-control forecast-control-wide">
+          <span class="forecast-label">Products getting extra demand attention (IDs)</span>
+          <input type="text" [(ngModel)]="trendingProductIdsInput" placeholder="9001, 9007" class="forecast-input" />
+        </label>
+
+        <label class="forecast-control forecast-control-wide">
+          <span class="forecast-label">Products with supplier risk (IDs)</span>
+          <input type="text" [(ngModel)]="supplierRiskProductIdsInput" placeholder="9010, 9012" class="forecast-input" />
+        </label>
+      </div>
+    </section>
+
+    <section *ngIf="loading" class="community-surface rounded-2xl p-8 text-center text-slate-500 mb-8">
+      Building a fresh inventory forecast...
+    </section>
+
+    <ng-container *ngIf="hasReport && report">
+      <section class="community-surface rounded-2xl p-6 mb-8">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h2 class="text-xl font-black text-gray-900">Immediate attention</h2>
+            <p class="text-sm text-slate-600 mt-1">These products may run out before your next delivery window.</p>
+          </div>
+          <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Generated {{ formatDate(report.dateGenerated) }}</p>
+        </div>
+
+        <div *ngIf="report.criticalAlerts.length === 0" class="forecast-empty mt-4">Everything looks stable. No urgent stockout alerts.</div>
+
+        <div *ngIf="report.criticalAlerts.length > 0" class="forecast-alert-grid mt-4">
+          <article *ngFor="let alert of report.criticalAlerts" class="forecast-alert-card">
+            <div class="flex items-center justify-between gap-2">
+              <h3 class="font-black text-slate-900">{{ alert.product }}</h3>
+              <span class="forecast-urgency-pill" [ngClass]="urgencyClass(alert.urgency)">{{ urgencyLabel(alert.urgency) }}</span>
+            </div>
+            <p class="text-sm text-slate-600 mt-2">Available now: <strong>{{ alert.currentStock }}</strong> units</p>
+            <p class="text-sm text-slate-600">Estimated time to stockout: <strong>{{ formatDaysUntilStockout(alert.daysUntilStockout) }}</strong></p>
+            <p class="text-sm text-slate-600">Suggested reorder now: <strong>{{ alert.recommendedReorder }}</strong> units</p>
+            <p class="text-sm text-slate-600">Target reorder date: <strong>{{ formatDate(alert.reorderBy) }}</strong></p>
+            <p class="text-xs text-slate-500 mt-2"><strong>Why:</strong> {{ alert.reasoning }}</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="community-surface rounded-2xl p-6 mb-8">
+        <h2 class="text-xl font-black text-gray-900">What to reorder next</h2>
+        <p class="text-sm text-slate-600 mt-1">Suggested quantities and timing based on expected demand and lead-time safety buffer.</p>
+
+        <div *ngIf="report.reorderRecommendations.length === 0" class="forecast-empty mt-4">No immediate reorders needed based on current data.</div>
+
+        <div *ngIf="report.reorderRecommendations.length > 0" class="forecast-table-wrap mt-4">
+          <table class="forecast-table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Expected Demand (30d)</th>
+                <th>Order Quantity</th>
+                <th>Reorder Date</th>
+                <th>Priority</th>
+                <th>Why</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of report.reorderRecommendations">
+                <td class="font-semibold text-slate-900">{{ item.product }}</td>
+                <td>{{ item.predictedDemand30Days }}</td>
+                <td class="font-semibold text-slate-900">{{ item.suggestedOrderQty }}</td>
+                <td>{{ formatDate(item.estimatedReorderDate) }}</td>
+                <td>
+                  <span class="forecast-urgency-pill" [ngClass]="urgencyClass(item.urgency)">{{ urgencyLabel(item.urgency) }}</span>
+                </td>
+                <td>{{ item.reasoning }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="community-surface rounded-2xl p-6 mb-8">
+        <h2 class="text-xl font-black text-gray-900">Inventory to trim</h2>
+        <p class="text-sm text-slate-600 mt-1">These products may have excess stock that can be reduced to free up cash.</p>
+
+        <div *ngIf="report.overstockWarnings.length === 0" class="forecast-empty mt-4">No overstock pressure detected right now.</div>
+
+        <div *ngIf="report.overstockWarnings.length > 0" class="forecast-table-wrap mt-4">
+          <table class="forecast-table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Current Stock</th>
+                <th>Predicted Demand (90d)</th>
+                <th>Surplus</th>
+                <th>Best Move</th>
+                <th>Action</th>
+                <th>Why</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of report.overstockWarnings">
+                <td class="font-semibold text-slate-900">{{ item.product }}</td>
+                <td>{{ item.currentStock }}</td>
+                <td>{{ item.predictedDemand90Days }}</td>
+                <td class="font-semibold text-rose-700">{{ item.surplus }}</td>
+                <td>{{ item.suggestion }}</td>
+                <td>
+                  <div class="forecast-action-wrap">
+                    <button
+                      type="button"
+                      class="forecast-action-btn"
+                      [class.forecast-action-btn-active]="currentOverstockAction(item.product) === 'DISCOUNT'"
+                      (click)="setOverstockAction(item.product, 'DISCOUNT')"
+                    >
+                      Add Discount Plan
+                    </button>
+                    <button
+                      type="button"
+                      class="forecast-action-btn"
+                      [class.forecast-action-btn-active]="currentOverstockAction(item.product) === 'PAUSE'"
+                      (click)="setOverstockAction(item.product, 'PAUSE')"
+                    >
+                      Pause Reordering
+                    </button>
+                    <span class="forecast-action-status" *ngIf="currentOverstockAction(item.product)">
+                      {{ overstockActionStatus(item.product) }}
+                    </span>
+                  </div>
+                </td>
+                <td>{{ item.reasoning }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="community-surface rounded-2xl p-6 mb-8">
+        <h2 class="text-xl font-black text-gray-900">Momentum snapshot</h2>
+        <div class="forecast-trend-grid mt-4">
+          <article class="forecast-trend-card">
+            <h3 class="forecast-trend-title">Growing</h3>
+            <ul class="forecast-list">
+              <li *ngFor="let item of report.trendInsights.rising">{{ item }}</li>
+              <li *ngIf="report.trendInsights.rising.length === 0">No clear growth leaders in this cycle.</li>
+            </ul>
+          </article>
+
+          <article class="forecast-trend-card">
+            <h3 class="forecast-trend-title">Slowing</h3>
+            <ul class="forecast-list">
+              <li *ngFor="let item of report.trendInsights.declining">{{ item }}</li>
+              <li *ngIf="report.trendInsights.declining.length === 0">No major slow-downs detected.</li>
+            </ul>
+          </article>
+
+          <article class="forecast-trend-card">
+            <h3 class="forecast-trend-title">Seasonal chances</h3>
+            <ul class="forecast-list">
+              <li *ngFor="let item of report.trendInsights.seasonalOpportunity">{{ item }}</li>
+              <li *ngIf="report.trendInsights.seasonalOpportunity.length === 0">No major seasonal spikes detected right now.</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="community-surface rounded-2xl p-6 mb-8">
+        <h2 class="text-xl font-black text-gray-900">Quick decision list</h2>
+
+        <div class="forecast-summary-grid mt-4">
+          <article class="forecast-summary-card">
+            <h3 class="forecast-trend-title">Top 5 to reorder now</h3>
+            <ul class="forecast-list">
+              <li *ngFor="let item of report.summary.top5ReorderImmediately">{{ item }}</li>
+              <li *ngIf="report.summary.top5ReorderImmediately.length === 0">No urgent reorder candidates right now.</li>
+            </ul>
+          </article>
+
+          <article class="forecast-summary-card">
+            <h3 class="forecast-trend-title">Top 5 to reduce</h3>
+            <ul class="forecast-list">
+              <li *ngFor="let item of report.summary.top5Overstocked">{{ item }}</li>
+              <li *ngIf="report.summary.top5Overstocked.length === 0">No overstock candidates at the moment.</li>
+            </ul>
+          </article>
+
+          <article class="forecast-summary-card">
+            <h3 class="forecast-trend-title">3 growth winners to back</h3>
+            <ul class="forecast-list">
+              <li *ngFor="let item of report.summary.risingToInvestMore">{{ item }}</li>
+              <li *ngIf="report.summary.risingToInvestMore.length === 0">No clear growth winners right now.</li>
+            </ul>
+          </article>
+
+          <article class="forecast-summary-card">
+            <h3 class="forecast-trend-title">3 items to watch and reduce</h3>
+            <ul class="forecast-list">
+              <li *ngFor="let item of report.summary.decliningToReduce">{{ item }}</li>
+              <li *ngIf="report.summary.decliningToReduce.length === 0">No products currently showing clear decline.</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="community-surface rounded-2xl p-6 mb-8" *ngIf="report.dataGaps.length > 0">
+        <h2 class="text-xl font-black text-gray-900">Confidence notes</h2>
+        <ul class="forecast-list mt-3">
+          <li *ngFor="let gap of report.dataGaps">{{ gap }}</li>
+        </ul>
+      </section>
+
+      <section class="community-surface rounded-2xl p-6">
+        <h2 class="text-xl font-black text-gray-900">Detailed report (raw text)</h2>
+        <pre class="forecast-report-text mt-4">{{ report.reportText }}</pre>
+      </section>
+    </ng-container>
+  </div>
+</section>

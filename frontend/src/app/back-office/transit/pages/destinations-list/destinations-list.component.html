@@ -1,0 +1,260 @@
+<section class="destinations-page">
+  <app-transit-toast-container></app-transit-toast-container>
+  <app-transit-confirmation-dialog></app-transit-confirmation-dialog>
+
+  <div class="ambient-orb ambient-orb--teal"></div>
+  <div class="ambient-orb ambient-orb--orange"></div>
+
+  <header class="page-header card-brand">
+    <div class="heading">
+      <p class="eyebrow">Transit Admin</p>
+      <h1>Destinations</h1>
+      <p class="subtitle">Manage all pet-friendly destinations</p>
+    </div>
+
+    <a class="create-button btn-primary" routerLink="/admin/transit/destinations/create" aria-label="Create destination">
+      <i class="fas fa-plus"></i>
+      <span>Create Destination</span>
+    </a>
+  </header>
+
+  <section class="stats-grid" aria-label="Destination statistics">
+    <article class="stat-card card-brand stat-card--total">
+      <p class="stat-title">Total</p>
+      <p class="stat-value">{{ totalCount }}</p>
+    </article>
+
+    <article class="stat-card card-brand stat-card--published">
+      <p class="stat-title">Published</p>
+      <p class="stat-value">{{ publishedCount }}</p>
+    </article>
+
+    <article class="stat-card card-brand stat-card--draft">
+      <p class="stat-title">Draft</p>
+      <p class="stat-value">{{ draftCount }}</p>
+    </article>
+
+    <article class="stat-card card-brand stat-card--scheduled">
+      <p class="stat-title">Scheduled</p>
+      <p class="stat-value">{{ scheduledCount }}</p>
+    </article>
+
+    <article class="stat-card card-brand stat-card--archived">
+      <p class="stat-title">Archived</p>
+      <p class="stat-value">{{ archivedCount }}</p>
+    </article>
+  </section>
+
+  <section class="mt-3 grid grid-cols-[minmax(0,1fr)_auto_auto_auto] items-center gap-2">
+    <div class="relative">
+      <i class="fas fa-search pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400"></i>
+      <input
+        id="destinationSearch"
+        type="search"
+        [formControl]="searchControl"
+        placeholder="Search by title, country, or region"
+        class="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm text-slate-700 shadow-inner focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/20"
+      />
+      
+    </div>
+
+    <button
+      type="button"
+      class="detail-secondary-button"
+      (click)="toggleFilters()"
+      [attr.aria-expanded]="showFilters"
+      aria-label="Toggle filters"
+    >
+      <i class="fas fa-filter"></i>
+      Filter
+    </button>
+
+    <button type="button" class="detail-secondary-button" (click)="exportFilteredDestinationsPdf()" [disabled]="loading || exportingPdf">
+      <i class="fas fa-file-pdf"></i>
+      {{ exportingPdf ? 'Generating PDF...' : 'Export PDF' }}
+    </button>
+
+    <button type="button" class="detail-secondary-button" (click)="exportFilteredDestinationsExcel()" [disabled]="loading || exportingExcel">
+      <i class="fas fa-file-excel"></i>
+      {{ exportingExcel ? 'Generating Excel...' : 'Export Excel' }}
+    </button>
+  </section>
+
+  <section *ngIf="showFilters" class="filters-panel card-brand" aria-label="Destination filters">
+    <label class="date-field" for="destinationStatusFilter">
+      <span>Status</span>
+      <select
+        id="destinationStatusFilter"
+        (change)="setStatusFilter($any($event.target).value)"
+        aria-label="Status filter"
+        class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/20"
+      >
+        <option *ngFor="let status of statusFilters" [value]="status" [selected]="isActiveFilter(status)">
+          {{ status === 'ALL' ? 'All Status' : formatFilterLabel(status) }}
+        </option>
+      </select>
+    </label>
+
+    <label class="date-field" for="destinationStartDateFilter">
+      <span>Start Date</span>
+      <input
+        id="destinationStartDateFilter"
+        type="date"
+        [value]="startDateFilter"
+        (input)="onStartDateFilterChange($event)"
+      />
+    </label>
+
+    <label class="date-field" for="destinationEndDateFilter">
+      <span>End Date</span>
+      <input
+        id="destinationEndDateFilter"
+        type="date"
+        [value]="endDateFilter"
+        (input)="onEndDateFilterChange($event)"
+      />
+    </label>
+
+    <button type="button" class="detail-secondary-button" *ngIf="hasQuickFilters" (click)="clearQuickFilters()">
+      <i class="fas fa-rotate-left"></i>
+      Clear
+    </button>
+  </section>
+
+  <section *ngIf="loading" class="state-card state-card--loading">
+    <i class="fas fa-spinner fa-spin"></i>
+    <p>Loading destinations...</p>
+  </section>
+
+  <section *ngIf="!loading && errorMessage" class="state-card state-card--error">
+    <i class="fas fa-triangle-exclamation"></i>
+    <div class="state-copy">
+      <p>{{ errorMessage }}</p>
+      <button type="button" class="retry-button" (click)="reloadDestinations()">
+        <i class="fas fa-rotate-right"></i>
+        <span>Retry</span>
+      </button>
+    </div>
+  </section>
+
+  <section
+    *ngIf="!loading && !errorMessage && filteredDestinations.length === 0"
+    class="state-card state-card--empty"
+  >
+    <i class="fas fa-map-location-dot"></i>
+    <p>No destination matches your current filters.</p>
+  </section>
+
+  <section class="cards-grid" *ngIf="!loading && !errorMessage && filteredDestinations.length > 0">
+    <article
+      class="destination-card card-brand"
+      *ngFor="let destination of paginatedDestinations; trackBy: trackByDestinationId"
+    >
+      <div class="card-cover">
+        <img
+          [src]="resolveCoverImage(destination)"
+          [alt]="destination.title"
+          loading="lazy"
+          (error)="onCoverImageError($event)"
+        />
+        <div class="cover-overlay"></div>
+        <app-destination-status-badge
+          class="status-chip"
+          [status]="destination.status"
+        ></app-destination-status-badge>
+      </div>
+
+      <div class="card-content">
+        <div class="top-row card-title-row">
+          <h3>{{ destination.title }}</h3>
+        </div>
+
+        <p class="location">
+          <i class="fas fa-location-dot"></i>
+          <span>{{ destination.country }} - {{ destination.region }}</span>
+        </p>
+
+        <div class="meta-pills">
+          <span class="meta-pill">
+            <i class="fas" [ngClass]="getDestinationTypeIcon(destination.destinationType)"></i>
+            {{ formatDestinationType(destination.destinationType) }}
+          </span>
+
+          <span class="meta-pill">
+            <i class="fas" [ngClass]="getTransportIcon(destination.recommendedTransportType)"></i>
+            {{ formatTransportType(destination.recommendedTransportType) }}
+          </span>
+        </div>
+
+        <div class="rating-row">
+          <span class="label">Pet-friendly level</span>
+          <app-pet-friendly-stars [level]="destination.petFriendlyLevel"></app-pet-friendly-stars>
+        </div>
+
+        <p class="date-row date-row--primary">
+          <span>{{ primaryDateLabel(destination) }}</span>
+          <strong>{{ primaryDateValue(destination) | date: 'medium' }}</strong>
+        </p>
+
+        <p class="date-row" *ngIf="hasUpdatedAt(destination)">
+          <span>Updated</span>
+          <strong>{{ destination.updatedAt | date: 'medium' }}</strong>
+        </p>
+
+        <div class="actions-row">
+          <button
+            type="button"
+            class="action-button action-button--outline"
+            (click)="viewDetails(destination)"
+            [disabled]="!destination.id"
+          >
+            <i class="fas fa-up-right-and-down-left-from-center"></i>
+            Details
+          </button>
+          <button
+            type="button"
+            class="action-button action-button--outline"
+            (click)="editDestination(destination)"
+            [disabled]="!destination.id"
+          >
+            <i class="fas fa-pen-to-square"></i>
+            Edit
+          </button>
+          <button
+            type="button"
+            class="action-button action-button--outline"
+            (click)="toggleArchive(destination)"
+            [disabled]="!destination.id || isDestinationBusy(destination.id)"
+          >
+            <i class="fas" [ngClass]="destination.status === 'ARCHIVED' ? 'fa-box-open' : 'fa-box-archive'"></i>
+            {{ destination.status === 'ARCHIVED' ? 'Restore' : 'Archive' }}
+          </button>
+          <button
+            type="button"
+            class="action-button action-button--danger"
+            [disabled]="!destination.id || isDestinationBusy(destination.id) || !canDeleteDestination(destination)"
+            [class.btn-disabled]="!canDeleteDestination(destination)"
+            (click)="canDeleteDestination(destination) ? deleteDestination(destination) : null"
+            [matTooltip]="getDestinationDeleteTooltip(destination)"
+            [matTooltipDisabled]="canDeleteDestination(destination)"
+            matTooltipPosition="above"
+          >
+            <i class="fas fa-trash-can"></i>
+            Delete
+          </button>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <div class="admin-pagination" *ngIf="!loading && !errorMessage && filteredDestinations.length > 0">
+    <app-pagination
+      [totalItems]="totalItems"
+      [itemsPerPage]="itemsPerPage"
+      [currentPage]="currentPage"
+      [variant]="'admin'"
+      (pageChange)="onPageChange($event)"
+    ></app-pagination>
+  </div>
+</section>
+

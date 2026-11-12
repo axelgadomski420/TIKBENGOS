@@ -1,0 +1,274 @@
+<section class="feedback-admin-page">
+  <app-transit-toast-container></app-transit-toast-container>
+  <app-transit-confirmation-dialog></app-transit-confirmation-dialog>
+
+  <header class="page-header">
+    <div class="header-left">
+      <p class="section-label">Transit Admin</p>
+      <h1>
+        <mat-icon>reviews</mat-icon>
+        <span>Travel Feedback</span>
+      </h1>
+      <p class="subtitle">Manage client reviews, complaints and incidents.</p>
+    </div>
+
+    <div class="header-right">
+      <span class="stat-chip stat-chip-muted">
+        <mat-icon>fact_check</mat-icon>
+        Total {{ totalCount }}
+      </span>
+      <span class="stat-chip stat-chip-pending">
+        <mat-icon>warning</mat-icon>
+        Pending {{ pendingCount }}
+      </span>
+      <span class="stat-chip stat-chip-resolved">
+        <mat-icon>check_circle</mat-icon>
+        Resolved {{ resolvedCount }}
+      </span>
+    </div>
+  </header>
+
+  <section class="mt-3 grid grid-cols-[minmax(0,1fr)_auto_auto_auto] items-center gap-2" aria-label="Feedback action bar">
+    <div class="relative">
+      <i class="fas fa-search pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400"></i>
+      <input
+        id="feedbackSearch"
+        type="search"
+        [value]="searchTerm"
+        (input)="onSearchChange($event)"
+        placeholder="Search by client, destination, type..."
+        class="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm text-slate-700 shadow-inner focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/20"
+      />
+    </div>
+
+    <button
+      type="button"
+      class="detail-secondary-button"
+      (click)="toggleFilters()"
+      [attr.aria-expanded]="showFilters"
+      aria-label="Toggle filters"
+    >
+      <i class="fas fa-filter"></i>
+      Filter
+    </button>
+
+    <button type="button" class="detail-secondary-button" (click)="exportFilteredFeedbackPdf()" [disabled]="loading || exportingPdf">
+      <i class="fas fa-file-pdf"></i>
+      {{ exportingPdf ? 'Generating PDF...' : 'Export PDF' }}
+    </button>
+
+    <button type="button" class="detail-secondary-button" (click)="exportFilteredFeedbackExcel()" [disabled]="loading || exportingExcel">
+      <i class="fas fa-file-excel"></i>
+      {{ exportingExcel ? 'Generating Excel...' : 'Export Excel' }}
+    </button>
+  </section>
+
+  <section *ngIf="showFilters" class="filters-row" aria-label="Feedback filters">
+    <select
+      (change)="setTypeFilter($any($event.target).value)"
+      aria-label="Type filter"
+      class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/20"
+    >
+      <option *ngFor="let filter of typeFilters" [value]="filter" [selected]="activeTypeFilter === filter">
+        {{ filter === 'ALL' ? 'All types' : typeFilterLabel(filter) }}
+      </option>
+    </select>
+
+    <select
+      (change)="setStatusFilter($any($event.target).value)"
+      aria-label="Status filter"
+      class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/20"
+    >
+      <option *ngFor="let filter of statusFilters" [value]="filter" [selected]="activeStatusFilter === filter">
+        {{ filter === 'ALL' ? 'All states' : statusFilterLabel(filter) }}
+      </option>
+    </select>
+
+    <label class="date-field" for="feedbackStartDateFilter">
+      <span>Start Date</span>
+      <input
+        id="feedbackStartDateFilter"
+        type="date"
+        [value]="startDateFilter"
+        (input)="onStartDateFilterChange($event)"
+      />
+    </label>
+
+    <label class="date-field" for="feedbackEndDateFilter">
+      <span>End Date</span>
+      <input
+        id="feedbackEndDateFilter"
+        type="date"
+        [value]="endDateFilter"
+        (input)="onEndDateFilterChange($event)"
+      />
+    </label>
+
+    <button type="button" class="detail-secondary-button" *ngIf="hasFiltersApplied" (click)="clearFilters()">
+      <i class="fas fa-rotate-left"></i>
+      Reset
+    </button>
+  </section>
+
+  <section class="feedback-list" *ngIf="loading">
+    <article class="feedback-row skeleton-row" *ngFor="let row of skeletonRows">
+      <div class="skeleton skeleton-avatar"></div>
+      <div class="skeleton-lines">
+        <div class="skeleton skeleton-line-lg"></div>
+        <div class="skeleton skeleton-line"></div>
+      </div>
+      <div class="skeleton skeleton-pill"></div>
+    </article>
+  </section>
+
+  <section class="state-card error" *ngIf="!loading && errorMessage">
+    <mat-icon>error_outline</mat-icon>
+    <h2>Unable to load feedback</h2>
+    <p>{{ errorMessage }}</p>
+    <button type="button" class="btn btn-secondary" (click)="retry()">
+      <mat-icon>refresh</mat-icon>
+      <span>Retry</span>
+    </button>
+  </section>
+
+  <section class="state-card empty" *ngIf="!loading && !errorMessage && filteredFeedbacks.length === 0">
+    <mat-icon>reviews</mat-icon>
+    <h2>No feedback found</h2>
+    <p>{{ emptySubtitle() }}</p>
+  </section>
+
+  <section class="feedback-list" *ngIf="!loading && !errorMessage && filteredFeedbacks.length > 0">
+    <div class="feedback-table-header">
+      <span class="col-client">Client</span>
+      <span class="col-type">Type</span>
+      <span class="col-destination">Destination</span>
+      <span class="col-status">Status</span>
+      <span class="col-date">Date</span>
+      <span class="col-actions">Actions</span>
+    </div>
+
+    <article
+      class="feedback-card-row"
+      *ngFor="let feedback of paginatedFeedbacks; trackBy: trackByFeedback"
+      [ngClass]="typeClass(feedback.feedbackType)"
+      [style.--type-border-color]="typeConfig[feedback.feedbackType].borderColor"
+      [style.--type-soft-bg]="typeConfig[feedback.feedbackType].bgColor"
+    >
+      <div class="col-client client-cell">
+        <span class="avatar-circle">{{ initials(feedback.ownerName) }}</span>
+        <div class="client-copy">
+          <p class="client-name">{{ displayOwnerName(feedback) }}</p>
+          <a class="plan-chip plan-link" [routerLink]="['/admin/transit/travel-plans', feedback.travelPlanId]">
+            View Plan
+          </a>
+        </div>
+      </div>
+
+      <div class="col-type type-cell">
+        <span
+          class="type-badge"
+          [style.color]="typeConfig[feedback.feedbackType].color"
+          [style.background]="typeConfig[feedback.feedbackType].bgColor"
+        >
+          <mat-icon>{{ typeConfig[feedback.feedbackType].icon }}</mat-icon>
+          {{ typeConfig[feedback.feedbackType].label }}
+        </span>
+      </div>
+
+      <div class="col-destination destination-cell">
+        <p class="destination-title">
+          <mat-icon>travel_explore</mat-icon>
+          <span>{{ feedback.destinationTitle }}</span>
+        </p>
+        <p class="destination-date">
+          <mat-icon>calendar_today</mat-icon>
+          <span>{{ formatDateTime(feedback.createdAt) }}</span>
+        </p>
+      </div>
+
+      <div class="col-status status-cell">
+        <span
+          class="status-badge"
+          [style.color]="processingConfig[feedback.processingStatus].color"
+          [style.background]="processingConfig[feedback.processingStatus].bgColor"
+        >
+          <mat-icon>{{ processingConfig[feedback.processingStatus].icon }}</mat-icon>
+          {{ processingConfig[feedback.processingStatus].label }}
+        </span>
+      </div>
+
+      <div class="col-date date-cell">
+        {{ formatDate(feedback.createdAt) }}
+      </div>
+
+      <div class="col-actions actions-cell">
+        <button
+          type="button"
+          class="btn-secondary"
+          (click)="openDetailsModal(feedback)"
+          aria-label="View feedback details"
+          title="View details"
+        >
+          <mat-icon>visibility</mat-icon>
+          <span>View Details</span>
+        </button>
+
+        <button
+          type="button"
+          class="btn-secondary"
+          *ngIf="feedback.feedbackType !== 'REVIEW'"
+          [disabled]="!canRespond(feedback) || submittingResponse"
+          (click)="openRespondModal(feedback)"
+        >
+          <mat-icon>reply</mat-icon>
+          <span>Respond</span>
+        </button>
+
+        <span
+          class="delete-wrap"
+          [matTooltip]="deleteTooltip(feedback)"
+          [matTooltipDisabled]="canDelete(feedback)"
+          matTooltipPosition="above"
+        >
+          <button
+            type="button"
+            class="btn-danger"
+            [disabled]="!canDelete(feedback) || isDeleteLoading(feedback.id)"
+            (click)="deleteFeedback(feedback)"
+            [attr.aria-label]="isDeleteLoading(feedback.id) ? 'Deleting feedback' : 'Delete feedback'"
+          >
+            <mat-icon *ngIf="!isDeleteLoading(feedback.id)">delete</mat-icon>
+            <mat-icon *ngIf="isDeleteLoading(feedback.id)" class="spin">autorenew</mat-icon>
+            <span>{{ isDeleteLoading(feedback.id) ? 'Deleting...' : 'Delete' }}</span>
+          </button>
+        </span>
+      </div>
+    </article>
+  </section>
+
+  <div class="admin-pagination" *ngIf="!loading && !errorMessage && filteredFeedbacks.length > 0">
+    <app-pagination
+      [totalItems]="totalItems"
+      [itemsPerPage]="itemsPerPage"
+      [currentPage]="currentPage"
+      [variant]="'admin'"
+      (pageChange)="onPageChange($event)"
+    ></app-pagination>
+  </div>
+
+  <app-feedback-respond-modal
+    *ngIf="respondingFeedback"
+    [feedback]="respondingFeedback"
+    [submitting]="submittingResponse"
+    [readOnly]="false"
+    (closed)="closeRespondModal()"
+    (submitted)="submitResponse($event)"
+  ></app-feedback-respond-modal>
+
+  <app-feedback-respond-modal
+    *ngIf="viewingFeedback"
+    [feedback]="viewingFeedback"
+    [readOnly]="true"
+    (closed)="closeDetailsModal()"
+  ></app-feedback-respond-modal>
+</section>

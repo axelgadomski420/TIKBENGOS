@@ -1,0 +1,265 @@
+<div class="pets-container">
+
+  <!-- ── HEADER ── -->
+  <div class="page-header">
+    <div class="overlay"></div>
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-8 mx-auto text-center">
+          <h1 class="display-4 fw-bold">🐾 Pets for Adoption</h1>
+          <p class="lead">Find your perfect companion through our trusted shelters</p>
+
+          <div class="header-buttons mt-3">
+            <button *ngIf="isLoggedIn" class="btn btn-outline-light" (click)="goToMyRequests()">
+              📋 My Requests
+            </button>
+
+            <button *ngIf="isLoggedIn" class="btn btn-outline-light btn-contracts-notif"
+                    (click)="goToMyContracts()">
+              📄 My Contracts
+              <span class="contracts-badge" *ngIf="newContractsCount > 0">
+                {{ newContractsCount }}
+              </span>
+            </button>
+
+            <button class="btn btn-light" (click)="goToShelters()">
+              🏠 View Shelters
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container py-5">
+
+    <!-- Wizard banner -->
+    <div class="wizard-banner">
+      <div class="wizard-content">
+        <div class="wizard-icon">🐾✨</div>
+        <div class="wizard-text">
+          <h3>Not sure which pet is right for you?</h3>
+          <p>Take our smart quiz — we'll recommend the perfect pet for your lifestyle.</p>
+        </div>
+        <button class="btn-wizard" (click)="goToWizard()">🧭 Find My Perfect Pet</button>
+      </div>
+    </div>
+
+    <!-- Bannière animaux en attente -->
+    <div class="waiting-banner" *ngIf="!loading && atRiskMap.size > 0">
+      <span class="waiting-pulse">💛</span>
+      <div class="waiting-text">
+        <strong>Some animals have been waiting a long time for a family.</strong>
+        They appear first on this page — give them a chance! 🐾
+      </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="filters">
+      <div class="filter-group">
+        <select class="form-select" [(ngModel)]="filters.type" (change)="search()">
+          <option value="">All Types</option>
+          <option value="CHIEN">🐕 Dog</option>
+          <option value="CHAT">🐈 Cat</option>
+          <option value="OISEAU">🐦 Bird</option>
+          <option value="LAPIN">🐇 Rabbit</option>
+          <option value="RONGEUR">🐭 Rodent</option>
+          <option value="REPTILE">🐍 Reptile</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <select class="form-select" [(ngModel)]="filters.size" (change)="search()">
+          <option value="">All Sizes</option>
+          <option value="PETIT">Small</option>
+          <option value="MOYEN">Medium</option>
+          <option value="GRAND">Large</option>
+          <option value="TRES_GRAND">Extra Large</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <button class="btn-reset" (click)="resetFilters()">🔄 Reset</button>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="loading">
+      <div class="spinner"></div>
+      <p>Loading animals...</p>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="error" class="error">{{ error }}</div>
+
+    <!-- Pets Grid -->
+    <div *ngIf="!loading && !error" class="pets-grid">
+      <div *ngFor="let pet of pets"
+           class="pet-card"
+           [class.available]="pet.available"
+           [class.adopted]="!pet.available"
+           [class.card-waiting]="hasRisk(pet.id!)">
+
+        <!-- Ruban "en attente" en haut de la carte -->
+        <div class="waiting-ribbon" *ngIf="hasRisk(pet.id!)"
+             [class.ribbon-urgent]="getAtRisk(pet.id!)?.riskLevel === 'CRITICAL'"
+             [class.ribbon-waiting]="getAtRisk(pet.id!)?.riskLevel === 'AT_RISK'"
+             [class.ribbon-looking]="getAtRisk(pet.id!)?.riskLevel === 'WATCH'">
+          <i class="fas fa-heart"></i>
+          {{ getClientRiskLabel(getAtRisk(pet.id!)!.riskLevel) }}
+        </div>
+
+        <!-- Image -->
+        <div class="pet-image">
+          <img *ngIf="getFirstPhoto(pet.photos)"
+               [src]="'http://localhost:8087/elif' + getFirstPhoto(pet.photos)"
+               [alt]="pet.name" class="pet-img">
+          <div *ngIf="!getFirstPhoto(pet.photos)" class="image-placeholder">
+            <span class="pet-icon">🐾</span>
+          </div>
+          <div class="status-badge" [ngClass]="pet.available ? 'status-available' : 'status-adopted'">
+            <i class="fas" [ngClass]="pet.available ? 'fa-check-circle' : 'fa-heart'"></i>
+            {{ pet.available ? 'Available' : 'Adopted' }}
+          </div>
+          <!-- Badge jours d'attente -->
+          <div class="days-badge" *ngIf="hasRisk(pet.id!)">
+            <i class="fas fa-clock"></i>
+            {{ getAtRisk(pet.id!)!.daysInShelter }}d waiting
+          </div>
+        </div>
+
+        <!-- ✅ Contenu — SANS les boutons -->
+        <div class="card-content">
+
+          <!-- Nom + badge cliquable -->
+          <div class="pet-header-row">
+            <h3>{{ pet.name }}</h3>
+            <button *ngIf="hasRisk(pet.id!)"
+                    class="risk-tag"
+                    [class.tag-urgent]="getAtRisk(pet.id!)?.riskLevel === 'CRITICAL'"
+                    [class.tag-waiting]="getAtRisk(pet.id!)?.riskLevel === 'AT_RISK'"
+                    [class.tag-looking]="getAtRisk(pet.id!)?.riskLevel === 'WATCH'"
+                    (click)="openRiskInfo(pet.id!, $event)"
+                    title="Click to learn more">
+              {{ getClientRiskLabel(getAtRisk(pet.id!)!.riskLevel) }}
+              <i class="fas fa-info-circle"></i>
+            </button>
+          </div>
+
+          <p class="breed">{{ pet.breed || 'Breed not specified' }}</p>
+
+          <div class="info">
+            <span class="badge">{{ getPetTypeLabel(pet.type!) }}</span>
+            <span class="badge">{{ getPetSizeLabel(pet.size!) }}</span>
+          </div>
+
+          <p class="details">
+            {{ pet.age }} months • {{ pet.gender === 'MALE' ? '♂ Male' : '♀ Female' }}
+          </p>
+
+        </div>
+        <!-- ✅ FIN card-content -->
+
+        <!-- ✅ Boutons HORS de card-content — toujours en bas -->
+        <div class="buttons">
+          <a [routerLink]="['/app/adoption/pets', pet.id]" class="btn btn-detail">📖 Details</a>
+          <button *ngIf="pet.available" class="btn btn-adopt"
+                  [class.btn-adopt-urgent]="getAtRisk(pet.id!)?.riskLevel === 'CRITICAL'"
+                  (click)="checkAdopt(pet)">
+            ❤️ Adopt
+          </button>
+          <button *ngIf="!pet.available" class="btn btn-adopted" disabled>✅ Adopted</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Empty -->
+    <div *ngIf="!loading && !error && pets.length === 0" class="empty">
+      <p>🐕 No animals found</p>
+      <p>Try adjusting your filters.</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ✅ MODALE INFO AT-RISK -->
+<div *ngIf="showRiskModal" class="modal-bd" (click)="closeRiskModal()"></div>
+<div *ngIf="showRiskModal && selectedRiskPet" class="risk-modal" (click)="$event.stopPropagation()">
+
+  <div class="rm-header">
+    <div class="rm-title">
+      <span class="rm-heart">💛</span>
+      <div>
+        <h3>{{ selectedRiskPet.petName }} needs you</h3>
+        <p>Here's why this animal needs your attention</p>
+      </div>
+    </div>
+    <button class="rm-close" (click)="closeRiskModal()">✕</button>
+  </div>
+
+  <div class="rm-body">
+
+    <!-- Stats d'attente -->
+    <div class="rm-stats">
+      <div class="rm-stat" [style.border-color]="selectedRiskPet.riskColor">
+        <div class="rm-stat-n" [style.color]="selectedRiskPet.riskColor">
+          {{ selectedRiskPet.daysInShelter }}
+        </div>
+        <div class="rm-stat-l">days waiting</div>
+      </div>
+      <div class="rm-stat">
+        <div class="rm-stat-n"
+             [style.color]="selectedRiskPet.requestCount === 0 ? '#e53e3e' : '#38a169'">
+          {{ selectedRiskPet.requestCount }}
+        </div>
+        <div class="rm-stat-l">adoption request{{ selectedRiskPet.requestCount !== 1 ? 's' : '' }}</div>
+      </div>
+    </div>
+
+    <!-- Message émotionnel -->
+    <div class="rm-message"
+         [class.msg-critical]="selectedRiskPet.riskLevel === 'CRITICAL'"
+         [class.msg-atrisk]="selectedRiskPet.riskLevel === 'AT_RISK'"
+         [class.msg-watch]="selectedRiskPet.riskLevel === 'WATCH'">
+      <ng-container *ngIf="selectedRiskPet.riskLevel === 'CRITICAL'">
+        🔴 <strong>{{ selectedRiskPet.petName }}</strong> has been waiting
+        <strong>{{ selectedRiskPet.daysInShelter }} days</strong> without finding a family.
+        Every single day counts for this animal. Your adoption could change everything. 💛
+      </ng-container>
+      <ng-container *ngIf="selectedRiskPet.riskLevel === 'AT_RISK'">
+        🟠 <strong>{{ selectedRiskPet.petName }}</strong> has been in the shelter for
+        <strong>{{ selectedRiskPet.daysInShelter }} days</strong> and is still searching for love.
+        Could that loving home be yours? 🐾
+      </ng-container>
+      <ng-container *ngIf="selectedRiskPet.riskLevel === 'WATCH'">
+        🟡 <strong>{{ selectedRiskPet.petName }}</strong> has been waiting
+        <strong>{{ selectedRiskPet.daysInShelter }} days</strong>.
+        Don't let them wait too long — they deserve a warm home! 🏠
+      </ng-container>
+    </div>
+
+    <!-- Besoins spéciaux -->
+    <div class="rm-special" *ngIf="selectedRiskPet.specialNeeds">
+      <i class="fas fa-heartbeat"></i>
+      <span>Special care needed: {{ selectedRiskPet.specialNeeds }}</span>
+    </div>
+
+    <!-- Type de l'animal -->
+    <div class="rm-info-row">
+      <span><strong>Type:</strong> {{ selectedRiskPet.petType }}</span>
+      <span *ngIf="selectedRiskPet.petAge"><strong>Age:</strong> {{ selectedRiskPet.petAge }} months</span>
+      <span><strong>Shelter:</strong> {{ selectedRiskPet.shelterName }}</span>
+    </div>
+
+    <!-- Boutons -->
+    <div class="rm-actions">
+      <a [routerLink]="['/app/adoption/pets', selectedRiskPet.petId, 'adopt']"
+         class="btn-adopt-now" (click)="closeRiskModal()">
+        ❤️ Adopt {{ selectedRiskPet.petName }}
+      </a>
+      <button class="btn-later" (click)="closeRiskModal()">
+        Maybe later
+      </button>
+    </div>
+
+  </div>
+</div>

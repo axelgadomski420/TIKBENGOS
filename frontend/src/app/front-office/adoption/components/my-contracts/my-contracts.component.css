@@ -1,0 +1,562 @@
+/* ── PAGE ── */
+.contracts-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #fff9ef 0%, #fef5e3 100%);
+}
+
+/* ── HEADER ── */
+.page-header {
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 1.25rem 0;
+  position: relative;
+}
+
+.page-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, rgb(58,146,130), rgba(58,146,130,0.3));
+}
+
+.page-header .container {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.btn-back {
+  background: none;
+  border: 1.5px solid #e2e8f0;
+  color: #4a5568;
+  padding: 0.45rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.18s;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.btn-back:hover {
+  background: #f4f6f8;
+  border-color: #a0aec0;
+}
+
+.header-content h1 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin: 0 0 0.15rem;
+}
+
+.header-content p {
+  font-size: 0.82rem;
+  color: #a0aec0;
+  margin: 0;
+}
+
+/* ── CONTAINER ── */
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.py-4 {
+  padding-top: 1.75rem;
+  padding-bottom: 3rem;
+}
+
+/* ── STATES ── */
+.state-box {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: #a0aec0;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e2e8f0;
+  border-top-color: rgb(58,146,130);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.error-box {
+  background: #fff5f5;
+  color: #e53e3e;
+  border: 1px solid #fed7d7;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  font-size: 0.875rem;
+}
+
+.empty-box {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+
+.empty-icon {
+  font-size: 4rem;
+  opacity: 0.5;
+  margin-bottom: 1rem;
+}
+
+.empty-box h3 {
+  font-size: 1.15rem;
+  color: #1a202c;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.empty-box p {
+  color: #a0aec0;
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.btn-primary {
+  background: rgb(58,146,130);
+  color: white;
+  border: none;
+  padding: 0.6rem 1.4rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover {
+  background: rgb(45,120,107);
+  transform: translateY(-1px);
+}
+
+/* ── CONTRACTS LIST ── */
+.contracts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* ── CONTRACT CARD ── */
+.contract-card {
+  background: white;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s;
+}
+
+.contract-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+  border-color: rgb(58,146,130);
+}
+
+/* Card Header */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  background: #fafbfc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.contract-number {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #4a5568;
+}
+
+.contract-number i {
+  color: rgb(58,146,130);
+}
+
+/* Status badges */
+.contract-status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 99px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.status-draft {
+  background: #f0f0f0;
+  color: #666;
+}
+
+.status-sent {
+  background: #ebf8ff;
+  color: #2b6cb0;
+}
+
+.status-signed {
+  background: #e6fffa;
+  color: #285e61;
+}
+
+.status-valid {
+  background: #f0fff4;
+  color: #276749;
+}
+
+.status-active {
+  background: #f0fff4;
+  color: #38a169;
+  border: 1px solid rgba(56,161,105,0.3);
+}
+
+.status-done {
+  background: #e2e8f0;
+  color: #4a5568;
+}
+
+.status-terminated {
+  background: #fff5f5;
+  color: #e53e3e;
+}
+
+.status-cancelled {
+  background: #fff5f5;
+  color: #e53e3e;
+}
+
+/* Card Body */
+.card-body {
+  padding: 1.25rem;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.info-label {
+  font-size: 0.72rem;
+  color: #a0aec0;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.info-label i {
+  color: rgb(58,146,130);
+  font-size: 0.68rem;
+}
+
+.info-value {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #1a202c;
+}
+
+/* Conditions */
+.conditions-box {
+  background: #f7fafc;
+  border-left: 3px solid rgb(58,146,130);
+  border-radius: 0 8px 8px 0;
+  padding: 0.75rem 1rem;
+  margin-top: 0.5rem;
+}
+
+.conditions-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: rgb(58,146,130);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin: 0 0 0.3rem;
+}
+
+.conditions-text {
+  font-size: 0.83rem;
+  color: #4a5568;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Card Footer */
+.card-footer {
+  padding: 0.9rem 1.25rem;
+  border-top: 1px solid #e2e8f0;
+  background: #fafbfc;
+}
+
+.btn-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.4rem;
+  background: rgb(58,146,130);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(58,146,130,0.3);
+}
+
+.btn-download:hover:not(:disabled) {
+  background: rgb(45,120,107);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(58,146,130,0.4);
+}
+
+.btn-download:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 640px) {
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+  .page-header .container {
+    flex-wrap: wrap;
+  }
+  .contract-number {
+    font-size: 0.75rem;
+  }
+  .contract-status {
+    font-size: 0.65rem;
+  }
+}
+/* ============================================================
+   Colle ce bloc À LA FIN de ton my-contracts.component.css
+   ============================================================ */
+
+/* ── Badge "new" dans le titre header ── */
+.header-new-badge {
+  display: inline-flex;
+  align-items: center;
+  background: #22c55e;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 99px;
+  vertical-align: middle;
+  margin-left: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  animation: badgePop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes badgePop {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+/* ── Bannière nouveaux contrats ── */
+.new-contracts-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  border: 1.5px solid #86efac;
+  border-radius: 16px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  animation: slideDown 0.35s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.banner-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.banner-icon {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.banner-text strong {
+  font-size: 0.95rem;
+  color: #15803d;
+  font-weight: 700;
+}
+
+.banner-text span {
+  font-size: 0.8rem;
+  color: #166534;
+}
+
+.banner-dismiss {
+  background: rgba(21, 128, 61, 0.1);
+  border: 1px solid rgba(21, 128, 61, 0.2);
+  color: #15803d;
+  border-radius: 8px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.banner-dismiss:hover {
+  background: rgba(21, 128, 61, 0.2);
+}
+
+/* ── Carte nouveau contrat ── */
+.contract-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.contract-card--new {
+  border: 2px solid #22c55e !important;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1), 0 8px 24px rgba(0,0,0,0.08) !important;
+}
+
+/* Barre verte en haut */
+.new-top-bar {
+  height: 4px;
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+/* Badge NEW en haut à droite */
+.new-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+}
+
+.new-badge span {
+  background: #22c55e;
+  color: white;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 99px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  animation: badgePop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── Message d'approbation ── */
+.approval-message {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: #f0fdf4;
+  border-bottom: 1px solid #bbf7d0;
+  padding: 0.7rem 1.25rem;
+  font-size: 0.82rem;
+  color: #15803d;
+}
+
+.approval-message i {
+  color: #22c55e;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.approval-message strong { color: #15803d; }
+
+/* ── Badge "Free" pour les frais ── */
+.free-badge {
+  color: #15803d !important;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.free-badge i { color: #ef4444; }
+
+/* ── Bouton download mis en avant pour nouveau contrat ── */
+.btn-download--new {
+  background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.4) !important;
+  animation: pulseGreen 2s ease-in-out infinite;
+}
+
+@keyframes pulseGreen {
+  0%, 100% { box-shadow: 0 4px 14px rgba(34, 197, 94, 0.4); }
+  50%       { box-shadow: 0 4px 22px rgba(34, 197, 94, 0.7); }
+}
+
+.new-hint {
+  font-size: 0.72rem;
+  color: #16a34a;
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .new-contracts-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .banner-dismiss { align-self: flex-end; }
+}

@@ -1,0 +1,114 @@
+<section class="landing-shell" aria-label="PURRE PETS">
+  <header class="landing-hero">
+    <div class="mx-auto max-w-7xl px-4 py-20 md:px-8">
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <p class="hero-kicker">Dla rasowych kotów i psów</p>
+          <h1 class="hero-title">
+            PURRE PETS
+            <span class="typewriter-wrap" aria-live="polite">
+              <span class="typewriter-text">{{ heroTypedText }}</span><span class="typewriter-caret" aria-hidden="true"></span>
+            </span>
+          </h1>
+          <p class="hero-description">Where exceptional breeds find exceptional homes. Hodowle, adopcje, tranzyt i społeczność rasowych kotów i psów w jednym miejscu.</p>
+
+          <div class="hero-actions">
+            <button (click)="goToDashboard()" class="btn-primary">
+              {{ isLoggedIn ? 'Open Dashboard' : 'Open Workspace' }}
+            </button>
+            <a routerLink="/app/services" class="btn-secondary">Explore Modules</a>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section class="overview-band" aria-label="Operational overview">
+    <div class="mx-auto max-w-7xl px-4 py-10 md:px-8">
+      <div class="overview-grid">
+        <article *ngFor="let card of overviewCards" class="overview-card" [ngClass]="'overview-tone-' + card.tone">
+          <div class="overview-head">
+            <span class="overview-icon"><i class="fas" [ngClass]="card.icon"></i></span>
+            <h3>{{ card.title }}</h3>
+          </div>
+          <p class="overview-value">{{ card.value }}</p>
+          <p class="overview-detail">{{ card.detail }}</p>
+          <a [routerLink]="card.route" class="overview-link">{{ card.action }} <i class="fas fa-arrow-right"></i></a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="activity-section" aria-label="Recent activity">
+    <div class="mx-auto max-w-6xl px-4 py-8 md:px-8">
+      <div class="section-head">
+        <p class="section-kicker">Recent activity</p>
+        <h2>Current updates across modules</h2>
+      </div>
+
+      <div class="activity-grid">
+        <article *ngFor="let item of activityItems" class="activity-card" [ngClass]="'activity-tone-' + item.tone">
+          <div class="activity-head">
+            <span class="activity-icon"><i class="fas" [ngClass]="item.icon"></i></span>
+            <h3>{{ item.title }}</h3>
+          </div>
+          <p class="activity-detail">{{ item.detail }}</p>
+          <a [routerLink]="item.route" class="activity-link">Open <i class="fas fa-arrow-right"></i></a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="modules-section">
+    <div class="mx-auto max-w-7xl px-4 py-16 md:px-8">
+      <div class="section-head">
+        <p class="section-kicker">Platform modules</p>
+        <h2>Explore platform modules</h2>
+        <p>Each module supports browse-first access with role-based actions after sign-in.</p>
+      </div>
+
+      <div class="modules-grid">
+        <a *ngFor="let module of moduleCards" [routerLink]="module.route" class="module-card">
+          <div class="module-head">
+            <span class="module-icon"><i class="fas" [ngClass]="[module.icon, module.accent]"></i></span>
+            <span class="module-access">{{ module.statLabel }}</span>
+          </div>
+          <h3>{{ module.title }}</h3>
+          <p>{{ module.description }}</p>
+          <p class="module-metric">{{ module.statValue }}</p>
+          <span class="module-link">Open module <i class="fas fa-arrow-right"></i></span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="journey-section">
+    <div class="mx-auto max-w-6xl px-4 py-16 md:px-8">
+      <div class="section-head center">
+        <p class="section-kicker">Highlights</p>
+        <h2>Current platform highlights</h2>
+      </div>
+
+      <div class="journey-grid">
+        <article *ngFor="let item of highlights; index as idx" class="journey-step">
+          <span class="step-index">{{ idx + 1 }}</span>
+          <h3>{{ item.title }}</h3>
+          <p>{{ item.description }}</p>
+          <a [routerLink]="item.route" class="journey-link">{{ item.cta }} <i class="fas fa-arrow-right"></i></a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-section">
+    <div class="mx-auto max-w-5xl px-4 py-16 text-center md:px-8">
+      <h2>PURRE PETS dla rasowych kotów i psów</h2>
+      <p>Hodowla, adopcja, społeczność, usługi i tranzyt w jednym miejscu.</p>
+      <div class="cta-actions">
+        <button (click)="goToDashboard()" class="btn-primary btn-light">{{ isLoggedIn ? 'Open Dashboard' : 'Create Account' }}</button>
+        <a routerLink="/app/community" class="btn-secondary btn-light-outline">Visit Community</a>
+      </div>
+    </div>
+  </section>
+</section>

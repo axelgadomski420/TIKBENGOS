@@ -1,0 +1,245 @@
+<div class="wizard-container">
+  <!-- Header avec image de fond (comme pet-list) -->
+  <div class="page-header">
+    <div class="overlay"></div>
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-8 mx-auto text-center">
+          <h1 class="display-4 fw-bold">🐾 Find Your Perfect Pet</h1>
+          <p class="lead">Answer a few questions and let our smart AI recommend the best pet for you</p>
+          <div class="progress-container">
+            <div class="progress-steps">
+              <div class="step" [class.active]="currentStep >= 1" [class.completed]="currentStep > 1">
+                <div class="step-number">1</div>
+                <div class="step-label">Pet Type</div>
+              </div>
+              <div class="step-line" [class.active]="currentStep > 1"></div>
+              <div class="step" [class.active]="currentStep >= 2" [class.completed]="currentStep > 2">
+                <div class="step-number">2</div>
+                <div class="step-label">Appearance</div>
+              </div>
+              <div class="step-line" [class.active]="currentStep > 2"></div>
+              <div class="step" [class.active]="currentStep >= 3" [class.completed]="currentStep > 3">
+                <div class="step-number">3</div>
+                <div class="step-label">Lifestyle</div>
+              </div>
+              <div class="step-line" [class.active]="currentStep > 3"></div>
+              <div class="step" [class.active]="currentStep >= 4">
+                <div class="step-number">4</div>
+                <div class="step-label">Results</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container py-5">
+    <!-- Step 1: Pet Type -->
+    <div *ngIf="currentStep === 1" class="step-content fade-in">
+      <div class="step-card">
+        <h2 class="step-title">🐕 What type of pet are you looking for?</h2>
+        <div class="options-grid">
+          <div *ngFor="let type of petTypes" 
+               class="option-card" 
+               [class.selected]="criteria.type === type.value"
+               (click)="criteria.type = type.value">
+            <div class="option-icon">{{ type.label.split(' ')[0] }}</div>
+            <div class="option-label">{{ type.label }}</div>
+            <div class="option-desc">{{ type.desc }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Appearance -->
+    <div *ngIf="currentStep === 2" class="step-content fade-in">
+      <div class="step-card">
+        <h2 class="step-title">📏 Tell us about your preferences</h2>
+        
+        <div class="form-section">
+          <label class="section-label">Size</label>
+          <div class="options-grid small-grid">
+            <div *ngFor="let size of sizes" 
+                 class="option-chip" 
+                 [class.selected]="criteria.size === size.value"
+                 (click)="criteria.size = size.value">
+              {{ size.label }}
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <label class="section-label">Gender</label>
+          <div class="options-grid small-grid">
+            <div *ngFor="let gender of genders" 
+                 class="option-chip" 
+                 [class.selected]="criteria.gender === gender.value"
+                 (click)="criteria.gender = gender.value">
+              {{ gender.label }}
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <label class="section-label">Breed (optional)</label>
+          <input type="text" class="form-input" [(ngModel)]="criteria.breed" 
+                 placeholder="e.g., Labrador, Siamese, Beagle...">
+        </div>
+
+        <div class="form-row">
+          <div class="form-section half">
+            <label class="section-label">Color (optional)</label>
+            <select class="form-select" [(ngModel)]="criteria.color">
+              <option value="">Select a color</option>
+              <option *ngFor="let color of colors" [value]="color">{{ color }}</option>
+            </select>
+          </div>
+          <div class="form-section half">
+            <label class="section-label">Max Age</label>
+            <select class="form-select" [(ngModel)]="criteria.maxAge">
+              <option *ngFor="let option of maxAgeOptions" [value]="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-section half">
+            <label class="checkbox-label">
+              <input type="checkbox" [(ngModel)]="criteria.spayedNeutered">
+              <span>Prefer spayed/neutered</span>
+            </label>
+          </div>
+          <div class="form-section half">
+            <label class="checkbox-label">
+              <input type="checkbox" [(ngModel)]="criteria.hasSpecialNeeds">
+              <span>Open to special needs pets</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Lifestyle -->
+    <div *ngIf="currentStep === 3" class="step-content fade-in">
+      <div class="step-card">
+        <h2 class="step-title">🏠 Tell us about your home</h2>
+
+        <div class="form-section">
+          <label class="section-label">Housing Type</label>
+          <div class="options-grid">
+            <div *ngFor="let housing of housingTypes" 
+                 class="option-card" 
+                 [class.selected]="criteria.housingType === housing.value"
+                 (click)="criteria.housingType = housing.value">
+              <div class="option-label">{{ housing.label }}</div>
+              <div class="option-desc">{{ housing.desc }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-section half">
+            <label class="checkbox-label">
+              <input type="checkbox" [(ngModel)]="criteria.hasGarden">
+              <span>🏡 I have a garden/yard</span>
+            </label>
+          </div>
+          <div class="form-section half">
+            <label class="checkbox-label">
+              <input type="checkbox" [(ngModel)]="criteria.hasChildren">
+              <span>👶 Children live in the home</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <label class="section-label">Experience Level</label>
+          <div class="options-grid">
+            <div *ngFor="let exp of experienceLevels" 
+                 class="option-card" 
+                 [class.selected]="criteria.experienceLevel === exp.value"
+                 (click)="criteria.experienceLevel = exp.value">
+              <div class="option-label">{{ exp.label }}</div>
+              <div class="option-desc">{{ exp.desc }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Results -->
+    <div *ngIf="currentStep === 4" class="step-content fade-in">
+      <div *ngIf="loading" class="loading">
+        <div class="spinner"></div>
+        <p>Finding your perfect match...</p>
+      </div>
+
+      <div *ngIf="error" class="error">
+        {{ error }}
+      </div>
+
+      <div *ngIf="!loading && !error && suggestions.length === 0" class="empty">
+        <p>🐕 No matching pets found</p>
+        <button class="btn btn-primary" (click)="restart()">Start Over</button>
+      </div>
+
+      <div *ngIf="!loading && !error && suggestions.length > 0">
+        <h2 class="results-title">🎉 Your Perfect Matches</h2>
+        <div class="pets-grid">
+          <div *ngFor="let pet of suggestions" class="pet-card">
+            <div class="pet-image">
+              <img *ngIf="getFirstPhoto(pet.photos)" [src]="'http://localhost:8087/elif' + getFirstPhoto(pet.photos)" 
+                   [alt]="pet.name" class="pet-img">
+              <div *ngIf="!getFirstPhoto(pet.photos)" class="image-placeholder">
+                <span class="pet-icon">🐾</span>
+              </div>
+              <div class="score-badge" [style.backgroundColor]="getScoreColor(pet.compatibilityScore)">
+                {{ pet.compatibilityScore }}%
+              </div>
+            </div>
+            <div class="card-content">
+              <h3>{{ pet.name }}</h3>
+              <p class="breed">{{ pet.breed || 'Breed not specified' }}</p>
+              <div class="info">
+                <span class="badge">{{ getTypeLabel(pet.type) }}</span>
+                <span class="badge">{{ getSizeLabel(pet.size) }}</span>
+              </div>
+              <p class="details">
+                {{ getAgeLabel(pet.age) }} • {{ pet.gender === 'MALE' ? '♂ Male' : '♀ Female' }}
+              </p>
+              <div class="match-reasons">
+                <div *ngFor="let reason of pet.matchReasons" class="match-reason good">
+                  {{ reason }}
+                </div>
+                <div *ngFor="let warning of pet.warningReasons" class="match-reason warning">
+                  {{ warning }}
+                </div>
+              </div>
+              <div class="buttons">
+                <button class="btn btn-detail" (click)="viewPet(pet)">📖 Details</button>
+                <button class="btn btn-adopt" (click)="adoptPet(pet)">❤️ Adopt</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="restart-container">
+          <button class="btn btn-secondary" (click)="restart()">🔄 Start Over</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation Buttons -->
+    <div class="nav-buttons" *ngIf="currentStep !== 4 || (suggestions.length === 0 && !loading)">
+      <button class="btn btn-prev" (click)="prevStep()" [disabled]="currentStep === 1">
+        ← Previous
+      </button>
+      <button class="btn btn-next" (click)="nextStep()" [disabled]="!canGoNext()">
+        {{ currentStep === 3 ? '🔍 Find Matches' : 'Next →' }}
+      </button>
+    </div>
+  </div>
+</div>

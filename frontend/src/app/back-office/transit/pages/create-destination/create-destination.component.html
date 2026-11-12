@@ -1,0 +1,535 @@
+<section class="create-page">
+  <app-transit-toast-container></app-transit-toast-container>
+
+  <div class="ambient-orb ambient-orb--teal"></div>
+  <div class="ambient-orb ambient-orb--orange"></div>
+
+  <header class="page-header card-brand">
+    <div class="heading">
+      <p class="eyebrow">Transit Admin</p>
+      <h1 class="hero-line">{{ pageSentence() }}</h1>
+      <p class="subtitle">{{ sectionTitle() }}</p>
+    </div>
+  </header>
+
+  <section *ngIf="isPageLoading" class="state-card card-brand state-card--loading">
+    <i class="fas fa-spinner fa-spin"></i>
+    <p>Loading destination data...</p>
+  </section>
+
+  <section *ngIf="!isPageLoading && pageLoadError" class="state-card card-brand state-card--error">
+    <i class="fas fa-triangle-exclamation"></i>
+    <div class="state-copy">
+      <p>{{ pageLoadError }}</p>
+      <button type="button" class="retry-button" (click)="reloadEditData()">
+        <i class="fas fa-rotate-right"></i>
+        Retry
+      </button>
+    </div>
+  </section>
+
+  <section class="content-grid" *ngIf="!isPageLoading && !pageLoadError">
+    <form class="form-panel card-brand" [formGroup]="destinationForm" (ngSubmit)="submitForm()">
+      <section class="form-section card-brand">
+        <h2>Basic Information</h2>
+        <div class="fields-grid">
+          <div class="field field--full">
+            <label for="title">Title *</label>
+            <input id="title" type="text" formControlName="title" placeholder="Enter destination title" />
+            <p class="field-error" *ngIf="getControlError('title') as error">{{ error }}</p>
+          </div>
+
+          <div class="field">
+            <label for="country">Country *</label>
+            <input
+              id="country"
+              type="text"
+              formControlName="country"
+              (input)="onCountryOrRegionChange()"
+              placeholder="Country"
+            />
+            <p class="field-error" *ngIf="getControlError('country') as error">{{ error }}</p>
+          </div>
+
+          <div class="field">
+            <label for="region">Region *</label>
+            <input
+              id="region"
+              type="text"
+              formControlName="region"
+              (input)="onCountryOrRegionChange()"
+              placeholder="Region"
+            />
+            <p class="field-error" *ngIf="getControlError('region') as error">{{ error }}</p>
+          </div>
+
+          <div class="field">
+            <label for="destinationType">Destination Type *</label>
+            <select id="destinationType" formControlName="destinationType">
+              <option [ngValue]="null">Select destination type</option>
+              <option *ngFor="let type of destinationTypes" [ngValue]="type">
+                {{ formatDestinationType(type) }}
+              </option>
+            </select>
+            <p class="field-error" *ngIf="getControlError('destinationType') as error">{{ error }}</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="form-section card-brand">
+        <h2>Travel Details</h2>
+        <div class="fields-grid">
+          <div class="field field--full">
+            <label for="recommendedTransportType">Recommended Transport *</label>
+            <select id="recommendedTransportType" formControlName="recommendedTransportType">
+              <option [ngValue]="null">Select transport type</option>
+              <option *ngFor="let transportType of transportTypes" [ngValue]="transportType">
+                {{ formatTransportType(transportType) }}
+              </option>
+            </select>
+            <p class="field-error" *ngIf="getControlError('recommendedTransportType') as error">
+              {{ error }}
+            </p>
+          </div>
+
+          <div class="field field--full">
+            <label>Pet-friendly Level *</label>
+            <div class="stars-picker" [class.stars-picker--error]="hasControlError('petFriendlyLevel')">
+              <button
+                type="button"
+                *ngFor="let starLevel of starLevels"
+                (click)="setPetFriendlyLevel(starLevel)"
+                [class.active]="starLevel <= destinationForm.controls.petFriendlyLevel.value"
+              >
+                <i class="fas fa-star"></i>
+              </button>
+              <span>{{ destinationForm.controls.petFriendlyLevel.value }}/5</span>
+            </div>
+            <p class="field-error" *ngIf="getControlError('petFriendlyLevel') as error">{{ error }}</p>
+          </div>
+
+          <div class="field field--full">
+            <div class="map-section-premium card-brand">
+              <div class="section-header-map">
+                <div class="section-icon-wrap">
+                  <mat-icon>pin_drop</mat-icon>
+                </div>
+                <div>
+                  <h3>Destination Location</h3>
+                  <p>Pin the exact destination on the map. Coordinates save automatically.</p>
+                </div>
+              </div>
+
+              <app-map-picker
+                [latitude]="destinationForm.get('latitude')?.value ?? null"
+                [longitude]="destinationForm.get('longitude')?.value ?? null"
+                [readonly]="false"
+                [searchQuery]="mapSearchQuery"
+                height="380px"
+                [markerLabel]="destinationForm.get('title')?.value || 'Destination'"
+                (locationSelected)="onMapLocationSelected($event)"
+                (locationResolved)="onLocationResolved($event)"
+              >
+              </app-map-picker>
+
+              <div class="map-sync-hint">
+                <mat-icon>sync</mat-icon>
+                Country and Region sync automatically with the map
+              </div>
+
+              <input type="hidden" formControlName="latitude" />
+              <input type="hidden" formControlName="longitude" />
+
+              <div class="coords-row" *ngIf="destinationForm.get('latitude')?.value !== null">
+                <div class="coord-chip">
+                  <span class="material-icons">north</span>
+                  Latitude: {{ destinationForm.get('latitude')?.value | number: '1.4-4' }}
+                </div>
+                <div class="coord-chip">
+                  <span class="material-icons">east</span>
+                  Longitude: {{ destinationForm.get('longitude')?.value | number: '1.4-4' }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="form-section card-brand">
+        <h2>Safety & Documents</h2>
+        <div class="fields-grid">
+          <div class="field field--full field-with-ai">
+            <div class="field-header">
+              <label for="description">Description *</label>
+              <button
+                type="button"
+                class="ai-generate-btn"
+                (click)="generateDescription()"
+                [disabled]="isGeneratingDescription"
+              >
+                <span class="ai-icon" aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M12 3.5L13.8 8.2L18.5 10L13.8 11.8L12 16.5L10.2 11.8L5.5 10L10.2 8.2L12 3.5Z"
+                      fill="currentColor"
+                    ></path>
+                    <path
+                      d="M18.2 14.6L19 16.7L21.1 17.5L19 18.3L18.2 20.4L17.4 18.3L15.3 17.5L17.4 16.7L18.2 14.6Z"
+                      fill="currentColor"
+                    ></path>
+                  </svg>
+                </span>
+                <span *ngIf="!isGeneratingDescription">Generate with AI</span>
+                <span *ngIf="isGeneratingDescription">Generating...</span>
+              </button>
+            </div>
+            <textarea
+              id="description"
+              rows="4"
+              formControlName="description"
+              placeholder="Destination description for admins and users"
+            ></textarea>
+            <p class="field-error" *ngIf="getControlError('description') as error">{{ error }}</p>
+          </div>
+
+          <div class="field field--full field-with-ai">
+            <div class="field-header">
+              <label for="safetyTips">Safety Tips *</label>
+              <button
+                type="button"
+                class="ai-generate-btn"
+                (click)="generateSafetyTips()"
+                [disabled]="isGeneratingSafetyTips"
+              >
+                <span class="ai-icon" aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M12 3.5L13.8 8.2L18.5 10L13.8 11.8L12 16.5L10.2 11.8L5.5 10L10.2 8.2L12 3.5Z"
+                      fill="currentColor"
+                    ></path>
+                    <path
+                      d="M18.2 14.6L19 16.7L21.1 17.5L19 18.3L18.2 20.4L17.4 18.3L15.3 17.5L17.4 16.7L18.2 14.6Z"
+                      fill="currentColor"
+                    ></path>
+                  </svg>
+                </span>
+                <span *ngIf="!isGeneratingSafetyTips">Generate with AI</span>
+                <span *ngIf="isGeneratingSafetyTips">Generating...</span>
+              </button>
+            </div>
+            <textarea
+              id="safetyTips"
+              rows="4"
+              formControlName="safetyTips"
+              placeholder="Important travel safety tips"
+            ></textarea>
+            <p class="field-error" *ngIf="getControlError('safetyTips') as error">{{ error }}</p>
+          </div>
+
+          <div class="field field--full">
+            <label>Required Documents</label>
+            <div class="document-selector">
+              <button
+                type="button"
+                *ngFor="let documentType of requiredDocumentTypes"
+                (click)="toggleRequiredDocument(documentType)"
+                [class.selected]="isRequiredDocumentSelected(documentType)"
+              >
+                {{ formatDocumentLabel(documentType) }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="form-section media-panel card-brand">
+        <h2>Destination Media</h2>
+
+        <div class="image-source-toggle" role="radiogroup" aria-label="Cover image source mode">
+          <button
+            type="button"
+            *ngFor="let mode of imageSourceModes"
+            [class.active]="isImageSourceModeSelected(mode)"
+            [attr.aria-pressed]="isImageSourceModeSelected(mode)"
+            (click)="setImageSourceMode(mode)"
+          >
+            <span class="source-icon"><i class="fas" [ngClass]="imageModeIcon(mode)"></i></span>
+            <span class="source-copy">
+              <strong>{{ imageModeLabel(mode) }}</strong>
+              <small>{{ imageModeSubtitle(mode) }}</small>
+            </span>
+          </button>
+        </div>
+
+        <div class="fields-grid fields-grid--media">
+          <div class="field field--full" *ngIf="imageSourceMode === 'URL'">
+            <label for="coverImageUrl">Image URL</label>
+            <input
+              id="coverImageUrl"
+              type="url"
+              formControlName="coverImageUrl"
+              placeholder="https://your-image-url"
+            />
+            <p class="field-error" *ngIf="getControlError('coverImageUrl') as error">{{ error }}</p>
+          </div>
+
+          <div class="field field--full" *ngIf="imageSourceMode === 'UPLOAD'">
+            <label for="coverImageFile">Upload Image</label>
+            <div class="file-picker-row">
+              <label for="coverImageFile" class="file-btn">
+                <i class="fas fa-image"></i>
+                <span>Choose Image</span>
+              </label>
+              <input id="coverImageFile" type="file" accept="image/*" (change)="onCoverFileSelected($event)" />
+
+              <span class="file-name" *ngIf="selectedCoverFileName">{{ selectedCoverFileName }}</span>
+              <button type="button" class="file-remove-btn" *ngIf="selectedCoverFile" (click)="removeCoverFile()">
+                Remove file
+              </button>
+            </div>
+          </div>
+
+          <div class="field field--full">
+            <div class="inline-image-preview">
+              <ng-container *ngIf="hasPreviewImage(previewDestination); else inlineImagePlaceholder">
+                <img
+                  [src]="resolvePreviewImage(previewDestination)"
+                  [alt]="previewDestination.title"
+                  (error)="onPreviewImageError($event)"
+                />
+              </ng-container>
+              <ng-template #inlineImagePlaceholder>
+                <div class="empty-image-state">
+                  <i class="fas fa-image"></i>
+                  <p>{{ previewImageHint() }}</p>
+                </div>
+              </ng-template>
+            </div>
+          </div>
+
+          <div class="field field--full carousel-manager">
+            <div class="carousel-manager__header">
+              <div>
+                <h3>Carousel Images</h3>
+                <p>
+                  Cover image is used for cards and hero media. Carousel images are additional photos shown in
+                  destination details.
+                </p>
+              </div>
+              <label for="carouselImagesInput" class="file-btn">
+                <i class="fas fa-images"></i>
+                <span>Add Images</span>
+              </label>
+              <input
+                id="carouselImagesInput"
+                type="file"
+                accept="image/*"
+                multiple
+                (change)="onCarouselImagesSelected($event)"
+              />
+            </div>
+
+            <div *ngIf="carouselPreviewItems().length > 0; else emptyCarouselState">
+              <div class="bo-carousel-wrapper">
+                <div class="bo-carousel-track">
+                  <article class="bo-carousel-slide" *ngFor="let item of carouselPreviewItems()">
+                    <img [src]="item.imageUrl" alt="Carousel preview image" (error)="onPreviewImageError($event)" />
+                  </article>
+                </div>
+              </div>
+
+              <div class="bo-thumbnail-grid">
+                <article class="bo-thumbnail-item" *ngFor="let item of carouselPreviewItems()">
+                  <img [src]="item.imageUrl" alt="Carousel preview image" (error)="onPreviewImageError($event)" />
+                  <button
+                    type="button"
+                    class="carousel-remove"
+                    (click)="removeCarouselPreview(item)"
+                    aria-label="Remove carousel image"
+                  >
+                    <i class="fas fa-xmark"></i>
+                  </button>
+                  <span class="carousel-tag">{{ item.existing ? 'Existing' : 'New' }}</span>
+                </article>
+              </div>
+            </div>
+
+            <p class="carousel-replace-note" *ngIf="willReplaceExistingCarouselImages()">
+              Saving this edit will replace current carousel images with the newly uploaded files.
+            </p>
+
+            <p class="auto-fill-hint" *ngIf="coverAutoFilledFromCarousel && !coverManuallySelected">
+              <i class="fas fa-circle-info"></i>
+              Cover image is automatically set from the first selected carousel image.
+            </p>
+
+            <ng-template #emptyCarouselState>
+              <p class="carousel-empty-copy">
+                No carousel images selected. Destination details will use only the cover image.
+              </p>
+            </ng-template>
+          </div>
+        </div>
+      </section>
+
+      <section class="form-section programming-panel card-brand" *ngIf="!isEditMode">
+        <h2>Programming Options</h2>
+        <p class="section-copy">Choose how this destination should be processed after creation.</p>
+
+        <div class="programming-options">
+          <button
+            type="button"
+            *ngFor="let mode of programmingModes"
+            (click)="setProgrammingMode(mode)"
+            [class.active]="isProgrammingModeSelected(mode)"
+          >
+            <span class="option-icon"><i class="fas" [ngClass]="modeIcon(mode)"></i></span>
+            <span class="option-copy">
+              <strong>{{ modeLabel(mode) }}</strong>
+              <small>{{ modeSubtitle(mode) }}</small>
+            </span>
+          </button>
+        </div>
+
+        <div class="schedule-row" *ngIf="shouldShowScheduleControl()">
+          <label for="scheduleAt">{{ scheduleLabel() }}</label>
+          <input
+            id="scheduleAt"
+            type="datetime-local"
+            [formControl]="scheduleAtControl"
+            (blur)="scheduleTouched = true"
+          />
+          <p class="field-error" *ngIf="hasScheduleError()">
+            Select a valid date and time to schedule publishing.
+          </p>
+        </div>
+      </section>
+
+      <section class="form-section programming-panel programming-panel--edit card-brand" *ngIf="isEditMode">
+        <div class="programming-head">
+          <div>
+            <h2>Update Processing</h2>
+            <p class="section-copy">Choose how this destination should be processed after update.</p>
+          </div>
+          <app-destination-status-badge [status]="currentEditStatus()"></app-destination-status-badge>
+        </div>
+
+        <div class="programming-options programming-options--edit">
+          <button
+            type="button"
+            *ngFor="let action of editActionModes()"
+            (click)="setEditAction(action)"
+            [class.active]="isEditActionSelected(action)"
+            [class.option--positive]="editActionTone(action) === 'positive'"
+            [class.option--danger]="editActionTone(action) === 'danger'"
+            [class.option--warning]="editActionTone(action) === 'warning'"
+            [class.option--info]="editActionTone(action) === 'info'"
+          >
+            <span class="option-icon"><i class="fas" [ngClass]="editActionIcon(action)"></i></span>
+            <span class="option-copy">
+              <strong>{{ editActionLabel(action) }}</strong>
+              <small>{{ editActionSubtitle(action) }}</small>
+            </span>
+          </button>
+        </div>
+
+        <div class="schedule-row" *ngIf="shouldShowScheduleControl()">
+          <label for="scheduleAt">{{ scheduleLabel() }}</label>
+          <input
+            id="scheduleAt"
+            type="datetime-local"
+            [formControl]="scheduleAtControl"
+            (blur)="scheduleTouched = true"
+          />
+          <p class="field-error" *ngIf="hasScheduleError()">
+            Select a valid date and time to schedule publishing.
+          </p>
+        </div>
+      </section>
+
+      <div class="feedback-row feedback-row--error" *ngIf="submitErrorMessage">
+        <i class="fas fa-triangle-exclamation"></i>
+        <p>{{ submitErrorMessage }}</p>
+      </div>
+
+      <footer class="form-actions">
+        <button type="button" class="btn btn--ghost" (click)="cancel()" [disabled]="isSaving">
+          <i class="fas fa-xmark"></i>
+          <span>Cancel</span>
+        </button>
+
+        <button type="button" class="btn btn--ghost" (click)="resetForm()" [disabled]="isSaving">
+          <i class="fas fa-rotate-left"></i>
+          <span>Reset</span>
+        </button>
+
+        <button type="submit" class="btn btn-primary btn--primary" [disabled]="isSaving">
+          <i class="fas" [ngClass]="isEditMode ? 'fa-pen' : 'fa-floppy-disk'"></i>
+          <span>{{ actionLabel() }}</span>
+        </button>
+      </footer>
+    </form>
+
+    <aside class="glass-panel preview-panel">
+      <h2>Live Preview</h2>
+      <p class="preview-subtitle">This card updates in real time as you edit the form.</p>
+
+      <article class="preview-card">
+        <div class="preview-cover">
+          <ng-container *ngIf="hasPreviewImage(previewDestination); else cardImagePlaceholder">
+            <img
+              [src]="resolvePreviewImage(previewDestination)"
+              [alt]="previewDestination.title"
+              (error)="onPreviewImageError($event)"
+            />
+          </ng-container>
+          <ng-template #cardImagePlaceholder>
+            <div class="empty-image-state empty-image-state--card">
+              <i class="fas fa-camera-retro"></i>
+              <p>{{ previewImageHint() }}</p>
+            </div>
+          </ng-template>
+
+          <div class="preview-cover-overlay"></div>
+          <app-destination-status-badge
+            class="preview-status"
+            [status]="previewDestination.status"
+          ></app-destination-status-badge>
+        </div>
+
+        <div class="preview-content">
+          <h3>{{ previewDestination.title }}</h3>
+
+          <p class="preview-location">
+            <i class="fas fa-location-dot"></i>
+            <span>{{ previewDestination.country }} - {{ previewDestination.region }}</span>
+          </p>
+
+          <div class="preview-meta">
+            <span>
+              <i class="fas" [ngClass]="getDestinationTypeIcon(previewDestination.destinationType)"></i>
+              {{ formatDestinationType(previewDestination.destinationType) }}
+            </span>
+
+            <span>
+              <i class="fas" [ngClass]="getTransportIcon(previewDestination.recommendedTransportType)"></i>
+              {{ formatTransportType(previewDestination.recommendedTransportType) }}
+            </span>
+          </div>
+
+          <div class="preview-rating">
+            <span>Pet-friendly</span>
+            <app-pet-friendly-stars [level]="previewDestination.petFriendlyLevel"></app-pet-friendly-stars>
+          </div>
+
+          <p class="preview-copy">{{ previewDestination.description }}</p>
+
+          <p class="preview-date">
+            {{ getPreviewDateLabel(previewDestination) }}
+            <strong>{{ getPreviewDateValue(previewDestination) | date: 'mediumDate' }}</strong>
+          </p>
+        </div>
+      </article>
+    </aside>
+  </section>
+</section>

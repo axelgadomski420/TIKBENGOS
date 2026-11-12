@@ -1,0 +1,35 @@
+:host {
+  display: inline-flex;
+}
+
+.status-badge {
+  --badge-color: #6b7280;
+  --badge-bg: #f3f4f6;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  padding: 0.4rem 0.72rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--badge-color);
+  background: var(--badge-bg);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+.status-badge mat-icon {
+  width: 0.84rem;
+  height: 0.84rem;
+  font-size: 0.84rem;
+}
+
+.status-badge--compact {
+  padding: 0.28rem 0.58rem;
+  font-size: 0.7rem;
+}
+
+.status-badge--compact mat-icon {
+  width: 0.76rem;
+  height: 0.76rem;
+  font-size: 0.76rem;
+}

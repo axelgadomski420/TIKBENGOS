@@ -1,0 +1,390 @@
+<div class="aef-shell">
+  <app-admin-toast-container></app-admin-toast-container>
+
+  <header class="aef-topbar">
+    <div class="aef-topbar__left">
+      <button class="aef-back-btn" routerLink="/admin/events">
+        <mat-icon aria-hidden="true">arrow_back</mat-icon>
+        Events
+      </button>
+      <span class="aef-topbar__sep">/</span>
+      <span class="aef-topbar__title">{{ isEdit ? 'Edit event' : 'New event' }}</span>
+    </div>
+  </header>
+
+  <!-- STEPPER -->
+  <div class="aef-stepper">
+    <div class="aef-stepper__track">
+      <div *ngFor="let step of steps; let i = index" class="aef-step"
+        [class.aef-step--active]="currentStep === i"
+        [class.aef-step--done]="currentStep > i"
+        (click)="goToStep(i)">
+        <div class="aef-step__bubble">
+          <mat-icon *ngIf="currentStep > i" aria-hidden="true">check_circle</mat-icon>
+          <span *ngIf="currentStep <= i">{{ i + 1 }}</span>
+        </div>
+        <div class="aef-step__label">
+          <span class="aef-step__name">{{ step.label }}</span>
+          <span class="aef-step__sub">{{ step.sub }}</span>
+        </div>
+        <div class="aef-step__connector" *ngIf="i < steps.length - 1"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ STEP 1 : Informations générales ══════════════════════════ -->
+  <div class="aef-panel" *ngIf="currentStep === 0">
+    <div class="aef-panel__header">
+      <div class="aef-panel__icon aef-panel__icon--blue">
+        <mat-icon aria-hidden="true">description</mat-icon>
+      </div>
+      <div>
+        <h2 class="aef-panel__title">General information</h2>
+        <p class="aef-panel__sub">Basic details visible to all users</p>
+      </div>
+    </div>
+    <div class="aef-form-body">
+      <div class="aef-grid">
+
+        <div class="aef-field aef-field--full">
+          <label class="aef-label">Title <span class="aef-required">*</span></label>
+          <input type="text" class="aef-input" [(ngModel)]="form.title"
+            placeholder="Ex: International Cat Championship 2025" maxlength="150"/>
+        </div>
+
+        <div class="aef-field">
+          <label class="aef-label">Category <span class="aef-required">*</span></label>
+          <div class="aef-select-wrap">
+            <select class="aef-select" [(ngModel)]="form.categoryId" (change)="onCategoryChange()">
+              <option [ngValue]="null" disabled>Select a category…</option>
+              <option *ngFor="let cat of categories" [ngValue]="cat.id">
+                {{ getCategoryDisplayIcon(cat.icon) }} {{ cat.name }}
+              </option>
+            </select>
+            <mat-icon class="aef-select-icon" aria-hidden="true">chevron_right</mat-icon>
+          </div>
+        </div>
+
+        <div class="aef-field">
+          <label class="aef-label">Cover image</label>
+          <div class="aef-upload-zone" [class.aef-upload-zone--has-image]="imagePreview" (click)="fileInput.click()">
+            <img *ngIf="imagePreview" [src]="imagePreview" class="aef-upload-preview" alt="cover"/>
+            <div class="aef-upload-placeholder" *ngIf="!imagePreview">
+              <mat-icon aria-hidden="true">description</mat-icon>
+              <span>Click to upload</span>
+            </div>
+            <button class="aef-upload-remove" *ngIf="imagePreview"
+              (click)="$event.stopPropagation(); removeImage()" type="button"><mat-icon>close</mat-icon></button>
+          </div>
+          <input #fileInput type="file" accept="image/*" class="aef-hidden" (change)="onFileSelected($event)"/>
+          <button class="aef-upload-btn" *ngIf="selectedImage && !uploadingImage"
+            (click)="uploadImage()" type="button">Upload image</button>
+          <div class="aef-uploading" *ngIf="uploadingImage">
+            <div class="aef-spinner"></div> Uploading…
+          </div>
+        </div>
+
+        <!-- ✅ TOGGLE EN LIGNE — partie clé du fix -->
+        <div class="aef-field aef-field--full">
+          <label class="aef-label">Event format</label>
+          <div class="aef-format-toggle-group">
+
+            <!-- Présentiel -->
+            <div class="aef-format-card"
+              [class.aef-format-card--active]="!form.isOnline"
+              (click)="setEventFormat(false)">
+                <div class="aef-format-card__icon"><mat-icon aria-hidden="true">place</mat-icon></div>
+              <div class="aef-format-card__info">
+                <div class="aef-format-card__title">In-person</div>
+                <div class="aef-format-card__desc">Physical location required</div>
+              </div>
+              <div class="aef-format-card__radio" [class.aef-format-card__radio--on]="!form.isOnline"></div>
+            </div>
+
+            <!-- En ligne -->
+            <div class="aef-format-card aef-format-card--online"
+              [class.aef-format-card--active]="form.isOnline"
+              (click)="setEventFormat(true)">
+              <div class="aef-format-card__icon"><mat-icon aria-hidden="true">event</mat-icon></div>
+              <div class="aef-format-card__info">
+                <div class="aef-format-card__title">Online</div>
+                <div class="aef-format-card__desc">Virtual room, attendance tracking & certificates</div>
+              </div>
+              <div class="aef-format-card__radio" [class.aef-format-card__radio--on]="form.isOnline"></div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="aef-field aef-field--full">
+          <label class="aef-label">Description <span class="aef-required">*</span></label>
+          <textarea class="aef-textarea" [(ngModel)]="form.description"
+            rows="5" placeholder="Describe the event…" maxlength="2000">
+          </textarea>
+        </div>
+
+        <div class="aef-field">
+          <label class="aef-label">
+            Ticket price
+            <span class="aef-field__hint">used by Event Coach</span>
+          </label>
+          <input type="number" class="aef-input" [(ngModel)]="form.price"
+            min="0" step="0.01" placeholder="0.00"/>
+        </div>
+
+        <div class="aef-field">
+          <label class="aef-label">
+            Expected animal types
+            <span class="aef-field__hint">comma-separated</span>
+          </label>
+          <input type="text" class="aef-input" [(ngModel)]="form.expectedAnimalTypesText"
+            placeholder="Dogs, Cats, Rabbits"/>
+        </div>
+      </div>
+    </div>
+    <app-ai-description-generator
+      [form]="form"
+      [categories]="categories"
+      [rules]="getAllRules()"
+      (descriptionGenerated)="onAiDescription($event)">
+    </app-ai-description-generator>
+  </div>
+
+  <!-- ══ STEP 2 : Date & Lieu ══════════════════════════════════════ -->
+  <div class="aef-panel" *ngIf="currentStep === 1">
+    <div class="aef-panel__header">
+      <div class="aef-panel__icon aef-panel__icon--amber">
+        <mat-icon aria-hidden="true">calendar_month</mat-icon>
+      </div>
+      <div>
+        <h2 class="aef-panel__title">Date, location & capacity</h2>
+        <p class="aef-panel__sub">When and where the event takes place</p>
+      </div>
+    </div>
+    <div class="aef-form-body">
+      <div class="aef-grid">
+
+        <div class="aef-field">
+          <label class="aef-label">Start date & time <span class="aef-required">*</span></label>
+          <input type="datetime-local" class="aef-input" [(ngModel)]="form.startDate"
+            [min]="minDate" (change)="onDateChange()"/>
+        </div>
+
+        <div class="aef-field">
+          <label class="aef-label">End date & time <span class="aef-required">*</span></label>
+          <input type="datetime-local" class="aef-input" [(ngModel)]="form.endDate"
+            [min]="form.startDate || minDate"/>
+        </div>
+
+        <div class="aef-field aef-field--full" *ngIf="isLocationRequired">
+        <label class="aef-label">
+          Location <span class="aef-required">*</span>
+          <span class="aef-field__hint">Click on the map or search to select</span>
+        </label>
+        
+        <!-- Intégration de la carte -->
+        <app-location-map 
+          [initialLocation]="form.location"
+          (locationSelected)="onLocationSelected($event)">
+        </app-location-map>
+      </div>
+      
+      <!-- Message pour événement online -->
+      <div class="aef-field aef-field--full" *ngIf="form.isOnline">
+        <div class="aef-info-message">
+          <mat-icon aria-hidden="true">place</mat-icon>
+          <span>This is an online event. No physical location required.</span>
+        </div>
+      </div>
+
+        <div class="aef-field">
+          <label class="aef-label">Max participants <span class="aef-required">*</span></label>
+          <input type="number" class="aef-input" [(ngModel)]="form.maxParticipants" min="1"/>
+        </div>
+
+      </div>
+
+      <!-- Météo - S'affiche uniquement pour les événements en présentiel avec location -->
+      <div class="aef-weather-card" *ngIf="isLocationRequired && weather && form.location">
+        <div class="aef-weather-card__header"><mat-icon aria-hidden="true">partly_cloudy_day</mat-icon> Weather forecast for {{ form.location?.split(',')[0] }}</div>
+        <div class="aef-weather-card__body">
+          <div class="aef-weather-row">
+            <span class="aef-weather-icon">{{ getWeatherEmoji(weather.condition) }}</span>
+            <span class="aef-weather-temp">{{ weather.temperature }}°C</span>
+            <span class="aef-weather-desc">{{ weather.description }}</span>
+            <span class="aef-weather-pill"
+              [class.aef-weather-pill--outdoor]="weather.recommendation === 'OUTDOOR'"
+              [class.aef-weather-pill--indoor]="weather.recommendation === 'INDOOR'">
+              {{ weather.recommendation === 'OUTDOOR' ? 'Outdoor OK' : 'Indoor recommended' }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <app-event-coach
+        *ngIf="canShowEventCoach"
+        [form]="eventCoachForm"
+        [isLocationRequired]="isLocationRequired">
+      </app-event-coach>
+    </div>
+  </div>
+
+  <!-- ══ STEP 3 : Session virtuelle (seulement si isOnline) ════════ -->
+  <div class="aef-panel" *ngIf="currentStep === 2">
+    <div class="aef-panel__header">
+      <div class="aef-panel__icon" [class.aef-panel__icon--green]="form.isOnline" [class.aef-panel__icon--grey]="!form.isOnline">
+        <mat-icon aria-hidden="true">event</mat-icon>
+      </div>
+      <div>
+        <h2 class="aef-panel__title">Virtual session</h2>
+        <p class="aef-panel__sub">
+          {{ form.isOnline ? 'Configure the online room settings' : 'Not applicable — this is an in-person event' }}
+        </p>
+      </div>
+    </div>
+    <div class="aef-form-body">
+
+      <!-- Pas un event online -->
+      <div class="aef-online-skip" *ngIf="!form.isOnline">
+      <div class="aef-online-skip__icon"><mat-icon>place</mat-icon></div>
+        <p>This event is configured as <strong>in-person</strong>.</p>
+        <p>Go back to step 1 to switch to online format if needed.</p>
+      </div>
+
+      <!-- Config salle virtuelle -->
+      <div *ngIf="form.isOnline">
+
+        <div class="aef-online-badge">
+          <mat-icon>info</mat-icon>
+          A virtual room will be automatically created and opened
+          <strong>{{ form.earlyAccessMinutes }} minutes</strong> before the event.
+          Participants need to be <strong>CONFIRMED</strong> to access it.
+        </div>
+
+        <div class="aef-grid">
+
+          <!-- URL externe optionnel -->
+          <div class="aef-field aef-field--full">
+            <label class="aef-label">External room URL <span class="aef-field__hint">optional</span></label>
+            <input type="url" class="aef-input" [(ngModel)]="form.externalRoomUrl"
+              placeholder="https://zoom.us/j/... or leave empty for built-in room"/>
+            <span class="aef-field__hint">
+              Leave empty to use the built-in virtual room. Paste a Zoom/Meet/Teams link to redirect participants.
+            </span>
+          </div>
+
+          <!-- Early access -->
+          <div class="aef-field">
+            <label class="aef-label">
+              Early access window
+              <span class="aef-field__hint">— room opens before event start</span>
+            </label>
+            <div class="aef-slider-row">
+              <input type="range" min="0" max="60" step="5"
+                [(ngModel)]="form.earlyAccessMinutes" class="aef-slider"/>
+              <span class="aef-slider-value">{{ form.earlyAccessMinutes }} min</span>
+            </div>
+          </div>
+
+          <!-- Seuil certificat -->
+          <div class="aef-field">
+            <label class="aef-label">
+              Certificate threshold
+              <span class="aef-field__hint">— minimum attendance %</span>
+            </label>
+            <div class="aef-slider-row">
+              <input type="range" min="50" max="100" step="5"
+                [(ngModel)]="form.attendanceThreshold" class="aef-slider"/>
+              <span class="aef-slider-value">≥ {{ form.attendanceThreshold }}%</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Récap visuel -->
+        <div class="aef-virtual-summary">
+          <div class="aef-virtual-summary__item">
+            <span class="aef-virtual-summary__icon"><mat-icon>schedule</mat-icon></span>
+            <div>
+              <div class="aef-virtual-summary__label">Room opens</div>
+              <div class="aef-virtual-summary__val">{{ form.earlyAccessMinutes }} min before start</div>
+            </div>
+          </div>
+          <div class="aef-virtual-summary__item">
+            <span class="aef-virtual-summary__icon"><mat-icon>emoji_events</mat-icon></span>
+            <div>
+              <div class="aef-virtual-summary__label">Certificate at</div>
+              <div class="aef-virtual-summary__val">≥ {{ form.attendanceThreshold }}% attendance</div>
+            </div>
+          </div>
+          <div class="aef-virtual-summary__item">
+            <span class="aef-virtual-summary__icon"><mat-icon>lock</mat-icon></span>
+            <div>
+              <div class="aef-virtual-summary__label">Access control</div>
+              <div class="aef-virtual-summary__val">Confirmed participants only</div>
+            </div>
+          </div>
+          <div class="aef-virtual-summary__item" *ngIf="form.externalRoomUrl">
+            <span class="aef-virtual-summary__icon"><mat-icon>info</mat-icon></span>
+            <div>
+              <div class="aef-virtual-summary__label">External room</div>
+              <div class="aef-virtual-summary__val">Custom URL configured</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Loader création session -->
+        <div class="aef-creating-session" *ngIf="virtualSessionCreating">
+          <div class="aef-spinner"></div>
+          <span>Creating virtual session…</span>
+        </div>
+        <div class="aef-session-created" *ngIf="virtualSessionCreated">
+          Virtual session already configured for this event.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ STEP 4 : Eligibilité ══════════════════════════════════════ -->
+  <div class="aef-panel" *ngIf="currentStep === 3">
+    <div class="aef-panel__header">
+      <div class="aef-panel__icon aef-panel__icon--green">
+        <mat-icon aria-hidden="true">check_circle</mat-icon>
+      </div>
+      <div>
+        <h2 class="aef-panel__title">Eligibility rules</h2>
+        <p class="aef-panel__sub">Define who can participate</p>
+      </div>
+    </div>
+    <div class="aef-form-body">
+      <p style="color:var(--grey-500);font-size:14px;">
+        Rules are configured from the event detail view after creation.
+      </p>
+    </div>
+  </div>
+
+  <!-- ── NAVIGATION FOOTER ──────────────────────────────────────── -->
+  <div class="aef-footer">
+    <button type="button" class="detail-secondary-button" (click)="prevStep()" *ngIf="currentStep > 0">
+      <mat-icon>arrow_back</mat-icon>
+      Previous
+    </button>
+    <div class="aef-footer__right">
+      <span class="aef-step-indicator">Step {{ currentStep + 1 }} of {{ steps.length }}</span>
+      <div class="aef-actions-right">
+        <button type="button" class="detail-primary-button" (click)="nextStep()"
+                *ngIf="currentStep < steps.length - 1">
+          Next step
+          <mat-icon>arrow_forward</mat-icon>
+        </button>
+        <button type="button" class="detail-primary-button" (click)="save()"
+                *ngIf="currentStep === steps.length - 1"
+                [disabled]="loading || !isValid">
+          <mat-icon class="bo-icon-spin" *ngIf="loading">refresh</mat-icon>
+          {{ loading ? 'Saving...' : (isEdit ? 'Save Changes' : 'Publish Event') }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+

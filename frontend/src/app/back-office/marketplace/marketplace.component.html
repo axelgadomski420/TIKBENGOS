@@ -1,0 +1,81 @@
+<section class="community-page min-h-screen py-10 px-4 md:px-8">
+  <div class="max-w-6xl mx-auto">
+    <header class="community-hero mb-8">
+      <div class="community-hero-grid">
+        <div class="community-hero-copy">
+          <p class="text-xs font-bold uppercase tracking-[0.24em] text-brand-teal">Back Office Marketplace</p>
+          <h1 class="mt-4 text-4xl font-black leading-[1.02] text-slate-950 md:text-5xl">Marketplace management, built like Community.</h1>
+          <p class="mt-4 max-w-2xl text-sm leading-7 text-slate-600 md:text-base">
+            Manage products, review catalog health, and jump into the customer-facing marketplace with the same visual language used across Community.
+          </p>
+
+          <div class="mt-6 flex flex-wrap gap-3">
+            <a routerLink="products" class="community-hero-action community-hero-action-primary">
+              <i class="fas fa-store mr-2"></i>Manage Products
+            </a>
+            <a routerLink="orders" class="community-hero-action community-hero-action-secondary">
+              <i class="fas fa-receipt mr-2"></i>Review Orders
+            </a>
+            <a routerLink="reclamations" class="community-hero-action community-hero-action-secondary">
+              <i class="fas fa-triangle-exclamation mr-2"></i>Treat Reclamations
+            </a>
+            <a routerLink="forecast" class="community-hero-action community-hero-action-secondary">
+              <i class="fas fa-chart-line mr-2"></i>Demand Forecast
+            </a>
+            <a routerLink="/app/marketplace/products" class="community-hero-action community-hero-action-secondary">
+              <i class="fas fa-eye mr-2"></i>Preview Storefront
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="grid md:grid-cols-2 xl:grid-cols-4 gap-5">
+      <div class="community-surface rounded-2xl p-5">
+        <h2 class="font-bold text-gray-900">Catalog health</h2>
+        <p class="text-sm text-gray-600 mt-2">Keep titles, images, and pricing ready for customers.</p>
+      </div>
+      <div class="community-surface rounded-2xl p-5">
+        <h2 class="font-bold text-gray-900">Inventory control</h2>
+        <p class="text-sm text-gray-600 mt-2">Spot low-stock items before they affect checkout.</p>
+      </div>
+      <div class="community-surface rounded-2xl p-5">
+        <h2 class="font-bold text-gray-900">Demand forecasting</h2>
+        <p class="text-sm text-gray-600 mt-2">Project 7/30/90-day demand, reorder timing, and overstock risk.</p>
+      </div>
+      <div class="community-surface rounded-2xl p-5">
+        <h2 class="font-bold text-gray-900">Product records</h2>
+        <p class="text-sm text-gray-600 mt-2">Open the product manager to add, edit, or retire items.</p>
+      </div>
+      <div class="community-surface rounded-2xl p-5">
+        <h2 class="font-bold text-gray-900">Storefront parity</h2>
+        <p class="text-sm text-gray-600 mt-2">Verify that what admins manage matches what customers see.</p>
+      </div>
+      <div class="community-surface rounded-2xl p-5">
+        <h2 class="font-bold text-gray-900">Support workflow</h2>
+        <p class="text-sm text-gray-600 mt-2">Open marketplace reclamations, answer users, and update ticket status.</p>
+      </div>
+    </div>
+
+    <div class="mt-8 community-surface rounded-2xl p-6">
+      <h2 class="text-xl font-black text-gray-900 mb-3">Admin access model</h2>
+      <p class="text-sm text-gray-600">
+        Admins can manage marketplace products here. Use the product manager for catalog updates, then open the public storefront to review the customer view.
+      </p>
+      <div class="mt-5 flex flex-wrap gap-3">
+        <a routerLink="orders" class="community-hero-action community-hero-action-primary">
+          <i class="fas fa-receipt mr-2"></i>Open Orders Dashboard
+        </a>
+        <a routerLink="products" class="community-hero-action community-hero-action-secondary">
+          <i class="fas fa-sliders mr-2"></i>Open Product Manager
+        </a>
+        <a routerLink="reclamations" class="community-hero-action community-hero-action-secondary">
+          <i class="fas fa-headset mr-2"></i>Open Reclamations
+        </a>
+        <a routerLink="forecast" class="community-hero-action community-hero-action-secondary">
+          <i class="fas fa-chart-line mr-2"></i>Open Forecast Dashboard
+        </a>
+      </div>
+    </div>
+  </div>
+</section>

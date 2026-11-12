@@ -1,0 +1,357 @@
+<div class="pr-root">
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="pr-loading">
+    <div class="pr-spinner"></div>
+    <p>Loading your status...</p>
+  </div>
+
+  <ng-container *ngIf="!loading">
+
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <!--  LANDING PAGE (NONE state)                                         -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <div *ngIf="hasNoRequest" class="lp-page">
+
+      <!-- Hero card -->
+      <div class="lp-card">
+        <p class="lp-eyebrow">Service Provider Program</p>
+        <h1 class="lp-title">Turn your passion for pets into a career.</h1>
+        <p class="lp-lead">
+          Join our growing network of trusted pet care professionals. Create and sell your services, manage your
+          calendar, and grow your client base — all from one powerful dashboard.
+        </p>
+        <div class="lp-cta-row">
+          <button (click)="startApplication()" class="lp-btn-primary">
+            Apply Now — It's Free
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- What is a provider -->
+      <div class="lp-card">
+        <p class="lp-eyebrow">What is a PURRE PETS provider?</p>
+        <h2 class="lp-section-title">Service categories you can offer</h2>
+        <p class="lp-section-desc">Verified providers on PURRE PETS can offer any of the following services to pet owners in
+          their area.</p>
+        <div class="lp-roles-grid">
+          <div class="lp-role-card">
+            <div class="lp-role-icon">🐕</div>
+            <h3>Dog Training</h3>
+            <p>Obedience, behavioral therapy, and puppy socialization classes.</p>
+          </div>
+          <div class="lp-role-card">
+            <div class="lp-role-icon">✂️</div>
+            <h3>Grooming</h3>
+            <p>Bathing, trimming, and full grooming sessions for all breeds.</p>
+          </div>
+          <div class="lp-role-card">
+            <div class="lp-role-icon">🏠</div>
+            <h3>Pet Sitting</h3>
+            <p>Home visits, overnight stays, and feeding while owners are away.</p>
+          </div>
+          <div class="lp-role-card">
+            <div class="lp-role-icon">🚶</div>
+            <h3>Dog Walking</h3>
+            <p>Daily walks and group outings to keep dogs healthy and happy.</p>
+          </div>
+          <div class="lp-role-card">
+            <div class="lp-role-icon">🩺</div>
+            <h3>Vet Consulting</h3>
+            <p>Remote consultations and nutritional guidance for pet owners.</p>
+          </div>
+          <div class="lp-role-card">
+            <div class="lp-role-icon">📸</div>
+            <h3>Pet Photography</h3>
+            <p>Professional photo sessions to capture precious moments.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- How it works -->
+      <div class="lp-card">
+        <p class="lp-eyebrow">How it works</p>
+        <h2 class="lp-section-title">3 simple steps to get started</h2>
+        <div class="lp-steps">
+          <div class="lp-step">
+            <div class="lp-step-num">1</div>
+            <div>
+              <h4>Submit your application</h4>
+              <p>Fill in a short form describing your expertise and optionally upload your CV for AI-powered category
+                matching.</p>
+            </div>
+          </div>
+          <div class="lp-step">
+            <div class="lp-step-num">2</div>
+            <div>
+              <h4>Admin reviews your profile</h4>
+              <p>Our team reviews your application within 24–48 hours and verifies your qualifications.</p>
+            </div>
+          </div>
+          <div class="lp-step">
+            <div class="lp-step-num">3</div>
+            <div>
+              <h4>Start publishing services</h4>
+              <p>Once approved, publish your services, set your prices, and start receiving bookings.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Benefits -->
+      <div class="lp-card">
+        <p class="lp-eyebrow">Why join PURRE PETS?</p>
+        <h2 class="lp-section-title">Everything a professional needs</h2>
+        <div class="lp-benefits">
+          <div class="lp-benefit">
+            <span class="lp-benefit-icon">📊</span>
+            <div>
+              <h4>Smart Dashboard</h4>
+              <p>Real-time analytics, booking history, and AI-powered business insights.</p>
+            </div>
+          </div>
+          <div class="lp-benefit">
+            <span class="lp-benefit-icon">✨</span>
+            <div>
+              <h4>AI CV Analysis</h4>
+              <p>Upload your CV and our AI automatically identifies your best service categories.</p>
+            </div>
+          </div>
+          <div class="lp-benefit">
+            <span class="lp-benefit-icon">🔒</span>
+            <div>
+              <h4>Verified Badge</h4>
+              <p>Approved providers receive a badge that builds trust with pet owners.</p>
+            </div>
+          </div>
+          <div class="lp-benefit">
+            <span class="lp-benefit-icon">💬</span>
+            <div>
+              <h4>Reviews & Ratings</h4>
+              <p>Build your reputation through authentic client reviews.</p>
+            </div>
+          </div>
+          <div class="lp-benefit">
+            <span class="lp-benefit-icon">📅</span>
+            <div>
+              <h4>Booking Management</h4>
+              <p>Accept, reschedule, and manage bookings from a unified calendar.</p>
+            </div>
+          </div>
+          <div class="lp-benefit">
+            <span class="lp-benefit-icon">🆓</span>
+            <div>
+              <h4>Free to Join</h4>
+              <p>No upfront costs — apply for free and start earning.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="lp-apply-cta">
+          <button (click)="startApplication()" class="lp-btn-primary">
+            Start My Application →
+          </button>
+          <span class="lp-apply-note">✅ Free &nbsp;·&nbsp; 🚀 24–48h review &nbsp;·&nbsp; 📊 Full dashboard</span>
+        </div>
+      </div>
+
+    </div><!-- /lp-page -->
+
+
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <!--  STATUS PAGES (PENDING / APPROVED / REJECTED)                     -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <div *ngIf="isPending || isApproved || isRejected" class="st-page">
+
+      <!-- APPROVED -->
+      <div *ngIf="isApproved" class="st-card st-approved">
+        <div class="st-icon">✅</div>
+        <div class="st-body">
+          <span class="st-badge badge-green">Approved</span>
+          <h2>Your account is approved! 🎉</h2>
+          <p>Congratulations! The admin has approved your application. You can now publish services on PURRE PETS.</p>
+          <a routerLink="/backoffice/services/pick-category" class="st-btn btn-green">Create your first service →</a>
+        </div>
+      </div>
+
+      <!-- PENDING -->
+      <div *ngIf="isPending" class="st-card st-pending">
+        <div class="st-icon">⏳</div>
+        <div class="st-body">
+          <span class="st-badge badge-amber"><span class="dot-blink"></span> Under Review</span>
+          <h2>Your application is being reviewed</h2>
+          <p>Our admin team is carefully reviewing your application. You'll be notified as soon as a decision is made —
+            usually within 24–48 hours.</p>
+          <div class="st-timeline">
+            <div class="st-tl-step done">
+              <div class="st-tl-dot done-dot">✓</div><span>Submitted</span>
+            </div>
+            <div class="st-tl-line active-line"></div>
+            <div class="st-tl-step active">
+              <div class="st-tl-dot active-dot"><span class="dot-ring"></span></div><span>Review</span>
+            </div>
+            <div class="st-tl-line"></div>
+            <div class="st-tl-step">
+              <div class="st-tl-dot">3</div><span>Decision</span>
+            </div>
+            <div class="st-tl-line"></div>
+            <div class="st-tl-step">
+              <div class="st-tl-dot">4</div><span>Publish</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- REJECTED -->
+      <div *ngIf="isRejected" class="st-card st-rejected">
+        <div class="st-icon">❌</div>
+        <div class="st-body">
+          <span class="st-badge badge-red">Not Approved</span>
+          <h2>Your request was not approved</h2>
+          <p>Unfortunately your application was rejected. You can resubmit with updated information. Don't give up!</p>
+          <button (click)="startApplication()" class="st-btn btn-slate">Resubmit Application →</button>
+        </div>
+      </div>
+
+      <!-- Request details -->
+      <div *ngIf="request" class="st-details-card">
+        <div class="st-details-header">
+          <span>📋</span>
+          <div>
+            <h3>Your Submitted Application</h3>
+            <p>Details of the request you sent to the admin team.</p>
+          </div>
+        </div>
+        <div class="st-details-grid">
+          <div class="st-detail" *ngIf="request.fullName"><span class="st-dl">Full Name</span><span class="st-dv">{{
+              request.fullName }}</span></div>
+          <div class="st-detail" *ngIf="request.email"><span class="st-dl">Email</span><span class="st-dv">{{
+              request.email }}</span></div>
+          <div class="st-detail" *ngIf="request.phone"><span class="st-dl">Phone</span><span class="st-dv">{{
+              request.phone }}</span></div>
+          <div class="st-detail" *ngIf="request.createdAt"><span class="st-dl">Submitted</span><span class="st-dv">{{
+              request.createdAt | date:'dd MMM yyyy, HH:mm' }}</span></div>
+          <div class="st-detail" *ngIf="request.reviewedAt"><span class="st-dl">Reviewed</span><span class="st-dv">{{
+              request.reviewedAt | date:'dd MMM yyyy, HH:mm' }}</span></div>
+          <div class="st-detail st-detail-full" *ngIf="request.description"><span class="st-dl">Description</span><span
+              class="st-dv">{{ request.description }}</span></div>
+        </div>
+        <div *ngIf="request.cvUrl" class="st-cv">
+          <span>📄</span>
+          <div>
+            <span class="st-cv-label">CV Attached</span>
+            <a [href]="'http://localhost:8087/elif/api/provider-request/cv/' + request.cvUrl" target="_blank"
+              class="st-cv-link">View / Download your CV</a>
+          </div>
+        </div>
+        <div *ngIf="request.cvSummary" class="st-ai">
+          <div class="st-ai-top">
+            <span class="st-ai-badge">✨ AI Analysis</span>
+            <span *ngIf="request.coherenceScore" class="st-ai-score">Score: <strong>{{ request.coherenceScore |
+                number:'1.0-1' }}/10</strong></span>
+          </div>
+          <p>{{ request.cvSummary }}</p>
+          <div *ngIf="request.missions && request.missions.length > 0">
+            <p class="st-ai-cats-lbl">Matched Categories</p>
+            <div class="st-ai-chips">
+              <div *ngFor="let m of request.missions" class="st-ai-chip">
+                <span class="st-chip-score">{{ m.matchScore | number:'1.0-0' }}%</span>
+                {{ m.serviceName }}
+                <span class="st-chip-cat">{{ m.category }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /st-page -->
+
+
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <!--  MODAL — Application Form                                          -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <div *ngIf="showForm" class="modal-backdrop" (click)="showForm = false">
+      <div class="modal-box" (click)="$event.stopPropagation()">
+
+        <!-- Modal header -->
+        <div class="modal-header">
+          <div class="modal-header-left">
+            <div class="modal-header-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <span class="modal-title">{{ isRejected ? 'Resubmit Application' : 'Apply as a Provider' }}</span>
+          </div>
+          <button class="modal-close" (click)="showForm = false" aria-label="Close">✕</button>
+        </div>
+
+        <!-- Modal body -->
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" enctype="multipart/form-data">
+
+          <div class="modal-body">
+
+            <div class="fm-field">
+              <label for="pr-description">Motivation & Qualifications <span class="fm-req">*</span></label>
+              <p class="fm-hint">Describe your qualifications, planned services, and why you want to join PURRE PETS.</p>
+              <textarea id="pr-description" formControlName="description" rows="5"
+                placeholder="Ex: I am a certified dog trainer with 5 years of experience specializing in obedience training and behavioral therapy...">
+              </textarea>
+              <div class="fm-field-foot">
+                <span class="fm-err"
+                  *ngIf="form.get('description')?.touched && form.get('description')?.errors?.['required']">Description
+                  is required.</span>
+                <span class="fm-err"
+                  *ngIf="form.get('description')?.touched && form.get('description')?.errors?.['minlength']">Minimum 10
+                  characters.</span>
+                <span class="fm-count">{{ form.get('description')?.value?.length || 0 }} / 500</span>
+              </div>
+            </div>
+
+            <div class="fm-field">
+              <label>CV File <span class="fm-hint-inline">(PDF, DOC — strongly recommended)</span></label>
+              <p class="fm-hint">Our AI will analyse your CV to automatically match you with the best service
+                categories.</p>
+              <div class="fm-upload" [class.fm-upload-done]="selectedFile">
+                <div *ngIf="!selectedFile" class="fm-upload-empty" (click)="cvInput.click()">
+                  <input #cvInput type="file" accept=".pdf,.doc,.docx" (change)="onFileSelected($event)"
+                    style="display:none">
+                  <span class="fm-upload-icon">☁️</span>
+                  <span class="fm-upload-text">Click to upload your CV</span>
+                  <span class="fm-upload-sub">PDF, DOC, DOCX — max 5 MB</span>
+                </div>
+                <div *ngIf="selectedFile" class="fm-upload-file">
+                  <span>📄 {{ fileName }}</span>
+                  <button type="button" class="fm-remove" (click)="removeFile()">✕ Remove</button>
+                </div>
+              </div>
+            </div>
+
+            <div *ngIf="errorMsg" class="fm-alert fm-alert-err">⚠️ {{ errorMsg }}</div>
+            <div *ngIf="successMsg" class="fm-alert fm-alert-ok">✅ {{ successMsg }}</div>
+
+          </div><!-- /modal-body -->
+
+          <!-- Modal footer -->
+          <div class="modal-footer">
+            <button type="button" class="modal-cancel" (click)="showForm = false">Cancel</button>
+            <button type="submit" class="modal-submit" [disabled]="submitting || form.invalid">
+              <svg *ngIf="!submitting" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span *ngIf="!submitting">{{ isRejected ? 'Resubmit Application' : 'Submit Application' }}</span>
+              <span *ngIf="submitting" class="fm-spin-row"><span class="fm-spinner"></span>Submitting...</span>
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div><!-- /modal -->
+
+  </ng-container>
+</div>

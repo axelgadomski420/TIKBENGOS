@@ -1,0 +1,95 @@
+<div class="container">
+  <!-- Back button -->
+  <button class="btn-back" (click)="goBack()">
+    ← Back to Shelters
+  </button>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Loading shelter...</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error" class="error">
+    {{ error }}
+  </div>
+
+  <!-- Shelter Details -->
+  <div *ngIf="!loading && !error && shelter">
+    <div class="shelter-card">
+      <div class="card-header">
+        <h1>{{ shelter.name }}</h1>
+        <span *ngIf="shelter.verified" class="verified-badge">✓ Verified</span>
+      </div>
+      
+      <div class="rating">
+        <span class="stars">{{ getStars(shelter.averageRating || 0) }}</span>
+        <span class="reviews">({{ shelter.totalReviews || 0 }} reviews)</span>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-item">
+          <strong>📍 Address</strong>
+          <p>{{ shelter.address }}</p>
+        </div>
+        <div class="info-item">
+          <strong>📞 Phone</strong>
+          <p>{{ shelter.phone || 'Not specified' }}</p>
+        </div>
+        <div class="info-item">
+          <strong>✉️ Email</strong>
+          <p>{{ shelter.email }}</p>
+        </div>
+        <div class="info-item">
+          <strong>📋 License Number</strong>
+          <p>{{ shelter.licenseNumber || 'Not specified' }}</p>
+        </div>
+      </div>
+
+      <div class="description">
+        <strong>📝 About</strong>
+        <p>{{ shelter.description || 'No description available.' }}</p>
+      </div>
+    </div>
+
+    <!-- Pets at this shelter -->
+    <h2>🐾 Animals at {{ shelter.name }}</h2>
+    
+    <div *ngIf="pets.length === 0" class="empty-pets">
+      <p>No animals available at this shelter at the moment.</p>
+    </div>
+
+    <div class="pets-grid">
+      <div *ngFor="let pet of pets" class="pet-card" [ngClass]="pet.available ? 'available' : 'adopted'">
+        <!-- Pet Image -->
+        <div class="pet-image">
+          <img *ngIf="getFirstPhoto(pet.photos)" [src]="'http://localhost:8087/elif' + getFirstPhoto(pet.photos)" 
+               [alt]="pet.name" class="pet-img">
+          <div *ngIf="!getFirstPhoto(pet.photos)" class="image-placeholder">
+            <span class="pet-icon">🐾</span>
+          </div>
+          <div class="status-badge" [ngClass]="pet.available ? 'status-available' : 'status-adopted'">
+            <i class="fas" [ngClass]="pet.available ? 'fa-check-circle' : 'fa-heart'"></i>
+            {{ pet.available ? 'Available' : 'Adopted' }}
+          </div>
+        </div>
+
+        <div class="card-content">
+          <h3>{{ pet.name }}</h3>
+          <p class="breed">{{ pet.breed || 'Breed not specified' }}</p>
+          <div class="info">
+            <span class="badge">{{ getPetTypeLabel(pet.type!) }}</span>
+            <span class="badge">{{ getPetSizeLabel(pet.size!) }}</span>
+          </div>
+          <p class="details">
+            {{ pet.age }} months • {{ pet.gender === 'MALE' ? '♂ Male' : '♀ Female' }}
+          </p>
+          <div class="buttons">
+            <a [routerLink]="['/app/adoption/pets', pet.id]" class="btn btn-detail">📖 Details</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

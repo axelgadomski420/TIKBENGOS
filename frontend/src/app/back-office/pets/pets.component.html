@@ -1,0 +1,362 @@
+<section class="p-6 lg:p-10 max-w-7xl mx-auto">
+  <h2 class="sr-only">Pet Management back office module</h2>
+
+  <!-- Hero Header -->
+  <div class="admin-entry-hero mb-6">
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div>
+        <p class="text-[11px] uppercase tracking-[0.2em] text-slate-500 font-bold">Back Office</p>
+        <h2 class="text-2xl md:text-3xl font-black text-gray-900 mt-1">Pet Management</h2>
+        <p class="text-gray-600 mt-2 max-w-2xl">Oversee all pet profiles, apply bulk updates, and manage data quality across the platform.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button type="button" (click)="refreshDashboard()" class="px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50">
+          <i class="fas fa-rotate-right mr-1"></i>Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats chips -->
+    <div class="mt-4 flex flex-wrap items-center gap-2">
+      <span class="admin-entry-chip">
+        <i class="fas fa-paw text-brand-teal mr-1"></i>
+        {{ loadingStats ? '...' : (stats?.totalPets ?? 0) }} total pets
+      </span>
+      <span class="admin-entry-chip">
+        <i class="fas fa-image text-brand-orange mr-1"></i>
+        {{ loadingStats ? '...' : (stats?.petsWithPhoto ?? 0) }} with photo
+      </span>
+      <span class="admin-entry-chip">
+        <i class="fas fa-location-dot text-brand-teal mr-1"></i>
+        {{ loadingStats ? '...' : (stats?.petsWithGps ?? 0) }} with GPS
+      </span>
+      <span class="admin-entry-chip">
+        <i class="fas fa-calendar-plus text-brand-orange mr-1"></i>
+        {{ loadingStats ? '...' : (stats?.createdLast30Days ?? 0) }} added (30d)
+      </span>
+      <span class="admin-entry-chip">
+        <i class="fas fa-pen-to-square text-brand-teal mr-1"></i>
+        {{ loadingStats ? '...' : (stats?.updatedLast7Days ?? 0) }} updated (7d)
+      </span>
+    </div>
+  </div>
+
+  <!-- Alerts -->
+  <div *ngIf="error" class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 text-sm flex items-center gap-2">
+    <i class="fas fa-circle-exclamation"></i>{{ error }}
+  </div>
+  <div *ngIf="success" class="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-700 text-sm flex items-center gap-2">
+    <i class="fas fa-circle-check"></i>{{ success }}
+  </div>
+
+  <!-- Filters Card -->
+  <div class="admin-surface mb-4 p-4 hover-lift">
+    <div class="flex items-center justify-between gap-3 mb-3">
+      <p class="text-sm font-semibold text-gray-700">Filter &amp; Search</p>
+      <span class="text-xs uppercase tracking-[0.12em] text-gray-400">Live Filter</span>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+      <div class="md:col-span-2">
+        <label class="text-xs uppercase tracking-[0.08em] text-slate-500 font-semibold" for="petSearch">Search</label>
+        <div class="relative mt-1">
+          <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+          <input id="petSearch" type="text" [value]="searchTerm" (input)="onSearchInput($event)"
+            placeholder="Name, breed, owner ID, species..."
+            class="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2 text-sm transition-shadow duration-150 focus:outline-none focus:ring-4 focus:ring-brand-teal/15 focus:border-brand-teal" />
+        </div>
+      </div>
+      <div>
+        <label class="text-xs uppercase tracking-[0.08em] text-slate-500 font-semibold" for="boSpeciesFilter">Species</label>
+        <select id="boSpeciesFilter" [value]="selectedSpecies" (change)="onSpeciesFilterChange($event)"
+          class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-4 focus:ring-brand-teal/15 focus:border-brand-teal">
+          <option value="">All species</option>
+          <option *ngFor="let species of speciesOptions" [value]="species">{{ species }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs uppercase tracking-[0.08em] text-slate-500 font-semibold" for="sortMode">Sort by</label>
+        <select id="sortMode" [value]="sortMode" (change)="onSortModeChange($event)"
+          class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-4 focus:ring-brand-teal/15 focus:border-brand-teal">
+          <option value="updated">Recently updated</option>
+          <option value="created">Recently created</option>
+          <option value="name">Name</option>
+          <option value="owner">Owner ID</option>
+        </select>
+      </div>
+    </div>
+    <div class="mt-3 pt-3 border-t border-gray-100 flex flex-wrap items-center gap-4">
+      <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none">
+        <input type="checkbox" [checked]="showOnlyWithPhoto" (change)="togglePhotoFilter($event)" class="accent-brand-teal rounded" />
+        <span>With photo only</span>
+      </label>
+      <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none">
+        <input type="checkbox" [checked]="showOnlyWithGps" (change)="toggleGpsFilter($event)" class="accent-brand-teal rounded" />
+        <span>With GPS only</span>
+      </label>
+      <div class="ml-auto flex items-center gap-3">
+        <span class="text-xs text-gray-400">{{ filteredPets.length }} of {{ pets.length }} results</span>
+        <button type="button" (click)="clearFilters()"
+          class="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-600 hover:bg-gray-50">
+          <i class="fas fa-xmark mr-1"></i>Reset
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk Actions Card -->
+  <div class="admin-surface mb-4 p-4 hover-lift">
+    <div class="flex items-center justify-between gap-3 mb-3 flex-wrap">
+      <div>
+        <p class="text-sm font-semibold text-gray-700">Bulk Actions</p>
+        <p class="text-xs text-gray-400 mt-0.5">
+          <span [class.text-brand-teal]="selectedCount > 0" [class.font-semibold]="selectedCount > 0">{{ selectedCount }} pets selected</span>
+        </p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" (click)="selectAllFiltered()" [disabled]="!filteredPets.length"
+          class="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+          <i class="fas fa-check-double mr-1"></i>Select all filtered
+        </button>
+        <button type="button" (click)="clearSelection()" [disabled]="!selectedCount"
+          class="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+          <i class="fas fa-square-minus mr-1"></i>Clear
+        </button>
+        <button type="button" (click)="exportFilteredCsv()" [disabled]="!filteredPets.length"
+          class="px-3 py-1.5 rounded-lg border border-brand-teal/30 bg-brand-teal/5 text-xs font-semibold text-brand-teal hover:bg-brand-teal/10 disabled:opacity-50">
+          <i class="fas fa-file-csv mr-1"></i>Export CSV
+        </button>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3 my-3">
+      <div class="flex-1 h-px bg-gray-100"></div>
+      <span class="text-[10px] uppercase tracking-[0.12em] text-gray-400 font-semibold whitespace-nowrap">Apply to selected</span>
+      <div class="flex-1 h-px bg-gray-100"></div>
+    </div>
+
+    <form [formGroup]="bulkForm" class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+      <div>
+        <label class="text-xs uppercase tracking-[0.08em] text-slate-500 font-semibold">Set species</label>
+        <select formControlName="species"
+          class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-4 focus:ring-brand-teal/15 focus:border-brand-teal">
+          <option value="">No change</option>
+          <option *ngFor="let species of speciesOptions" [value]="species">{{ species }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs uppercase tracking-[0.08em] text-slate-500 font-semibold">Set gender</label>
+        <select formControlName="gender"
+          class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-4 focus:ring-brand-teal/15 focus:border-brand-teal">
+          <option value="">No change</option>
+          <option *ngFor="let gender of genderOptions" [value]="gender">{{ gender }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs uppercase tracking-[0.08em] text-slate-500 font-semibold">Set breed</label>
+        <input type="text" formControlName="breed" placeholder="No change if empty"
+          class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-4 focus:ring-brand-teal/15 focus:border-brand-teal" />
+      </div>
+      <div class="flex gap-2">
+        <button type="button" class="flex-1 px-3 py-2 rounded-lg bg-brand-teal text-white text-sm font-semibold hover:bg-teal-700 disabled:opacity-60"
+          [disabled]="processingBulk || !selectedCount" (click)="applyBulkUpdate()">
+          {{ processingBulk ? 'Working...' : 'Apply' }}
+        </button>
+        <button type="button" class="flex-1 px-3 py-2 rounded-lg border border-red-200 bg-red-50 text-red-700 text-sm font-semibold hover:bg-red-100 disabled:opacity-60"
+          [disabled]="processingBulk || !selectedCount" (click)="bulkDeleteSelected()">
+          Delete
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="rounded-xl border border-gray-200 bg-white px-4 py-10 text-center text-gray-500 mb-4">
+    <i class="fas fa-spinner fa-spin mr-2 text-brand-teal"></i>Loading pet profiles...
+  </div>
+
+  <!-- Table -->
+  <div *ngIf="!loading" class="admin-surface rounded-xl overflow-hidden hover-lift mb-4">
+    <table class="w-full">
+      <thead class="bg-gray-50 border-b border-gray-100">
+        <tr>
+          <th class="px-4 py-3 w-10">
+            <input type="checkbox" [checked]="allVisibleSelected" (change)="toggleSelectVisible($event)"
+              class="accent-brand-teal rounded" />
+          </th>
+          <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Pet</th>
+          <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Owner</th>
+          <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Species / Breed</th>
+          <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Flags</th>
+          <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Updated</th>
+          <th class="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        <tr *ngIf="!filteredPets.length">
+          <td colspan="7" class="px-5 py-10 text-center text-sm text-gray-500">
+            <i class="fas fa-paw text-gray-300 text-2xl mb-2 block"></i>
+            No pet profiles found for current filters.
+          </td>
+        </tr>
+        <tr *ngFor="let pet of pagedPets"
+          [class.bg-brand-teal-5]="isSelected(pet.id)"
+          [class.hover\:bg-brand-teal-10]="isSelected(pet.id)"
+          [class.hover\:bg-slate-50]="!isSelected(pet.id)"
+          class="transition-colors duration-150">
+          <td class="px-4 py-3">
+            <input type="checkbox" [checked]="isSelected(pet.id)" (change)="toggleSelectPet(pet.id, $event)"
+              class="accent-brand-teal rounded" />
+          </td>
+          <td class="px-4 py-3">
+            <div class="flex items-center gap-3">
+              <div class="pet-avatar" [class.has-photo]="!!pet.photoUrl">
+                <img *ngIf="pet.photoUrl" [src]="pet.photoUrl" [alt]="pet.name" class="w-8 h-8 rounded-full object-cover" />
+                <i *ngIf="!pet.photoUrl" class="fas fa-paw text-gray-400 text-sm"></i>
+              </div>
+              <div>
+                <div class="text-sm font-semibold text-gray-900">{{ pet.name }}</div>
+                <div class="text-xs text-gray-400">{{ pet.ageDisplay }} · {{ pet.gender }}</div>
+              </div>
+            </div>
+          </td>
+          <td class="px-4 py-3">
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-600">
+              <i class="fas fa-user mr-1 text-gray-400"></i>#{{ pet.userId }}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-sm text-gray-700">
+            <span class="font-medium">{{ pet.species }}</span>
+            <span *ngIf="pet.breed" class="text-gray-400"> / {{ pet.breed }}</span>
+          </td>
+          <td class="px-4 py-3">
+            <div class="flex gap-1 flex-wrap">
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold"
+                [class.bg-teal-100]="!!pet.photoUrl" [class.text-teal-700]="!!pet.photoUrl"
+                [class.bg-gray-100]="!pet.photoUrl" [class.text-gray-400]="!pet.photoUrl">
+                <i class="fas fa-image mr-1"></i>Photo
+              </span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold"
+                [class.bg-teal-100]="hasGpsLocation(pet)" [class.text-teal-700]="hasGpsLocation(pet)"
+                [class.bg-gray-100]="!hasGpsLocation(pet)" [class.text-gray-400]="!hasGpsLocation(pet)">
+                <i class="fas fa-location-dot mr-1"></i>GPS
+              </span>
+            </div>
+          </td>
+          <td class="px-4 py-3 text-xs text-gray-500">{{ pet.updatedAt | date: 'MMM d, y' }}</td>
+          <td class="px-4 py-3 text-right space-x-2">
+            <button type="button" (click)="startEdit(pet)"
+              class="inline-flex items-center justify-center h-8 px-3 rounded-md text-xs font-semibold border border-brand-teal text-brand-teal bg-white hover:bg-brand-teal/5">
+              <i class="fas fa-pen mr-1"></i>Edit
+            </button>
+            <button type="button" (click)="deletePet(pet)"
+              class="inline-flex items-center justify-center h-8 px-3 rounded-md text-xs font-semibold border border-red-200 bg-red-50 text-red-700 hover:bg-red-100">
+              <i class="fas fa-trash mr-1"></i>Delete
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div *ngIf="!loading && filteredPets.length" class="flex items-center justify-between gap-4 px-1">
+    <button type="button" [disabled]="!hasPreviousPage" (click)="goToPreviousPage()"
+      class="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+      <i class="fas fa-chevron-left text-xs"></i>Previous
+    </button>
+    <span class="text-sm text-gray-500">Page {{ page }} of {{ totalPages }}</span>
+    <button type="button" [disabled]="!hasNextPage" (click)="goToNextPage()"
+      class="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+      Next<i class="fas fa-chevron-right text-xs"></i>
+    </button>
+  </div>
+
+  <!-- Edit Modal -->
+  <div class="fixed inset-0 z-[90] bg-slate-900/45 backdrop-blur-[2px] flex items-center justify-center p-4"
+    *ngIf="editingPetId" (click)="cancelEdit()">
+    <div class="w-full max-w-3xl overflow-hidden bg-white rounded-2xl border border-slate-200 shadow-2xl" (click)="$event.stopPropagation()">
+      <!-- Modal Header -->
+      <div class="px-5 py-4 border-b border-slate-200 bg-white flex items-center justify-between">
+        <div>
+          <p class="text-[11px] uppercase tracking-[0.14em] text-slate-500 font-semibold">Back Office</p>
+          <h3 class="text-lg font-bold text-gray-900 mt-0.5">Editing Pet #{{ editingPetId }}</h3>
+        </div>
+        <button type="button" (click)="cancelEdit()"
+          class="h-8 w-8 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 flex items-center justify-center" aria-label="Close edit modal">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-5">
+        <p class="text-sm text-slate-600 mb-4">Update this pet profile's details. Photo changes will be uploaded immediately.</p>
+        <form [formGroup]="editForm" (ngSubmit)="submitEdit()">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="text-xs uppercase tracking-[0.08em] text-slate-500 font-semibold">Name</label>
+              <input type="text" formControlName="name"
+                class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-teal/30 focus:border-brand-teal" />
+            </div>
+            <div>
+              <label class="text-xs uppercase tracking-[0.08em] text-slate-500 font-semibold">Species</label>
+              <select formControlName="species"
+                class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-teal/30 focus:border-brand-teal">
+                <option *ngFor="let species of speciesOptions" [value]="species">{{ species }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs uppercase tracking-[0.08em] text-slate-500 font-semibold">Breed</label>
+              <input type="text" formControlName="breed"
+                class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-teal/30 focus:border-brand-teal" />
+            </div>
+            <div>
+              <label class="text-xs uppercase tracking-[0.08em] text-slate-500 font-semibold">Gender</label>
+              <select formControlName="gender"
+                class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-teal/30 focus:border-brand-teal">
+                <option *ngFor="let gender of genderOptions" [value]="gender">{{ gender }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs uppercase tracking-[0.08em] text-slate-500 font-semibold">Weight (kg)</label>
+              <input type="number" step="0.01" formControlName="weight"
+                class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-teal/30 focus:border-brand-teal" />
+            </div>
+            <div>
+              <label class="text-xs uppercase tracking-[0.08em] text-slate-500 font-semibold">Date of birth</label>
+              <input type="date" formControlName="dateOfBirth"
+                class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-teal/30 focus:border-brand-teal" />
+            </div>
+            <div class="md:col-span-2">
+              <label class="text-xs uppercase tracking-[0.08em] text-slate-500 font-semibold">Photo</label>
+              <div *ngIf="photoPreviewUrl" class="mt-1 flex items-center gap-3 border border-gray-200 rounded-lg p-3 bg-gray-50 mb-2">
+                <img [src]="photoPreviewUrl" alt="Pet photo preview" class="w-12 h-12 rounded-lg object-cover border border-gray-200" />
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium text-gray-900 truncate">{{ selectedPhotoFile?.name || 'Current photo' }}</div>
+                  <div class="text-xs text-gray-400 mt-0.5">JPG, PNG, WEBP up to 5 MB</div>
+                </div>
+                <button type="button" (click)="removeSelectedPhoto()"
+                  class="flex-shrink-0 px-2.5 py-1.5 rounded-md border border-gray-200 bg-white text-xs font-semibold text-gray-600 hover:bg-gray-100">
+                  <i class="fas fa-trash mr-1"></i>Remove
+                </button>
+              </div>
+              <input type="file" accept="image/*" (change)="onPhotoSelected($event)"
+                class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-500 file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-brand-teal/10 file:text-brand-teal hover:file:bg-brand-teal/20" />
+              <p class="text-xs text-gray-400 mt-1">JPG, PNG, WEBP up to 5 MB</p>
+            </div>
+          </div>
+
+          <div class="mt-5 pt-4 border-t border-gray-100 flex items-center justify-end gap-2">
+            <button type="button" (click)="cancelEdit()"
+              class="px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50">
+              Cancel
+            </button>
+            <button type="submit" [disabled]="saving"
+              class="px-4 py-2 rounded-lg bg-brand-teal text-white text-sm font-semibold hover:bg-teal-700 disabled:opacity-60">
+              <i class="fas fa-floppy-disk mr-1"></i>{{ saving ? 'Saving...' : 'Save changes' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>

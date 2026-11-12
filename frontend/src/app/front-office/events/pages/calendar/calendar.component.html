@@ -1,0 +1,124 @@
+<section class="cal-shell" aria-label="Events calendar">
+  <header class="cal-hero">
+    <div>
+      <p class="cal-eyebrow">
+        <mat-icon class="material-icons-round">calendar_month</mat-icon>
+        Calendar view
+      </p>
+      <h1 class="cal-title">Track the monthly event schedule with a clearer grid and day detail panel.</h1>
+      <p class="cal-subtitle">
+        Days with events are easier to scan, today is highlighted more cleanly, and the modal focuses on the
+        schedule details that matter most.
+      </p>
+    </div>
+    <div class="cal-legend" aria-label="Status legend">
+      <span><i class="cal-legend__dot cal-legend__dot--planned"></i>Upcoming</span>
+      <span><i class="cal-legend__dot cal-legend__dot--ongoing"></i>Ongoing</span>
+      <span><i class="cal-legend__dot cal-legend__dot--completed"></i>Completed</span>
+      <span><i class="cal-legend__dot cal-legend__dot--cancelled"></i>Cancelled</span>
+    </div>
+  </header>
+
+  <section class="cal-board">
+    <div class="cal-toolbar">
+      <div class="cal-toolbar__nav">
+        <button class="cal-nav-btn" type="button" (click)="previousMonth()" aria-label="Previous month">
+          <mat-icon class="material-icons-round">chevron_left</mat-icon>
+          Previous
+        </button>
+        <h2 class="cal-month-title">{{ formatMonthYear() }}</h2>
+        <button class="cal-nav-btn" type="button" (click)="nextMonth()" aria-label="Next month">
+          Next
+          <mat-icon class="material-icons-round">chevron_right</mat-icon>
+        </button>
+      </div>
+
+      <button class="cal-btn" type="button" (click)="goToToday()">
+        <mat-icon class="material-icons-round">calendar_month</mat-icon>
+        Today
+      </button>
+    </div>
+
+    <div *ngIf="loading" class="cal-loading">
+      <div class="cal-spinner"></div>
+      <span>Loading calendar...</span>
+    </div>
+
+    <div *ngIf="!loading" class="cal-grid">
+      <div class="cal-weekdays">
+        <div *ngFor="let day of weekDays" class="cal-weekday">{{ day }}</div>
+      </div>
+
+      <div class="cal-days">
+        <button
+          *ngFor="let day of calendarDays"
+          type="button"
+          class="cal-day"
+          [class.cal-day--other]="!day.isCurrentMonth"
+          [class.cal-day--today]="day.isToday"
+          [class.cal-day--active]="hasEvents(day.date)"
+          (click)="onDateClick(day)">
+          <span class="cal-day__number">{{ day.date.getDate() }}</span>
+          <div class="cal-day__content">
+            <div class="cal-day__dots" *ngIf="day.events.length > 0">
+              <span
+                *ngFor="let event of day.events.slice(0, 3)"
+                class="cal-event-dot"
+                [class]="getStatusClass(event.status)"
+                [title]="event.title">
+              </span>
+            </div>
+            <span class="cal-day__count" *ngIf="day.events.length > 0">{{ day.events.length }} event{{ day.events.length > 1 ? 's' : '' }}</span>
+          </div>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <div *ngIf="selectedDate" class="cal-modal" (click)="closeModal()">
+    <div class="cal-modal__panel" (click)="$event.stopPropagation()">
+      <div class="cal-modal__header">
+        <div>
+          <p class="cal-modal__eyebrow">Daily schedule</p>
+          <h3>{{ formatDate(selectedDate) }}</h3>
+        </div>
+        <button class="cal-modal__close" type="button" (click)="closeModal()" aria-label="Close">
+          <mat-icon class="material-icons-round">close</mat-icon>
+          Close
+        </button>
+      </div>
+
+      <div class="cal-modal__body">
+        <div *ngIf="selectedEvents.length === 0" class="cal-empty-state">
+          No events are scheduled for this date.
+        </div>
+
+        <article
+          *ngFor="let event of selectedEvents"
+          class="cal-event-card"
+          [routerLink]="['/app/events', event.id]"
+          (click)="closeModal()">
+          <div class="cal-event-card__time">
+            <span class="cal-event-card__status" [class]="getStatusClass(event.status)">
+              {{ getStatusText(event.status) }}
+            </span>
+            <strong>{{ formatTime(event.startDate) }}</strong>
+          </div>
+
+          <div class="cal-event-card__content">
+            <h4>{{ event.title }}</h4>
+            <p>
+              <mat-icon class="material-icons-round">place</mat-icon>
+              {{ event.location }}
+            </p>
+            <p *ngIf="event.status !== 'CANCELLED'">{{ event.remainingSlots }}/{{ event.maxParticipants }} spots left</p>
+          </div>
+
+          <span class="cal-event-card__cta">
+            <mat-icon class="material-icons-round">arrow_forward</mat-icon>
+          </span>
+        </article>
+      </div>
+    </div>
+  </div>
+</section>

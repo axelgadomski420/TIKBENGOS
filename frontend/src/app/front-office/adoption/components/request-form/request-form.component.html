@@ -1,0 +1,105 @@
+<div class="container">
+  <!-- Back button -->
+  <button class="btn-back" (click)="goBack()" *ngIf="!success">
+    ← Back to {{ pet?.name }}
+  </button>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Loading adoption form...</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error" class="error">
+    {{ error }}
+    <button class="btn-error" (click)="goBack()">Go Back</button>
+  </div>
+
+  <!-- Success -->
+  <div *ngIf="success" class="success">
+    <div class="success-icon">✅</div>
+    <h2>Adoption Request Submitted!</h2>
+    <p>Your request has been sent to the shelter. You will receive a notification when it is reviewed.</p>
+    <p class="redirect">Redirecting to your requests...</p>
+  </div>
+
+  <!-- Form -->
+  <div *ngIf="!loading && !error && !success && pet" class="form-container">
+    <div class="pet-summary">
+      <div class="pet-icon">🐾</div>
+      <div class="pet-info">
+        <h2>Adoption Request</h2>
+        <p><strong>{{ pet.name }}</strong> - {{ pet.breed || 'Breed not specified' }}</p>
+        <p>{{ pet.age }} months • {{ pet.gender === 'MALE' ? '♂ Male' : '♀ Female' }}</p>
+      </div>
+    </div>
+
+    <form [formGroup]="requestForm" (ngSubmit)="onSubmit()">
+      <!-- Housing Type -->
+      <div class="form-group">
+        <label class="required">Housing Type</label>
+        <select formControlName="housingType" class="form-control">
+          <option value="">Select housing type</option>
+          <option value="APARTMENT">Apartment</option>
+          <option value="HOUSE">House</option>
+          <option value="FARM">Farm</option>
+          <option value="OTHER">Other</option>
+        </select>
+        <div *ngIf="requestForm.get('housingType')?.invalid && requestForm.get('housingType')?.touched" class="error-message">
+          Housing type is required
+        </div>
+      </div>
+
+      <!-- Experience Level -->
+      <div class="form-group">
+        <label class="required">Experience with Pets</label>
+        <select formControlName="experienceLevel" class="form-control">
+          <option value="">Select experience level</option>
+          <option value="BEGINNER">Beginner - First time pet owner</option>
+          <option value="INTERMEDIATE">Intermediate - Some experience</option>
+          <option value="EXPERIENCED">Experienced - Have owned pets before</option>
+          <option value="EXPERT">Expert - Very experienced with this species</option>
+        </select>
+        <div *ngIf="requestForm.get('experienceLevel')?.invalid && requestForm.get('experienceLevel')?.touched" class="error-message">
+          Experience level is required
+        </div>
+      </div>
+
+      <!-- Checkboxes -->
+      <div class="checkbox-group">
+        <label class="checkbox">
+          <input type="checkbox" formControlName="hasGarden">
+          <span>I have a garden/yard</span>
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" formControlName="hasChildren">
+          <span>I have children under 12 years old</span>
+        </label>
+      </div>
+
+      <!-- Other Pets -->
+      <div class="form-group">
+        <label>Other Pets in Household</label>
+        <textarea formControlName="otherPets" rows="3" class="form-control" 
+                  placeholder="Describe any other pets you have (species, age, temperament)..."></textarea>
+      </div>
+
+      <!-- Notes -->
+      <div class="form-group">
+        <label>Additional Notes</label>
+        <textarea formControlName="notes" rows="4" class="form-control" 
+                  placeholder="Tell us why you would like to adopt this pet, your experience, and anything else you'd like to share..."></textarea>
+        <div class="char-counter">{{ requestForm.get('notes')?.value?.length || 0 }}/500</div>
+      </div>
+
+      <!-- Submit Button -->
+      <div class="form-actions">
+        <button type="button" class="btn-cancel" (click)="goBack()">Cancel</button>
+        <button type="submit" class="btn-submit" [disabled]="requestForm.invalid || submitting">
+          {{ submitting ? 'Submitting...' : 'Submit Adoption Request' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

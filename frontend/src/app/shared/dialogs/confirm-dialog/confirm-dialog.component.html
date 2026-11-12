@@ -1,0 +1,18 @@
+<div class="dialog-shell" [@dialogAnimation]>
+  <div class="dialog-header">
+    <div class="dialog-icon" [ngClass]="iconClass">
+      <mat-icon aria-hidden="true">{{ iconName }}</mat-icon>
+    </div>
+
+    <h2 mat-dialog-title class="dialog-title">{{ data.title }}</h2>
+  </div>
+
+  <mat-dialog-content class="dialog-content">
+    <p class="dialog-message">{{ data.message }}</p>
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="dialog-actions" align="end">
+    <button mat-stroked-button type="button" class="dialog-btn dialog-btn-secondary" (click)="cancel()">Cancel</button>
+    <button mat-flat-button type="button" class="dialog-btn dialog-btn-primary" (click)="confirm()">OK</button>
+  </mat-dialog-actions>
+</div>

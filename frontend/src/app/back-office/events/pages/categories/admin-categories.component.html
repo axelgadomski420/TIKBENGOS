@@ -1,0 +1,276 @@
+<section class="bo-community-page bo-categories-page relative mx-auto max-w-[1600px] px-4 pb-10 pt-6 sm:px-6 lg:px-10">
+  <div class="space-y-6">
+    <header class="bo-community-hero">
+      <div class="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(18rem,0.9fr)]">
+        <div>
+          <p class="text-[11px] font-black uppercase tracking-[0.28em] text-slate-500">Back Office</p>
+          <h1 class="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Event Categories</h1>
+          <p class="mt-3 max-w-3xl text-sm leading-7 text-slate-600 sm:text-base">
+            Manage the category system used across the events module with the same compact data presentation as the list pages.
+          </p>
+
+          <div class="mt-4 flex flex-wrap items-center gap-3">
+            <button type="button" class="bo-action-button bo-action-button-back" (click)="goBack()">
+              <mat-icon>arrow_back</mat-icon>
+              <span>Back</span>
+            </button>
+
+            <button type="button" class="detail-primary-button" (click)="openCreateForm()">
+              <mat-icon>playlist_add_check</mat-icon>
+              New Category
+            </button>
+          </div>
+        </div>
+
+        <div class="grid gap-3 sm:grid-cols-2">
+          <article class="bo-kpi-card">
+            <p class="bo-kpi-label">Total Categories</p>
+            <p class="bo-kpi-value">{{ categories.length }}</p>
+            <p class="bo-kpi-copy">Categories currently available for event assignment.</p>
+          </article>
+          <article class="bo-kpi-card bo-kpi-card-accent">
+            <p class="bo-kpi-label">Competition Mode</p>
+            <p class="bo-kpi-value">{{ competitionCount }}</p>
+            <p class="bo-kpi-copy">Categories with eligibility rules enabled.</p>
+          </article>
+        </div>
+      </div>
+    </header>
+
+    <div *ngIf="loading" class="bo-categories-state">
+      <mat-icon class="bo-icon-spin">refresh</mat-icon>
+      <span>Loading categories...</span>
+    </div>
+
+    <div *ngIf="error && !loading" class="bo-categories-error">
+      <mat-icon>warning</mat-icon>
+      <span>{{ error }}</span>
+    </div>
+
+    <section *ngIf="!loading && !error" class="bo-section-card">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-black text-slate-900">All Categories</h2>
+          <p class="mt-1 text-sm text-slate-500">{{ categories.length }} category{{ categories.length > 1 ? 'ies' : 'y' }} available</p>
+        </div>
+
+        <button type="button" class="detail-primary-button" (click)="openCreateForm()">
+          <mat-icon>playlist_add_check</mat-icon>
+          Create Category
+        </button>
+      </div>
+
+      <div *ngIf="categories.length === 0" class="bo-categories-state mt-6">
+        <mat-icon>label</mat-icon>
+        <span>No categories yet. Create your first one.</span>
+      </div>
+
+      <div *ngIf="categories.length > 0" class="bo-categories-table-wrap mt-6 overflow-x-auto">
+        <table class="bo-categories-table">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Description</th>
+              <th>Registration Mode</th>
+              <th>Competition</th>
+              <th class="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let cat of categories">
+              <td data-label="Category">
+                <div class="bo-categories-main-cell">
+                  <div class="bo-categories-icon-tile" aria-hidden="true">
+                    <mat-icon>label</mat-icon>
+                  </div>
+                  <div>
+                    <p class="bo-categories-title">{{ cat.name }}</p>
+                  </div>
+                </div>
+               </td>
+              <td data-label="Description">
+                <p class="bo-categories-description">
+                  {{ cat.description || 'No description provided for this category.' }}
+                </p>
+               </td>
+              <td data-label="Registration Mode">
+                <span class="bo-categories-status-pill"
+                      [ngClass]="cat.requiresApproval ? 'bo-categories-status-pill-warning' : 'bo-categories-status-pill-success'">
+                  <mat-icon>{{ cat.requiresApproval ? 'shield' : 'check_circle' }}</mat-icon>
+                  {{ cat.requiresApproval ? 'Approval required' : 'Free registration' }}
+                </span>
+                </td>
+              <td data-label="Competition">
+                <span class="bo-categories-competition-badge" *ngIf="cat.competitionMode">
+                  <mat-icon>emoji_events</mat-icon> Competition
+                </span>
+                <span class="bo-categories-competition-badge bo-categories-competition-badge--inactive" *ngIf="!cat.competitionMode">
+                  <mat-icon>label</mat-icon> Standard
+                </span>
+                </td>
+              <td data-label="Actions">
+                <div class="bo-categories-actions">
+                  <button type="button" class="action-button action-button--outline" (click)="openEditForm(cat)" title="Edit">
+                    <mat-icon>restart_alt</mat-icon>
+                    <span>Edit</span>
+                  </button>
+                  <button type="button" class="action-button action-button--danger" (click)="deleteCategory(cat)" title="Delete">
+                    <mat-icon>cancel</mat-icon>
+                    <span>Delete</span>
+                  </button>
+                </div>
+                </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- MODALE -->
+    <div *ngIf="showForm" class="bo-categories-overlay" (click)="closeForm()">
+      <div class="bo-categories-modal" (click)="$event.stopPropagation()">
+        
+        <!-- HEADER -->
+        <div class="bo-categories-modal-header">
+          <div class="bo-categories-modal-strip"></div>
+          <div>
+            <div class="bo-categories-modal-eyebrow">CATEGORY MANAGEMENT</div>
+            <h3 class="bo-categories-modal-title">
+              {{ isEditing ? 'Edit Category' : 'Create Category' }}
+            </h3>
+            <p class="bo-categories-modal-subtitle">
+              Configure how this category appears across the events module.
+            </p>
+          </div>
+          <button type="button" class="bo-categories-close" (click)="closeForm()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <!-- BODY -->
+        <div class="bo-categories-modal-body">
+          <div class="bo-categories-form-grid">
+            
+            <!-- COLONNE GAUCHE -->
+            <div class="bo-categories-form-main">
+              <div class="bo-form-field">
+                <label class="bo-form-label">NAME</label>
+                <input type="text" [(ngModel)]="form.name" class="bo-form-input" placeholder="Ex: Sports, Workshops, Competitions">
+              </div>
+
+              <div class="bo-form-field">
+                <label class="bo-form-label">DESCRIPTION</label>
+                <textarea [(ngModel)]="form.description" class="bo-form-textarea" rows="4" placeholder="Write a short description to explain when this category should be used."></textarea>
+              </div>
+
+              <div class="bo-form-field">
+                <label class="bo-form-label">REGISTRATION FLOW</label>
+                <div class="bo-toggle-card">
+                  <div class="bo-toggle-info">
+                    <span class="bo-toggle-title">
+                      {{ form.requiresApproval ? 'Approval required' : 'Free registration' }}
+                    </span>
+                    <span class="bo-toggle-desc">
+                      {{ form.requiresApproval 
+                        ? 'Participants must be reviewed by an admin before confirmation.'
+                        : 'Participants can register without manual approval.' }}
+                    </span>
+                  </div>
+                  <label class="bo-toggle-switch">
+                    <input type="checkbox" [(ngModel)]="form.requiresApproval">
+                    <span class="bo-toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- ✅ NOUVEAU : COMPETITION MODE -->
+              <div class="bo-form-field">
+                <label class="bo-form-label">COMPETITION MODE</label>
+                <div class="bo-toggle-card">
+                  <div class="bo-toggle-info">
+                    <span class="bo-toggle-title">
+                      {{ form.competitionMode ? 'Competition enabled' : 'Standard mode' }}
+                    </span>
+                    <span class="bo-toggle-desc">
+                      {{ form.competitionMode 
+                        ? 'Eligibility rules will be applied to participants automatically.'
+                        : 'No eligibility rules — free participation for everyone.' }}
+                    </span>
+                  </div>
+                  <label class="bo-toggle-switch">
+                    <input type="checkbox" [(ngModel)]="form.competitionMode">
+                    <span class="bo-toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div *ngIf="formError" class="bo-form-error">
+                <mat-icon>warning</mat-icon>
+                <span>{{ formError }}</span>
+              </div>
+            </div>
+
+            <!-- COLONNE DROITE -->
+            <div class="bo-categories-form-side">
+              <div class="bo-preview-card">
+                <div class="bo-preview-title">VISUAL IDENTITY</div>
+                
+                <div class="bo-icon-field">
+                  <div class="bo-icon-preview" aria-hidden="true">
+                    <mat-icon>label</mat-icon>
+                  </div>
+                  <input type="text" [(ngModel)]="form.icon" class="bo-icon-input" maxlength="24" placeholder="calendar">
+                  <div class="bo-icon-hint">Examples: calendar, trophy, theater, pets, book</div>
+                </div>
+
+                <div class="bo-preview-sample">
+                  <div class="bo-preview-label">CATEGORY PREVIEW</div>
+                  <div class="bo-preview-badge">
+                    <span class="bo-preview-name">{{ form.name || 'Category name' }}</span>
+                    <span class="bo-preview-competition" *ngIf="form.competitionMode"><mat-icon>emoji_events</mat-icon></span>
+                  </div>
+                  <div class="bo-preview-status">
+                    <span class="bo-status-badge" [class.bo-status-approval]="form.requiresApproval" [class.bo-status-free]="!form.requiresApproval">
+                      <mat-icon>{{ form.requiresApproval ? 'shield' : 'check_circle' }}</mat-icon>
+                      {{ form.requiresApproval ? 'Approval required' : 'Free registration' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="bo-categories-modal-footer">
+          <button type="button" class="bo-btn-secondary" (click)="closeForm()">Cancel</button>
+          <button type="button" class="bo-btn-primary" (click)="saveCategory()">
+            <mat-icon>{{ isEditing ? 'check_circle' : 'playlist_add_check' }}</mat-icon>
+            {{ isEditing ? 'Update Category' : 'Create Category' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <section class="dialog-backdrop" *ngIf="pendingDeleteCategory as category">
+      <article class="dialog-card">
+        <h3>Delete Category</h3>
+        <p>
+          Are you sure you want to delete category <strong>"{{ category.name }}"</strong>? This action cannot be undone.
+        </p>
+        <div class="dialog-actions">
+          <button type="button" class="pill-btn muted" (click)="closeDeleteDialog()" [disabled]="deletingCategory">
+            Cancel
+          </button>
+          <button type="button" class="pill-btn danger" (click)="confirmDeleteCategory()" [disabled]="deletingCategory">
+            <mat-icon>delete</mat-icon>
+            <span>{{ deletingCategory ? 'Deleting...' : 'Delete' }}</span>
+          </button>
+        </div>
+      </article>
+    </section>
+  </div>
+</section>
+
+<app-pet-transit-toast-container></app-pet-transit-toast-container>
+

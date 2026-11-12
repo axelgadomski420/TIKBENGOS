@@ -1,0 +1,139 @@
+:host {
+  display: block;
+}
+
+.category-carousel {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.carousel-nav {
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid rgba(67, 160, 71, 0.2);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--color-primary, #43a047);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 20px -14px rgba(0, 0, 0, 0.3);
+  transition: transform 200ms ease, box-shadow 200ms ease, background 200ms ease;
+}
+
+.carousel-nav:hover {
+  transform: translateY(-1px);
+  background: #fff;
+  box-shadow: 0 12px 25px -16px rgba(0, 0, 0, 0.35);
+}
+
+.carousel-nav mat-icon {
+  font-size: 1.2rem;
+  width: 1.2rem;
+  height: 1.2rem;
+  line-height: 1.2rem;
+}
+
+// ── FIX 2: Smooth-scroll carousel track ─────────────────────────────────────
+.carousel-track {
+  display: flex;
+  align-items: stretch;
+  gap: 1rem;
+  overflow-x: auto;
+  padding: 0.5rem 0.25rem;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.carousel-track::-webkit-scrollbar {
+  display: none;
+}
+
+// ── FIX 3: Premium category card styles ──────────────────────────────────────
+.category-card {
+  flex: 0 0 160px;
+  height: 110px;
+  border: 2px solid transparent;
+  border-radius: 20px;
+  background: var(--cat-bg);
+  color: var(--cat-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  font-family: 'Nunito', sans-serif;
+  cursor: pointer;
+  scroll-snap-align: start;
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.category-card:hover {
+  transform: translateY(-6px) scale(1.04);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+}
+
+.category-card--active {
+  border: 2px solid var(--color-primary, #43a047);
+  background: white;
+  color: var(--color-primary, #43a047);
+  box-shadow: 0 8px 28px rgba(67, 160, 71, 0.20);
+  transform: translateY(-4px) scale(1.05);
+}
+
+// ── FIX 3: Premium icon styles ────────────────────────────────────────────────
+.category-icon {
+  font-size: 36px;
+  width: 36px;
+  height: 36px;
+  line-height: 36px;
+  margin-bottom: 10px;
+  transition: transform 0.3s ease;
+}
+
+.category-card:hover .category-icon {
+  transform: scale(1.2) rotate(-5deg);
+}
+
+.category-card.category-card--active .category-icon {
+  transform: scale(1.1);
+}
+
+// ── FIX 3: Label ──────────────────────────────────────────────────────────────
+.category-label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-align: center;
+  margin-top: 6px;
+}
+
+// ── Responsive ────────────────────────────────────────────────────────────────
+@media (max-width: 1024px) {
+  .category-card {
+    flex-basis: 180px;
+  }
+}
+
+@media (max-width: 768px) {
+  .category-carousel {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+
+  .carousel-nav {
+    display: none;
+  }
+
+  .category-card {
+    flex-basis: 170px;
+    height: 112px;
+  }
+}

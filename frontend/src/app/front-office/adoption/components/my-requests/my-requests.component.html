@@ -1,0 +1,122 @@
+<div class="requests-container">
+  <!-- Header avec image de fond -->
+  <div class="page-header" style="background-image: url('images/stock/back.jpg'); background-size: cover; background-position: center;">
+    <div class="overlay"></div>
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-8 mx-auto text-center position-relative">
+          <h1 class="display-4 fw-bold">📋 My Adoption Requests</h1>
+          <p class="lead">Track and manage your adoption applications</p>
+          <button class="btn btn-light btn-lg mt-3" (click)="goBack()">
+            ← Browse More Pets
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Le reste du contenu -->
+  <div class="container py-5">
+    <!-- Loading -->
+    <div *ngIf="loading" class="text-center py-5">
+      <div class="spinner-grow text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p class="mt-3 text-muted">Loading your requests...</p>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="error" class="alert alert-danger alert-dismissible fade show" role="alert">
+      <i class="fas fa-exclamation-circle me-2"></i> {{ error }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Empty state -->
+    <div *ngIf="!loading && requests.length === 0" class="empty-state">
+      <div class="empty-state-icon">🐾</div>
+      <h3>No Adoption Requests Yet</h3>
+      <p>You haven't made any adoption requests. Browse our pets and start your adoption journey!</p>
+      <a routerLink="/app/adoption/pets" class="btn btn-primary btn-lg mt-3">
+        Browse Pets
+      </a>
+    </div>
+
+    <!-- Requests Grid -->
+    <div *ngIf="!loading && requests.length > 0" class="requests-grid">
+      <div *ngFor="let request of requests" class="request-card" [ngClass]="getStatusClass(request.status)">
+        <div class="card-status"></div>
+        <div class="card-content">
+          <div class="pet-info">
+            <div class="pet-avatar">
+              <span class="pet-icon">{{ getPetIcon(request.petName) }}</span>
+            </div>
+            <div class="pet-details">
+              <h3>{{ request.petName }}</h3>
+              <p class="pet-breed">{{ request.pet?.breed || 'Breed not specified' }}</p>
+              <div class="request-date">
+                <i class="far fa-calendar-alt"></i> Requested: {{ request.dateRequested | date:'MMMM d, yyyy' }}
+              </div>
+            </div>
+          </div>
+
+          <div class="request-details">
+            <div class="detail-item">
+              <div class="detail-label">Housing</div>
+              <div class="detail-value">
+                <i class="fas" [ngClass]="getHousingIcon(request.housingType)"></i>
+                {{ request.housingType }}
+              </div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Experience</div>
+              <div class="detail-value">
+                <i class="fas fa-star-of-life"></i>
+                {{ request.experienceLevel }}
+              </div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Garden</div>
+              <div class="detail-value">
+                <i class="fas" [ngClass]="request.hasGarden ? 'fa-check-circle text-success' : 'fa-times-circle text-danger'"></i>
+                {{ request.hasGarden ? 'Yes' : 'No' }}
+              </div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Children</div>
+              <div class="detail-value">
+                <i class="fas" [ngClass]="request.hasChildren ? 'fa-check-circle text-success' : 'fa-times-circle text-danger'"></i>
+                {{ request.hasChildren ? 'Yes' : 'No' }}
+              </div>
+            </div>
+          </div>
+
+          <div class="request-status">
+            <div class="status-badge" [ngClass]="getStatusClass(request.status)">
+              <i class="fas" [ngClass]="getStatusIcon(request.status)"></i>
+              {{ getStatusText(request.status) }}
+            </div>
+          </div>
+
+          <div class="request-notes" *ngIf="request.notes">
+            <div class="notes-label">
+              <i class="fas fa-comment-dots"></i> Notes
+            </div>
+            <p class="notes-text">{{ request.notes }}</p>
+          </div>
+
+          <div class="request-actions">
+            <a [routerLink]="['/app/adoption/shelters', request.shelterId]" class="btn-action btn-shelter">
+              <i class="fas fa-home"></i> View Shelter
+            </a>
+            <a [routerLink]="['/app/adoption/pets', request.petId]" class="btn-action btn-pet">
+              <i class="fas fa-paw"></i> View Pet
+            </a>
+            <button *ngIf="request.status === 'PENDING'" class="btn-action btn-cancel" (click)="cancelRequest(request.id)">
+              <i class="fas fa-times"></i> Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

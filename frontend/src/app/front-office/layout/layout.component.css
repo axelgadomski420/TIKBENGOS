@@ -1,0 +1,144 @@
+:host {
+	display: block;
+}
+
+.site-footer {
+	border-top: 1px solid rgba(203, 213, 225, 0.9);
+	background: #0f172a;
+	color: #cbd5e1;
+}
+
+.site-footer-shell {
+	position: relative;
+}
+
+.site-footer-grid {
+	display: grid;
+	grid-template-columns: minmax(0, 1.35fr) repeat(3, minmax(0, 1fr));
+	gap: 1.5rem;
+}
+
+.site-footer-brand {
+	padding-right: 0.5rem;
+}
+
+.site-footer-brand-head {
+	display: flex;
+	align-items: center;
+	gap: 0.55rem;
+}
+
+.site-footer-logo {
+	height: 2.25rem;
+	width: auto;
+	filter: brightness(0) invert(1);
+	opacity: 0.92;
+}
+
+.site-footer-brand-name {
+	font-size: 1.15rem;
+	font-weight: 800;
+	color: #f8fafc;
+}
+
+.site-footer-brand-copy {
+	margin-top: 0.95rem;
+	font-size: 0.9rem;
+	line-height: 1.7;
+	color: #94a3b8;
+	max-width: 42ch;
+}
+
+.site-footer-contact {
+	margin-top: 1rem;
+	display: inline-flex;
+	align-items: center;
+	border: 1px solid rgba(58, 146, 130, 0.45);
+	border-radius: 999px;
+	padding: 0.44rem 0.8rem;
+	font-size: 0.82rem;
+	font-weight: 700;
+	color: #99f6e4;
+	background: rgba(15, 118, 110, 0.16);
+	transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+.site-footer-contact:hover {
+	background: rgba(15, 118, 110, 0.25);
+	border-color: rgba(94, 234, 212, 0.5);
+	color: #ccfbf1;
+}
+
+.site-footer-heading {
+	font-size: 0.9rem;
+	font-weight: 800;
+	color: #f8fafc;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.42rem;
+	margin-bottom: 0.8rem;
+}
+
+.site-footer-heading i {
+	color: #3a9282;
+	font-size: 0.86rem;
+}
+
+.site-footer-links {
+	display: grid;
+	gap: 0.55rem;
+	font-size: 0.86rem;
+}
+
+.site-footer-links a {
+	color: #94a3b8;
+	transition: color 180ms ease;
+}
+
+.site-footer-links a:hover {
+	color: #e2e8f0;
+}
+
+.site-footer-bottom {
+	margin-top: 1.55rem;
+	padding-top: 1rem;
+	border-top: 1px solid rgba(51, 65, 85, 0.8);
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.9rem;
+	font-size: 0.8rem;
+	color: #64748b;
+}
+
+.site-footer-socials {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.site-footer-socials a {
+	color: #94a3b8;
+	transition: color 180ms ease;
+}
+
+.site-footer-socials a:hover {
+	color: #f8fafc;
+}
+
+@media (max-width: 1024px) {
+	.site-footer-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (max-width: 700px) {
+	.site-footer-grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.site-footer-bottom {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+}

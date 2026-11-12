@@ -1,0 +1,176 @@
+:host {
+  display: block;
+}
+
+.plan-card {
+  border-radius: 22px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  box-shadow: 0 10px 25px -20px rgba(15, 23, 42, 0.35);
+  transition: transform 260ms ease, box-shadow 260ms ease;
+  cursor: pointer;
+}
+
+.plan-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 22px 44px -30px rgba(15, 23, 42, 0.55);
+}
+
+.plan-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+}
+
+.country-chip {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.country-chip .material-icons-round {
+  font-size: 0.82rem;
+}
+
+.plan-content {
+  padding: 1rem;
+}
+
+.plan-content h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1.3;
+  color: #0f172a;
+}
+
+.travel-date {
+  margin: 0.68rem 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #475569;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.travel-date .material-icons-round {
+  font-size: 0.9rem;
+}
+
+.signal-row {
+  margin-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.created-label {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.readiness-block {
+  margin-top: 0.95rem;
+  padding: 0.72rem;
+  border-radius: 14px;
+  background: rgba(248, 250, 252, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.review-pill {
+  margin: 0.85rem 0 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.32rem 0.65rem;
+  color: #7c3aed;
+  background: #ede9fe;
+  font-size: 0.71rem;
+  font-weight: 800;
+}
+
+.review-pill .material-icons-round {
+  font-size: 0.75rem;
+}
+
+.plan-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  padding: 0 1rem 1rem;
+}
+
+.action-btn {
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: #fff;
+  color: #334155;
+  padding: 0.45rem 0.8rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+
+.action-btn .material-icons-round {
+  font-size: 0.78rem;
+}
+
+.action-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(100, 116, 139, 0.6);
+}
+
+.action-btn--primary {
+  color: #fff;
+  border-color: #16a34a;
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+}
+
+.action-btn--danger {
+  color: #b91c1c;
+  border-color: rgba(185, 28, 28, 0.3);
+  background: #fff5f5;
+}
+
+.tone-draft .plan-banner {
+  background: linear-gradient(120deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.tone-prep .plan-banner {
+  background: linear-gradient(120deg, #eff6ff 0%, #dbeafe 100%);
+}
+
+.tone-submitted .plan-banner {
+  background: linear-gradient(120deg, #f5f3ff 0%, #ede9fe 100%);
+}
+
+.tone-approved .plan-banner {
+  background: linear-gradient(120deg, #ecfdf5 0%, #dcfce7 100%);
+}
+
+.tone-rejected .plan-banner {
+  background: linear-gradient(120deg, #fef2f2 0%, #fee2e2 100%);
+}
+
+.tone-completed .plan-banner {
+  background: linear-gradient(120deg, #f0fdfa 0%, #ccfbf1 100%);
+}
+
+.tone-cancelled .plan-banner {
+  background: linear-gradient(120deg, #fff7ed 0%, #ffedd5 100%);
+}

@@ -1,0 +1,933 @@
+
+<div class="bo-events">
+  <app-transit-toast-container></app-transit-toast-container>
+
+  <!-- ══════════════════════════════════════════════════════════
+       NOTIFICATION PANEL (dropdown)
+  ══════════════════════════════════════════════════════════ -->
+  <div class="notif-panel" *ngIf="showNotifications">
+    <div class="notif-panel__header">
+      <span class="notif-panel__title">Notifications</span>
+      <button class="notif-panel__read-all" (click)="markAllNotificationsRead()">
+        Mark all read
+      </button>
+    </div>
+    <div class="notif-panel__list">
+      <div
+        *ngFor="let n of adminNotifications"
+        class="notif-item"
+        [class.notif-item--unread]="!n.read"
+        (click)="onNotificationClick(n)">
+        <span class="notif-item__icon">{{ getNotifIcon(n.type) }}</span>
+        <div class="notif-item__body">
+          <div class="notif-item__title">{{ n.title }}</div>
+          <div class="notif-item__msg">{{ n.message }}</div>
+          <div class="notif-item__time">{{ n.createdAt | date:'dd MMM, HH:mm' }}</div>
+        </div>
+        <span class="notif-item__dot" *ngIf="!n.read"></span>
+      </div>
+      <div class="notif-panel__empty" *ngIf="adminNotifications.length === 0">
+        <span>🔕</span> No notifications
+      </div>
+    </div>
+  </div>
+<!-- ══════════════════════════════════════════════════════════
+       TOPBAR
+  ══════════════════════════════════════════════════════════ -->
+  <header class="topbar">
+    <div class="topbar__brand">
+      <span class="topbar__logo">PURRE PETS</span>
+      <span class="topbar__sep">/</span>
+      <span class="topbar__page">Events</span>
+    </div>
+    <div class="topbar__actions">
+      <button class="topbar__notif" (click)="toggleNotificationPanel()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        <span class="topbar__notif-badge" *ngIf="unreadCount > 0">{{ unreadCount }}</span>
+      </button>
+      <button
+        class="detail-secondary-button"
+        (click)="exportAll()"
+        [disabled]="loading || exporting"
+      >
+        <mat-icon>assignment</mat-icon>
+        {{ exporting ? 'Exporting...' : 'Export Excel' }}
+      </button>
+      <a class="btn-outline-sm" routerLink="/admin/events/categories">
+        Categories
+      </a>
+      <button class="btn-primary-sm" (click)="goToCreateEvent()">
+        + New Event
+      </button>
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════════════════════════════════
+       PAGE HERO
+  ══════════════════════════════════════════════════════════ -->
+  <section class="hero">
+    <div class="hero__text">
+      <h1 class="hero__title">Events <span class="hero__accent">Management</span></h1>
+      <p class="hero__sub" *ngIf="!statsLoading && stats">
+        {{ totalElements }} events total &nbsp;·&nbsp;
+        {{ stats.eventsThisMonth }} this month &nbsp;·&nbsp;
+        {{ stats.totalParticipants | number }} participants
+      </p>
+      <p class="hero__sub hero__sub--skeleton" *ngIf="statsLoading">Loading stats…</p>
+    </div>
+    <!-- KPI STRIP -->
+    <div class="kpi-strip" *ngIf="stats && !statsLoading">
+      <div class="kpi-card">
+        <div class="kpi-card__val">{{ stats.totalEvents }}</div>
+        <div class="kpi-card__lbl">Total events</div>
+      </div>
+      <div class="kpi-card kpi-card--green">
+        <div class="kpi-card__val">{{ stats.totalParticipants | number }}</div>
+        <div class="kpi-card__lbl">Participants</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-card__val">{{ stats.averageFillRate }}%</div>
+        <div class="kpi-card__lbl">Avg fill rate</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-card__val">{{ stats.eventsThisWeek }}</div>
+        <div class="kpi-card__lbl">This week</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       FILTERS BAR
+  ══════════════════════════════════════════════════════════ -->
+  <section class="mt-3 grid grid-cols-[minmax(0,1fr)_auto_auto_auto] items-center gap-2">
+    <div class="search-wrapper">
+  <mat-icon class="search-icon">search</mat-icon>
+  <input
+    id="eventSearch"
+    type="search"
+    [(ngModel)]="keyword"
+    (input)="onSearch()"
+    placeholder="Search by title, country, or region"
+    class="search-input"
+  />
+</div>
+
+    <button
+      type="button"
+      class="detail-secondary-button"
+      (click)="toggleFilters()"
+      [attr.aria-expanded]="showFilters"
+      aria-label="Toggle filters"
+    >
+      <mat-icon>tune</mat-icon>
+      Filter
+    </button>
+
+    <button
+      type="button"
+      class="detail-secondary-button"
+      (click)="exportAll()"
+      [disabled]="loading || exporting"
+    >
+      <mat-icon>assignment</mat-icon>
+      {{ exporting ? 'Generating Excel...' : 'Export Excel' }}
+    </button>
+
+    <button type="button" class="detail-secondary-button" *ngIf="hasQuickFilters" (click)="clearQuickFilters()">
+      <mat-icon>restart_alt</mat-icon>
+      Clear
+    </button>
+  </section>
+
+  <section *ngIf="showFilters" class="filters-panel" aria-label="Event filters">
+    <label class="date-field" for="eventStatusFilter">
+      <span>Status</span>
+      <select
+        id="eventStatusFilter"
+        [(ngModel)]="filterStatus"
+        (change)="onFilter()"
+        class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/20"
+      >
+        <option value="">All statuses</option>
+        <option value="PLANNED">Planned</option>
+        <option value="ONGOING">Ongoing</option>
+        <option value="FULL">Full</option>
+        <option value="COMPLETED">Completed</option>
+        <option value="CANCELLED">Cancelled</option>
+      </select>
+    </label>
+
+    <label class="date-field" for="eventCategoryFilter">
+      <span>Category</span>
+      <select
+        id="eventCategoryFilter"
+        [(ngModel)]="filterCategory"
+        (change)="onFilter()"
+        class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/20"
+      >
+        <option value="">All categories</option>
+        <option *ngFor="let cat of categories; trackBy: trackById" [value]="cat.id">
+          {{ cat.icon }} {{ cat.name }}
+        </option>
+      </select>
+    </label>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       LOADING STATE
+  ══════════════════════════════════════════════════════════ -->
+  <div class="loading-state" *ngIf="loading">
+    <div class="spinner"></div>
+    <span>Loading events…</span>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       EVENTS GRID
+  ══════════════════════════════════════════════════════════ -->
+  <div class="events-grid" *ngIf="!loading && events.length > 0">
+    <div class="event-card" *ngFor="let event of events; trackBy: trackById">
+
+      <!-- Card top ribbon -->
+      <div class="event-card__ribbon">
+        <span class="status-pill" [class]="getStatusClass(event.status)">
+          {{ statusIcons[event.status] }} {{ statusLabels[event.status] }}
+        </span>
+        <span class="days-badge" [class]="getDaysClass(event)">{{ getDaysLabel(event) }}</span>
+      </div>
+
+      <!-- Card body -->
+      <div class="event-card__body">
+        <div class="event-card__cat" *ngIf="event.category">
+          {{ event.category.icon }} {{ event.category.name }}
+          <span class="event-card__approval-badge" *ngIf="event.category.requiresApproval">
+            Approval required
+          </span>
+        </div>
+        <h3 class="event-card__title">{{ event.title }}</h3>
+        <div class="event-card__meta">
+          <span class="event-card__meta-item">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+          {{ (event.location || '') | slice:0:28 }}{{ (event.location || '').length > 28 ? '…' : '' }}
+          </span>
+          <span class="event-card__meta-item">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+            {{ formatDate(event.startDate) }}
+          </span>
+        </div>
+
+        <!-- Capacity bar -->
+        <div class="event-card__capacity">
+          <div class="event-card__cap-numbers">
+            <span>{{ event.maxParticipants - event.remainingSlots }}/{{ event.maxParticipants }} seats</span>
+            <span class="event-card__cap-pct">{{ fillPct(event) }}%</span>
+          </div>
+          <div class="event-card__cap-track">
+            <div
+              class="event-card__cap-fill"
+              [class]="fillClass(fillPct(event))"
+              [style.width.%]="fillPct(event)">
+            </div>
+          </div>
+        </div>
+
+        <!-- Rating -->
+        <div class="event-card__rating" *ngIf="event.averageRating > 0">
+          <span class="event-card__stars">
+            <span *ngFor="let s of starsArray(event.averageRating)" [class]="s <= event.averageRating ? 'star-on' : 'star-off'">★</span>
+          </span>
+          <span class="event-card__rating-val">{{ event.averageRating | number:'1.1-1' }}</span>
+          <span class="event-card__review-count">({{ event.reviewCount }})</span>
+        </div>
+      </div>
+
+      <!-- Card actions -->
+      <div class="event-card__footer">
+        <div class="event-card__quick-actions">
+
+          <button class="qa-btn" title="Participants" (click)="openParticipantsModal(event)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </button>
+          <button class="qa-btn" title="Waitlist" (click)="openWaitlistModal(event)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </button>
+          <button class="qa-btn" title="Reviews" (click)="openReviewsModal(event)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+          </button>
+          <button class="qa-btn" title="Weather" (click)="openWeatherModal(event)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+            </svg>
+          </button>
+          <button class="qa-btn qa-btn--green" title="Eligibility Rules" (click)="openRulesModal(event)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 11l3 3L22 4"/>
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="event-card__main-actions">
+          <button class="action-button action-button--outline" (click)="viewEvent(event.id)" title="View details">
+            <mat-icon>description</mat-icon>
+            <span>View</span>
+          </button>
+          <button class="action-button action-button--outline" (click)="goToEditEvent(event.id)" *ngIf="canCancel(event)" title="Edit event">
+            <mat-icon>restart_alt</mat-icon>
+            <span>Edit</span>
+          </button>
+          <button class="action-button action-button--danger" (click)="confirmCancel(event)" *ngIf="canCancel(event)" title="Cancel event">
+            <mat-icon>cancel</mat-icon>
+            <span>Cancel</span>
+          </button>
+          <button
+            class="action-button action-button--danger"
+            (click)="canCancel(event) ? confirmDelete(event) : null"
+            [disabled]="!canCancel(event)"
+            [class.btn-disabled]="!canCancel(event)"
+            [attr.title]="canCancel(event) ? 'Delete event' : 'Deletion is disabled for completed or cancelled events.'"
+          >
+            <mat-icon>cancel</mat-icon>
+            <span>Delete</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       EMPTY STATE
+  ══════════════════════════════════════════════════════════ -->
+  <div class="empty-state" *ngIf="!loading && events.length === 0">
+    <div class="empty-state__icon">📭</div>
+    <h3 class="empty-state__title">No events found</h3>
+    <p class="empty-state__sub" *ngIf="keyword || filterStatus || filterCategory">Try adjusting your filters</p>
+    <div class="empty-state__actions">
+      <button class="btn-outline-sm" (click)="resetFilters()" *ngIf="keyword || filterStatus || filterCategory">Reset filters</button>
+      <button class="btn-primary-sm" (click)="goToCreateEvent()">+ Create event</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       PAGINATION
+  ══════════════════════════════════════════════════════════ -->
+  <div class="pagination" *ngIf="!loading && totalPages > 1">
+    <span class="pagination__info">Page {{ currentPage + 1 }} / {{ totalPages }}</span>
+    <div class="pagination__btns">
+      <button class="pg-btn" (click)="previousPage()" [disabled]="currentPage === 0">‹</button>
+      <button
+        *ngFor="let p of pageNumbers"
+        class="pg-btn"
+        [class.pg-btn--active]="p === currentPage"
+        (click)="goToPage(p)">{{ p + 1 }}</button>
+      <button class="pg-btn" (click)="nextPage()" [disabled]="currentPage + 1 >= totalPages">›</button>
+    </div>
+    <select class="pagination__size" [(ngModel)]="pageSize" (change)="currentPage=0; loadEvents()">
+      <option [value]="12">12 / page</option>
+      <option [value]="24">24 / page</option>
+      <option [value]="50">50 / page</option>
+    </select>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       MODAL : CAPACITY
+  ══════════════════════════════════════════════════════════ -->
+  <div class="modal-overlay" *ngIf="activeModal === 'capacity'" (click)="closeModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal__header">
+        <div class="modal__header-title">
+          <span class="modal__icon modal__icon--blue"><mat-icon>travel_explore</mat-icon></span>
+          <div>
+            <h3>Capacity</h3>
+            <p>{{ selectedEvent?.title }}</p>
+          </div>
+        </div>
+        <button class="modal__close" (click)="closeModal()"><mat-icon>close</mat-icon></button>
+      </div>
+      <div class="modal__body" *ngIf="!modalLoading && capacityData">
+        <div class="cap-grid">
+          <div class="cap-kpi"><div class="cap-kpi__val">{{ capacityData.maxParticipants }}</div><div class="cap-kpi__lbl">Max capacity</div></div>
+          <div class="cap-kpi cap-kpi--green"><div class="cap-kpi__val">{{ capacityData.confirmedParticipants }}</div><div class="cap-kpi__lbl">Confirmed</div></div>
+          <div class="cap-kpi cap-kpi--orange" *ngIf="capacityData.pendingParticipants > 0"><div class="cap-kpi__val">{{ capacityData.pendingParticipants }}</div><div class="cap-kpi__lbl">Pending</div></div>
+          <div class="cap-kpi"><div class="cap-kpi__val">{{ capacityData.remainingSlots }}</div><div class="cap-kpi__lbl">Remaining</div></div>
+          <div class="cap-kpi cap-kpi--red" *ngIf="capacityData.waitlistCount > 0"><div class="cap-kpi__val">{{ capacityData.waitlistCount }}</div><div class="cap-kpi__lbl">Waitlist</div></div>
+        </div>
+        <div class="gauge">
+          <div class="gauge__label"><span>Fill rate</span><strong>{{ capacityData.fillRatePercent }}%</strong></div>
+          <div class="gauge__track">
+            <div class="gauge__fill" [style.width.%]="capacityData.fillRatePercent" [class.gauge__fill--warn]="capacityData.fillRatePercent >= 75" [class.gauge__fill--full]="capacityData.isFull"></div>
+          </div>
+        </div>
+        <div class="badge-row">
+          <span class="badge badge--red" *ngIf="capacityData.isFull">🔴 Full</span>
+          <span class="badge badge--amber" *ngIf="capacityData.hasWaitlist"><mat-icon>schedule</mat-icon> Waitlist active</span>
+          <span class="badge badge--green" *ngIf="!capacityData.isFull"><mat-icon>check_circle</mat-icon> Available</span>
+        </div>
+      </div>
+      <div class="modal__loading" *ngIf="modalLoading"><div class="spinner"></div></div>
+      <div class="modal__footer">
+        <button class="btn-ghost" (click)="closeModal()">Close</button>
+        <button class="btn-outline-sm" (click)="recalculateCapacity()" [disabled]="modalLoading"><mat-icon>refresh</mat-icon> Recalculate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       MODAL : PARTICIPANTS
+  ══════════════════════════════════════════════════════════ -->
+  <div class="modal-overlay" *ngIf="activeModal === 'participants'" (click)="closeModal()">
+    <div class="modal modal--lg" (click)="$event.stopPropagation()">
+      <div class="modal__header">
+        <div class="modal__header-title">
+          <span class="modal__icon modal__icon--blue"><mat-icon>pets</mat-icon></span>
+          <div><h3>Participants</h3><p>{{ selectedEvent?.title }}</p></div>
+        </div>
+        <button class="modal__close" (click)="closeModal()"><mat-icon>close</mat-icon></button>
+      </div>
+      <div class="modal__tabs">
+        <button class="modal__tab" [class.modal__tab--active]="activeParticipantTab === 'confirmed'" (click)="activeParticipantTab = 'confirmed'">
+          Confirmed <span class="tab-badge">{{ participants.length }}</span>
+        </button>
+        <button class="modal__tab" [class.modal__tab--active]="activeParticipantTab === 'pending'" (click)="activeParticipantTab = 'pending'">
+          Pending <span class="tab-badge tab-badge--orange" *ngIf="pendingList.length > 0">{{ pendingList.length }}</span>
+        </button>
+      </div>
+      <div class="modal__body" *ngIf="!modalLoading">
+        <!-- Confirmed -->
+        <div *ngIf="activeParticipantTab === 'confirmed'">
+          <div class="modal__empty" *ngIf="participants.length === 0">No confirmed participants.</div>
+          <table class="data-table" *ngIf="participants.length > 0">
+            <thead><tr><th>Participant</th><th>Seats</th><th>Registered</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let p of participants; trackBy: trackById">
+                <td><div class="user-cell"><div class="avatar">{{ p.userName.charAt(0) }}</div>{{ p.userName }}</div></td>
+                <td>{{ p.numberOfSeats }}</td>
+                <td>{{ formatDate(p.registeredAt) }}</td>
+                <td><span class="badge badge--green"><mat-icon>check_circle</mat-icon> Confirmed</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- Pending -->
+        <div *ngIf="activeParticipantTab === 'pending'">
+          <div class="modal__empty" *ngIf="pendingList.length === 0">No pending registrations.</div>
+          <table class="data-table" *ngIf="pendingList.length > 0">
+            <thead><tr><th>Participant</th><th>Seats</th><th>Registered</th><th>Actions</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let p of pendingList; trackBy: trackById">
+                <td><div class="user-cell"><div class="avatar avatar--orange">{{ p.userName.charAt(0) }}</div>{{ p.userName }}</div></td>
+                <td>{{ p.numberOfSeats }}</td>
+                <td>{{ formatDate(p.registeredAt) }}</td>
+                <td>
+                  <div class="inline-actions">
+                    <button class="action-btn action-btn--approve" (click)="approveParticipant(p)"><mat-icon>check_circle</mat-icon> Approve</button>
+                    <button class="action-btn action-btn--reject" (click)="rejectParticipant(p)"><mat-icon>close</mat-icon> Reject</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal__loading" *ngIf="modalLoading"><div class="spinner"></div></div>
+      <div class="modal__footer">
+        <button class="btn-ghost" (click)="closeModal()">Close</button>
+        <button class="btn-outline-sm" (click)="selectedEvent && exportParticipants(selectedEvent)"><mat-icon>assignment</mat-icon> Export CSV</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       MODAL : WAITLIST
+  ══════════════════════════════════════════════════════════ -->
+  <div class="modal-overlay" *ngIf="activeModal === 'waitlist'" (click)="closeModal()">
+    <div class="modal modal--lg" (click)="$event.stopPropagation()">
+      <div class="modal__header">
+        <div class="modal__header-title">
+          <span class="modal__icon modal__icon--amber"><mat-icon>schedule</mat-icon></span>
+          <div><h3>Waitlist</h3><p>{{ selectedEvent?.title }} · {{ waitlist.length }} person{{ waitlist.length !== 1 ? 's' : '' }}</p></div>
+        </div>
+        <button class="modal__close" (click)="closeModal()"><mat-icon>close</mat-icon></button>
+      </div>
+      <div class="modal__body" *ngIf="!modalLoading">
+        <div class="modal__empty" *ngIf="waitlist.length === 0">Waitlist is empty.</div>
+        <table class="data-table" *ngIf="waitlist.length > 0">
+          <thead><tr><th>#</th><th>User</th><th>Seats</th><th>Joined</th><th>Status</th><th>Deadline</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let w of waitlist; trackBy: trackById">
+              <td><span class="position-badge">{{ w.position }}</span></td>
+              <td><div class="user-cell"><div class="avatar">{{ w.userName.charAt(0) || '?' }}</div>{{ w.userName }}</div></td>
+              <td>{{ w.numberOfSeats }}</td>
+              <td>{{ formatDate(w.joinedAt) }}</td>
+              <td><span class="wl-status" [class]="getWaitlistStatusClass(w.status)">{{ getWaitlistStatusLabel(w.status) }}</span></td>
+              <td>
+                <div *ngIf="w.status === 'NOTIFIED' && w.confirmationDeadline">
+                  <span class="deadline-time">{{ formatDateTime(w.confirmationDeadline) }}</span>
+                  <span class="countdown" *ngIf="w.minutesRemainingToConfirm">({{ getTimeRemaining(w.minutesRemainingToConfirm) }})</span>
+                </div>
+                <span class="text-muted" *ngIf="w.status !== 'NOTIFIED'">—</span>
+              </td>
+              <td>
+                <button class="action-btn action-btn--notify" *ngIf="w.status === 'WAITING'" (click)="notifyWaitlistEntry(w)">📧 Notify</button>
+                <span class="text-muted" *ngIf="w.status === 'NOTIFIED'"><mat-icon>schedule</mat-icon> Pending</span>
+                <span class="text-muted" *ngIf="w.status !== 'WAITING' && w.status !== 'NOTIFIED'">—</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="modal__loading" *ngIf="modalLoading"><div class="spinner"></div></div>
+      <div class="modal__footer">
+        <button class="btn-ghost" (click)="closeModal()">Close</button>
+        <button class="btn-outline-sm" (click)="promoteNext()" *ngIf="waitlist.length > 0"><mat-icon>arrow_forward</mat-icon> Auto-promote</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       MODAL : WEATHER
+  ══════════════════════════════════════════════════════════ -->
+  <div class="modal-overlay" *ngIf="activeModal === 'weather'" (click)="closeModal()">
+    <div class="modal modal--sm" (click)="$event.stopPropagation()">
+      <div class="modal__header">
+        <div class="modal__header-title"><span class="modal__icon"><mat-icon>partly_cloudy_day</mat-icon></span><div><h3>Event Weather</h3><p>{{ selectedEvent?.title }}</p></div></div>
+        <button class="modal__close" (click)="closeModal()"><mat-icon>close</mat-icon></button>
+      </div>
+      <div class="modal__body" *ngIf="!modalLoading && weather">
+        <div class="weather-hero">
+          <span class="weather-big-icon">{{ weatherIcons[weather.condition] }}</span>
+          <div class="weather-temp">{{ weather.temperature }}°C</div>
+          <div class="weather-city">{{ weather.city }}</div>
+          <div class="weather-desc">{{ weather.description | titlecase }}</div>
+        </div>
+        <div class="weather-details">
+          <div class="wd-row"><span>💧 Humidity</span><strong>{{ weather.humidity }}%</strong></div>
+          <div class="wd-row"><span>💨 Wind</span><strong>{{ weather.windSpeed }} km/h</strong></div>
+          <div class="wd-row"><span><mat-icon>tune</mat-icon> Condition</span><strong>{{ weather.condition }}</strong></div>
+        </div>
+        <div class="recommendation-box" [class.recommendation-box--outdoor]="weather.recommendation === 'OUTDOOR'" [class.recommendation-box--indoor]="weather.recommendation === 'INDOOR'">
+          <div class="recommendation-box__badge">{{ weather.recommendation === 'OUTDOOR' ? '🌳 OUTDOOR' : '🏠 INDOOR' }}</div>
+          <p>{{ weather.recommendationMsg }}</p>
+        </div>
+      </div>
+      <div class="modal__loading" *ngIf="modalLoading"><div class="spinner"></div></div>
+      <div class="modal__footer"><button class="btn-ghost" (click)="closeModal()">Close</button></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       MODAL : REVIEWS
+  ══════════════════════════════════════════════════════════ -->
+  <div class="modal-overlay" *ngIf="activeModal === 'reviews'" (click)="closeModal()">
+    <div class="modal modal--lg" (click)="$event.stopPropagation()">
+      <div class="modal__header">
+        <div class="modal__header-title"><span class="modal__icon"><mat-icon>star</mat-icon></span><div><h3>Reviews</h3><p>{{ selectedEvent?.title }}</p></div></div>
+        <button class="modal__close" (click)="closeModal()"><mat-icon>close</mat-icon></button>
+      </div>
+      <div class="modal__body" *ngIf="!modalLoading">
+        <div class="modal__empty" *ngIf="reviews.length === 0">No reviews for this event.</div>
+        <div class="reviews-list">
+          <div class="review-card" *ngFor="let r of reviews; trackBy: trackById">
+            <div class="review-card__header">
+              <div class="user-cell"><div class="avatar">{{ r.userName.charAt(0) || '?' }}</div><div><div class="review-card__user">{{ r.userName }}</div><div class="review-card__date text-muted">{{ formatDate(r.createdAt) }}</div></div></div>
+              <div class="review-card__right">
+                <div class="review-stars"><span *ngFor="let s of starsArray(r.rating)" [class]="s <= r.rating ? 'star-on' : 'star-off'">★</span> <span>{{ r.rating }}/5</span></div>
+                <button class="action-btn action-btn--reject" (click)="deleteReview(r)"><mat-icon>cancel</mat-icon></button>
+              </div>
+            </div>
+            <p class="review-card__comment" *ngIf="r.comment">{{ r.comment }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal__loading" *ngIf="modalLoading"><div class="spinner"></div></div>
+      <div class="modal__footer"><button class="btn-ghost" (click)="closeModal()">Close</button></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       MODAL : REMINDERS
+  ══════════════════════════════════════════════════════════ -->
+  <div class="modal-overlay" *ngIf="activeModal === 'reminders'" (click)="closeModal()">
+    <div class="modal modal--sm" (click)="$event.stopPropagation()">
+      <div class="modal__header">
+        <div class="modal__header-title"><span class="modal__icon modal__icon--green">🔔</span><div><h3>Auto Reminders</h3><p>{{ selectedEvent?.title }}</p></div></div>
+        <button class="modal__close" (click)="closeModal()"><mat-icon>close</mat-icon></button>
+      </div>
+      <div class="modal__body">
+        <p class="modal__desc">Reminders are automatically sent to registered participants at:</p>
+        <div class="reminder-list">
+          <div class="reminder-row" *ngFor="let k of ['J2','H24','H2']">
+            <span class="reminder-row__icon">⏰</span>
+            <span>{{ reminderLabels[k] }}</span>
+            <span class="badge badge--green">Active</span>
+          </div>
+        </div>
+        <div class="warning-box">
+          <mat-icon>warning</mat-icon> Cancelling all reminders will delete pending notifications for all participants.
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button class="btn-ghost" (click)="closeModal()">Close</button>
+        <button class="action-btn action-btn--reject" (click)="cancelAllReminders()"><mat-icon>cancel</mat-icon> Cancel all reminders</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       MODAL : ELIGIBILITY RULES  ← NOUVELLE FONCTIONNALITÉ
+  ══════════════════════════════════════════════════════════ -->
+  <div class="modal-overlay" *ngIf="activeModal === 'rules'" (click)="closeModal()">
+    <div class="modal modal--lg" (click)="$event.stopPropagation()">
+      <div class="modal__header">
+        <div class="modal__header-title">
+          <span class="modal__icon modal__icon--green"><mat-icon>emoji_events</mat-icon></span>
+          <div>
+            <h3>Eligibility Rules</h3>
+            <p>{{ selectedEvent?.title }}</p>
+          </div>
+        </div>
+        <button class="modal__close" (click)="closeModal()"><mat-icon>close</mat-icon></button>
+      </div>
+
+      <div class="modal__body">
+
+        <!-- Info banner -->
+        <div class="rules-info-banner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          Rules are evaluated automatically at registration. A violated <strong>blocking</strong> rule instantly rejects the request — no admin action required.
+        </div>
+
+        <!-- Category rules -->
+        <div class="rules-section">
+          <div class="rules-section__header">
+            <h4>Category rules <span class="rules-section__scope">applied to all events in "{{ selectedEvent?.category?.name }}"</span></h4>
+            <button class="btn-outline-sm" (click)="addRuleToCategory()">+ Add rule</button>
+          </div>
+          <div class="rules-empty" *ngIf="categoryRules.length === 0">No category rules configured.</div>
+          <div class="rules-list" *ngIf="categoryRules.length > 0">
+            <div class="rule-row" *ngFor="let rule of categoryRules; trackBy: trackById" [class.rule-row--inactive]="!rule.active">
+              <div class="rule-row__left">
+                <span class="rule-badge" [class.rule-badge--hard]="rule.hardReject" [class.rule-badge--soft]="!rule.hardReject">
+                  {{ rule.hardReject ? 'BLOCKING' : 'WARNING' }}
+                </span>
+                <span class="rule-row__criteria">{{ rule.criteria }}</span>
+              </div>
+              <div class="rule-row__value">
+                <span *ngIf="rule.valueType === 'LIST'">{{ rule.listValues }}</span>
+                <span *ngIf="rule.valueType === 'NUMBER'">{{ rule.numericValue }}</span>
+                <span *ngIf="rule.valueType === 'BOOLEAN'">{{ rule.booleanValue ? 'Required' : 'Not required' }}</span>
+              </div>
+              <div class="rule-row__right">
+                <span class="rule-priority">P{{ rule.priority }}</span>
+                <span class="badge badge--green" *ngIf="rule.active">Active</span>
+                <span class="badge badge--grey" *ngIf="!rule.active">Inactive</span>
+                <button class="qa-btn qa-btn--danger" (click)="deleteRule(rule)" title="Delete rule"><mat-icon>cancel</mat-icon></button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Event-specific rules -->
+        <div class="rules-section">
+          <div class="rules-section__header">
+            <h4>Event-specific rules <span class="rules-section__scope">applied only to this event</span></h4>
+            <button class="btn-outline-sm" (click)="addRuleToEvent()">+ Add rule</button>
+          </div>
+          <div class="rules-empty" *ngIf="eventRules.length === 0">No event-specific rules.</div>
+          <div class="rules-list" *ngIf="eventRules.length > 0">
+            <div class="rule-row" *ngFor="let rule of eventRules; trackBy: trackById" [class.rule-row--inactive]="!rule.active">
+              <div class="rule-row__left">
+                <span class="rule-badge" [class.rule-badge--hard]="rule.hardReject" [class.rule-badge--soft]="!rule.hardReject">
+                  {{ rule.hardReject ? 'BLOCKING' : 'WARNING' }}
+                </span>
+                <span class="rule-row__criteria">{{ rule.criteria }}</span>
+              </div>
+              <div class="rule-row__value">
+                <span *ngIf="rule.valueType === 'LIST'">{{ rule.listValues }}</span>
+                <span *ngIf="rule.valueType === 'NUMBER'">{{ rule.numericValue }}</span>
+                <span *ngIf="rule.valueType === 'BOOLEAN'">{{ rule.booleanValue ? 'Required' : 'Not required' }}</span>
+              </div>
+              <div class="rule-row__right">
+                <span class="rule-priority">P{{ rule.priority }}</span>
+                <span class="badge badge--green" *ngIf="rule.active">Active</span>
+                <span class="badge badge--grey" *ngIf="!rule.active">Inactive</span>
+                <button class="qa-btn qa-btn--danger" (click)="deleteRule(rule)"><mat-icon>cancel</mat-icon></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal__footer">
+        <button class="btn-ghost" (click)="closeModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       MODAL : ADD RULE FORM
+  ══════════════════════════════════════════════════════════ -->
+  <div class="modal-overlay" *ngIf="activeModal === 'addRule'" (click)="$event.stopPropagation()">
+    <div class="modal modal--sm" (click)="$event.stopPropagation()">
+      <div class="modal__header">
+        <div class="modal__header-title">
+          <span class="modal__icon modal__icon--green">➕</span>
+          <div><h3>Add Eligibility Rule</h3><p>{{ selectedEvent?.title }}</p></div>
+        </div>
+        <button class="modal__close" (click)="activeModal = 'rules'"><mat-icon>close</mat-icon></button>
+      </div>
+      <div class="modal__body">
+        <div class="form-grid">
+
+          <!-- Criteria -->
+          <div class="form-field form-field--full">
+            <label class="form-label">Criteria <span class="form-required">*</span></label>
+            <select class="form-select" [(ngModel)]="newRule.criteria" (change)="onCriteriaChange()">
+              <option value="">Select a criteria…</option>
+              <option *ngFor="let opt of criteriaOptions" [value]="opt.value">{{ opt.label }}</option>
+            </select>
+          </div>
+
+          <!-- Dynamic value input -->
+          <div class="form-field form-field--full" *ngIf="newRule.criteria">
+
+            <!-- LIST type -->
+            <div *ngIf="isListCriteria()">
+              <label class="form-label">Values <span class="form-hint">(comma-separated, e.g. BERGER_ALLEMAND,HUSKY)</span></label>
+              <input class="form-input" type="text" [(ngModel)]="newRule.listValues" placeholder="VALUE1,VALUE2,VALUE3"/>
+            </div>
+
+            <!-- NUMBER type -->
+            <div *ngIf="isNumberCriteria()">
+              <label class="form-label">Value</label>
+              <input class="form-input" type="number" [(ngModel)]="newRule.numericValue" min="0"/>
+            </div>
+
+            <!-- BOOLEAN type -->
+            <div *ngIf="isBooleanCriteria()" class="form-checkbox-group">
+              <label class="form-checkbox-label">
+                <input type="checkbox" [(ngModel)]="newRule.booleanValue"/>
+                <span>Required</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Reject type -->
+          <div class="form-field">
+            <label class="form-label">Rule type</label>
+            <div class="rule-type-toggle">
+              <button class="rule-type-btn" [class.rule-type-btn--active]="newRule.hardReject" (click)="newRule.hardReject = true">
+                <mat-icon>cancel</mat-icon> Blocking
+              </button>
+              <button class="rule-type-btn" [class.rule-type-btn--active]="!newRule.hardReject" (click)="newRule.hardReject = false">
+                <mat-icon>warning</mat-icon> Warning only
+              </button>
+            </div>
+            <p class="form-hint" *ngIf="newRule.hardReject">Registration is automatically rejected if this rule is violated.</p>
+            <p class="form-hint" *ngIf="!newRule.hardReject">Registration is allowed but with a warning message.</p>
+          </div>
+
+          <!-- Priority -->
+          <div class="form-field">
+            <label class="form-label">Priority <span class="form-hint">(0 = highest)</span></label>
+            <input class="form-input" type="number" [(ngModel)]="newRule.priority" min="0" max="100"/>
+          </div>
+
+          <!-- Custom message -->
+          <div class="form-field form-field--full">
+            <label class="form-label">Custom rejection message <span class="form-hint">(optional)</span></label>
+            <input class="form-input" type="text" [(ngModel)]="newRule.rejectionMessage" placeholder="Leave blank to use the default message"/>
+          </div>
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button class="btn-ghost" (click)="activeModal = 'rules'">Cancel</button>
+        <button class="btn-primary-sm" (click)="saveRule()" [disabled]="!newRule.criteria">Save rule</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       CONFIRM DIALOG
+  ══════════════════════════════════════════════════════════ -->
+  <div class="dialog-backdrop" *ngIf="confirmAction" role="presentation" (click)="closeConfirm()">
+    <section class="dialog-panel" role="dialog" aria-modal="true" [attr.aria-label]="confirmAction.title" (click)="$event.stopPropagation()">
+      <div class="dialog-icon" [ngClass]="'dialog-icon--' + (confirmAction.variant === 'danger' ? 'danger' : (confirmAction.variant === 'warning' ? 'warning' : 'default'))">
+        <mat-icon>{{ confirmAction.variant === 'danger' ? 'cancel' : 'warning' }}</mat-icon>
+      </div>
+
+      <div class="dialog-copy">
+        <h3>{{ confirmAction.title }}</h3>
+        <p>{{ confirmAction.message }}</p>
+      </div>
+
+      <footer class="dialog-actions">
+        <button type="button" class="btn btn--ghost" (click)="closeConfirm()">
+          Cancel
+        </button>
+        <button type="button" class="btn btn--confirm" [ngClass]="'btn--' + (confirmAction.variant === 'danger' ? 'danger' : 'warning')" (click)="executeConfirm()">
+          {{ confirmAction.label }}
+        </button>
+      </footer>
+    </section>
+  </div>
+
+<!-- MODAL : COMPETITION ENTRIES (ADMIN) -->
+<div class="modal-overlay" *ngIf="activeModal === 'competitionEntries'" (click)="closeModal()">
+  <div class="modal modal--xl" (click)="$event.stopPropagation()">
+
+    <div class="modal__header">
+      <div class="modal__header-title">
+        <span class="modal__icon modal__icon--green"><mat-icon>emoji_events</mat-icon></span>
+        <div>
+          <h3>Competition Entries</h3>
+          <p>{{ selectedEvent?.title }} · {{ competitionEntries.length }} dossier(s)</p>
+        </div>
+      </div>
+      <button class="modal__close" (click)="closeModal()"><mat-icon>close</mat-icon></button>
+    </div>
+
+    <!-- Légende score -->
+    <div class="comp-legend">
+      <span class="comp-legend__item comp-legend__item--high">≥ 80 Excellent</span>
+      <span class="comp-legend__item comp-legend__item--medium">50-79 Good</span>
+      <span class="comp-legend__item comp-legend__item--low">&lt; 50 Weak</span>
+      <span class="comp-legend__item comp-legend__item--warning"><mat-icon>warning</mat-icon> Warning</span>
+    </div>
+
+    <div class="modal__body" *ngIf="!modalLoading">
+      <div class="modal__empty" *ngIf="competitionEntries.length === 0">
+        No competition entries submitted yet.
+      </div>
+
+      <!-- Grille des dossiers -->
+      <div class="comp-entries-grid" *ngIf="competitionEntries.length > 0">
+        <div
+          class="comp-entry-card"
+          *ngFor="let entry of competitionEntries; trackBy: trackById"
+          [class.comp-entry-card--warning]="entry.eligibilityVerdict === 'WARNING'">
+
+          <!-- Score badge -->
+          <div class="comp-entry-card__score" [class]="getScoreClass(entry.eligibilityScore)">
+            <span class="comp-entry-card__score-val">{{ entry.eligibilityScore }}</span>
+            <span class="comp-entry-card__score-lbl">/100</span>
+          </div>
+
+          <!-- Verdict -->
+          <div class="comp-entry-card__verdict">
+            <span *ngIf="entry.eligibilityVerdict === 'ELIGIBLE'" class="verdict-badge verdict-badge--ok"><mat-icon>check_circle</mat-icon> Eligible</span>
+            <span *ngIf="entry.eligibilityVerdict === 'WARNING'" class="verdict-badge verdict-badge--warn"><mat-icon>warning</mat-icon> Warning</span>
+          </div>
+
+          <!-- Infos animal -->
+          <div class="comp-entry-card__pet">
+            <div class="comp-entry-card__pet-name">{{ entry.petName }}</div>
+            <div class="comp-entry-card__pet-breed">{{ entry.breed }}</div>
+            <div class="comp-entry-card__pet-species">{{ entry.species }}</div>
+          </div>
+
+          <!-- Infos propriétaire -->
+          <div class="comp-entry-card__owner">
+            <div class="avatar avatar--sm">{{ entry.ownerName.charAt(0) }}</div>
+            <div>
+              <div class="comp-entry-card__owner-name">{{ entry.ownerName }}</div>
+              <div class="comp-entry-card__owner-email">{{ entry.ownerEmail }}</div>
+            </div>
+          </div>
+
+          <!-- Détails -->
+          <div class="comp-entry-card__details">
+            <div class="comp-detail-row" *ngIf="entry.ageMonths">
+              <span>🎂 Age</span><strong>{{ entry.ageMonths }} months</strong>
+            </div>
+            <div class="comp-detail-row" *ngIf="entry.weightKg">
+              <span>⚖️ Weight</span><strong>{{ entry.weightKg }} kg</strong>
+            </div>
+            <div class="comp-detail-row" *ngIf="entry.sex">
+              <span>🔬 Sex</span><strong>{{ entry.sex }}</strong>
+            </div>
+            <div class="comp-detail-row">
+              <span>💉 Vaccinated</span>
+              <strong [class.text-green]="entry.isVaccinated" [class.text-red]="!entry.isVaccinated">
+                {{ entry.isVaccinated ? '✓ Yes' : '✗ No' }}
+              </strong>
+            </div>
+            <div class="comp-detail-row">
+              <span>📋 License</span>
+              <strong [class.text-green]="entry.hasLicense" [class.text-red]="!entry.hasLicense">
+                {{ entry.hasLicense ? '✓ Yes' : '✗ No' }}
+              </strong>
+            </div>
+            <div class="comp-detail-row">
+              <span>🏥 Med. Cert</span>
+              <strong [class.text-green]="entry.hasMedicalCert" [class.text-red]="!entry.hasMedicalCert">
+                {{ entry.hasMedicalCert ? '✓ Yes' : '✗ No' }}
+              </strong>
+            </div>
+          </div>
+
+          <!-- Règles satisfaites -->
+          <div class="comp-entry-card__rules" *ngIf="entry.satisfiedRules">
+            <div class="comp-entry-card__rules-title"><mat-icon>check_circle</mat-icon> Rules satisfied</div>
+            <div class="comp-entry-card__rules-list">
+              <span class="rule-chip rule-chip--ok"
+                *ngFor="let r of entry.satisfiedRules.split(' | ')">
+                {{ r }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Avertissements -->
+          <div class="comp-entry-card__warnings" *ngIf="entry.warnings">
+            <div class="comp-entry-card__warnings-title"><mat-icon>warning</mat-icon> Warnings</div>
+            <div class="comp-entry-card__rules-list">
+              <span class="rule-chip rule-chip--warn"
+                *ngFor="let w of entry.warnings.split(' | ')">
+                {{ w }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Statut inscription -->
+          <div class="comp-entry-card__status">
+            <span class="badge badge--green" *ngIf="entry.participantStatus === 'CONFIRMED'"><mat-icon>check_circle</mat-icon> Confirmed</span>
+            <span class="badge badge--amber" *ngIf="entry.participantStatus === 'PENDING'"><mat-icon>schedule</mat-icon> Pending</span>
+            <span class="badge badge--grey"  *ngIf="entry.participantStatus === 'CANCELLED'"><mat-icon>cancel</mat-icon> Cancelled</span>
+          </div>
+
+          <!-- Notes -->
+          <div class="comp-entry-card__notes" *ngIf="entry.additionalInfo">
+            <p>{{ entry.additionalInfo }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal__loading" *ngIf="modalLoading"><div class="spinner"></div></div>
+    <div class="modal__footer">
+      <button class="btn-ghost" (click)="closeModal()">Close</button>
+    </div>
+  </div>
+</div>
+</div>

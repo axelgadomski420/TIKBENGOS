@@ -1,0 +1,78 @@
+<div class="mic-container">
+
+  <button
+    class="mic-icon-btn"
+    [class.state-idle]="state === 'idle'"
+    [class.state-listening]="state === 'listening'"
+    [class.state-processing]="state === 'processing'"
+    [class.state-error]="state === 'error'"
+    (click)="toggleRecording()"
+    [matTooltip]="getTooltip()"
+    [disabled]="state === 'processing'"
+    type="button"
+    aria-label="Voice input">
+
+    <!-- idle / error -->
+    <svg *ngIf="state === 'idle' || state === 'error'"
+         viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round">
+      <rect x="9" y="2" width="6" height="12" rx="3"/>
+      <path d="M5 10a7 7 0 0 0 14 0"/>
+      <line x1="12" y1="19" x2="12" y2="22"/>
+      <line x1="8"  y1="22" x2="16" y2="22"/>
+    </svg>
+
+    <!-- listening -->
+    <svg *ngIf="state === 'listening'"
+         viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round">
+      <rect x="9" y="2" width="6" height="12" rx="3"/>
+      <path d="M5 10a7 7 0 0 0 14 0"/>
+      <line x1="12" y1="19" x2="12" y2="22"/>
+      <line x1="8"  y1="22" x2="16" y2="22"/>
+    </svg>
+
+    <!-- processing spinner -->
+    <svg *ngIf="state === 'processing'"
+         class="spin-icon" viewBox="0 0 24 24"
+         fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round">
+      <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+    </svg>
+
+  </button>
+
+  <!-- animated sound wave - visible only while listening -->
+  <div class="wave-wrap" *ngIf="state === 'listening'"
+       aria-hidden="true">
+    <span class="wave-bar"></span>
+    <span class="wave-bar"></span>
+    <span class="wave-bar"></span>
+    <span class="wave-bar"></span>
+    <span class="wave-bar"></span>
+  </div>
+
+  <!-- status label -->
+  <span class="mic-status"
+        [class.is-listening]="state === 'listening'"
+        [class.is-processing]="state === 'processing'"
+        [class.is-error]="state === 'error'">
+    <ng-container [ngSwitch]="state">
+      <ng-container *ngSwitchCase="'idle'">
+        Click to speak
+      </ng-container>
+      <ng-container *ngSwitchCase="'listening'">
+        Listening...
+      </ng-container>
+      <ng-container *ngSwitchCase="'processing'">
+        Starting...
+      </ng-container>
+      <ng-container *ngSwitchCase="'error'">
+        Try again
+      </ng-container>
+    </ng-container>
+  </span>
+
+</div>

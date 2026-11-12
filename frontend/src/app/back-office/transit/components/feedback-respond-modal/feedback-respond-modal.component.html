@@ -1,0 +1,178 @@
+<div class="feedback-modal-overlay" role="presentation" (click)="onBackdropClick($event)" *ngIf="feedback as item">
+  <section class="feedback-modal-box" role="dialog" aria-modal="true" aria-label="Respond to feedback">
+    <div
+      class="modal-accent-bar"
+      [style.background]="'linear-gradient(90deg, ' + typeConfig[item.feedbackType].borderColor + ', ' + typeConfig[item.feedbackType].color + ')'"
+    ></div>
+
+    <header class="modal-header">
+      <div class="header-copy">
+        <div class="header-title">
+          <mat-icon>{{ readOnly ? 'visibility' : 'reply' }}</mat-icon>
+          <h2>{{ readOnly ? 'Feedback Details' : 'Respond to Feedback' }}</h2>
+        </div>
+
+        <div class="header-meta">
+          <span
+            class="type-badge"
+            [style.background]="typeConfig[item.feedbackType].bgColor"
+            [style.color]="typeConfig[item.feedbackType].color"
+          >
+            <mat-icon>{{ typeConfig[item.feedbackType].icon }}</mat-icon>
+            {{ typeConfig[item.feedbackType].label }}
+          </span>
+          <p class="destination-title">
+            <mat-icon>location_on</mat-icon>
+            <span>{{ item.destinationTitle }}</span>
+          </p>
+        </div>
+      </div>
+
+      <button type="button" class="btn-close" (click)="close()" [disabled]="submitting && !readOnly" aria-label="Close modal">
+        <mat-icon>close</mat-icon>
+      </button>
+    </header>
+
+    <div class="modal-body">
+      <section class="summary-card">
+        <div class="summary-type">
+          <span class="type-emoji">{{ feedbackEmoji(item.feedbackType) }}</span>
+          <span
+            class="type-pill"
+            [style.background]="typeConfig[item.feedbackType].bgColor"
+            [style.color]="typeConfig[item.feedbackType].color"
+          >
+            <mat-icon>{{ typeConfig[item.feedbackType].icon }}</mat-icon>
+            {{ typeConfig[item.feedbackType].label }}
+          </span>
+        </div>
+
+        <div class="summary-meta">
+          <p>
+            <mat-icon>person</mat-icon>
+            <span>{{ displayClientName(item) }}</span>
+          </p>
+          <p>
+            <mat-icon>calendar_today</mat-icon>
+            <span>{{ formatDateTime(item.createdAt) }}</span>
+          </p>
+        </div>
+
+        <div class="summary-rating" *ngIf="isReview(item)">
+          <span class="label">Rating</span>
+          <div class="stars">
+            <mat-icon *ngFor="let star of [1, 2, 3, 4, 5]" [class.filled]="star <= (item.rating ?? 0)">
+              star
+            </mat-icon>
+            <span>{{ item.rating ?? 0 }}/5</span>
+          </div>
+        </div>
+
+        <div class="summary-title" *ngIf="item.title">
+          <span class="label">Title</span>
+          <p>{{ item.title }}</p>
+        </div>
+
+        <div class="summary-message" *ngIf="item.message">
+          <span class="label">Message</span>
+          <p>{{ item.message }}</p>
+        </div>
+
+        <div class="summary-location" *ngIf="canShowLocation(item)">
+          <span class="label">Incident Location</span>
+          <p>
+            <mat-icon>location_on</mat-icon>
+            <span>{{ item.incidentLocation }}</span>
+          </p>
+        </div>
+
+      </section>
+
+      <section class="response-card details-card" *ngIf="readOnly">
+        <h3>
+          <mat-icon>info</mat-icon>
+          Status Details
+        </h3>
+
+        <p class="details-line">
+          <span class="label">Current Status</span>
+          <span
+            class="status-pill"
+            [style.background]="processingConfig[item.processingStatus].bgColor"
+            [style.color]="processingConfig[item.processingStatus].color"
+          >
+            <mat-icon>{{ processingConfig[item.processingStatus].icon }}</mat-icon>
+            {{ processingConfig[item.processingStatus].label }}
+          </span>
+        </p>
+
+        <div class="existing-response" *ngIf="item.adminResponse; else noAdminResponse">
+          <p class="existing-label">Admin Response</p>
+          <p class="existing-text">{{ item.adminResponse }}</p>
+          <p class="existing-meta" *ngIf="item.respondedByAdminName || item.respondedAt">
+            {{ item.respondedByAdminName || 'Admin' }}
+            <span *ngIf="item.respondedAt">- {{ formatDateTime(item.respondedAt) }}</span>
+          </p>
+        </div>
+
+        <ng-template #noAdminResponse>
+          <div class="no-response-box">
+            <mat-icon>hourglass_empty</mat-icon>
+            <span>No admin response yet.</span>
+          </div>
+        </ng-template>
+      </section>
+
+      <section class="response-card" [formGroup]="form" *ngIf="!readOnly">
+        <h3>
+          <mat-icon>support_agent</mat-icon>
+          Admin Response
+        </h3>
+
+        <div class="status-chip-group" aria-label="Processing status">
+          <button
+            type="button"
+            class="status-chip"
+            *ngFor="let status of statusOptions"
+            [class.active]="isStatusActive(status)"
+            (click)="setProcessingStatus(status)"
+          >
+            <mat-icon>{{ processingConfig[status].icon }}</mat-icon>
+            {{ processingConfig[status].label }}
+          </button>
+        </div>
+
+        <label class="field-label" for="adminResponse">Your Response *</label>
+        <textarea
+          id="adminResponse"
+          formControlName="adminResponse"
+          rows="5"
+          placeholder="Write your response to the client..."
+        ></textarea>
+        <p class="field-error" *ngIf="responseFieldError()">{{ responseFieldError() }}</p>
+
+        <div class="existing-response" *ngIf="item.adminResponse">
+          <p class="existing-label">Update Response</p>
+          <p class="existing-text">{{ item.adminResponse }}</p>
+          <p class="existing-meta" *ngIf="item.respondedByAdminName || item.respondedAt">
+            {{ item.respondedByAdminName || 'Admin' }}
+            <span *ngIf="item.respondedAt">- {{ formatDateTime(item.respondedAt) }}</span>
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <footer class="modal-footer" *ngIf="!readOnly">
+      <button type="button" class="btn btn-cancel" (click)="close()" [disabled]="submitting">Cancel</button>
+      <button type="button" class="btn btn-send" (click)="submit()" [disabled]="submitting || form.invalid">
+        <mat-icon *ngIf="!submitting">send</mat-icon>
+        <mat-icon *ngIf="submitting" class="spin">autorenew</mat-icon>
+        {{ submitting ? 'Sending...' : 'Send Response' }}
+      </button>
+    </footer>
+
+    <footer class="modal-footer details-footer" *ngIf="readOnly">
+      <button type="button" class="btn btn-cancel" (click)="close()">Close</button>
+    </footer>
+  </section>
+</div>

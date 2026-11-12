@@ -1,0 +1,339 @@
+<div class="plan-builder-page">
+  <section class="plan-hero">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <p class="hero-kicker">
+        <mat-icon class="material-icons-round" fontSet="material-icons-round">edit_note</mat-icon>
+        <span>PET TRANSIT EDITOR</span>
+      </p>
+      <h1>Refine Your Travel Plan</h1>
+      <p>
+        Update your route details and pet logistics before final submission. Destination context is preserved while
+        you adjust the rest of the plan.
+      </p>
+      <div class="hero-badges">
+        <span class="hero-badge">Edit Mode</span>
+        <span class="hero-badge" *ngIf="currentPlan">Status: {{ planStatusLabel(currentPlan.status) }}</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="plan-shell">
+    <section class="loading-feedback" *ngIf="loading">
+      <mat-icon class="material-icons-round icon-spin" fontSet="material-icons-round">autorenew</mat-icon>
+      <p>Loading travel plan data...</p>
+    </section>
+
+    <section class="feedback feedback--fatal" *ngIf="!loading && errorMessage && !currentPlan">
+      <mat-icon class="material-icons-round" fontSet="material-icons-round">error_outline</mat-icon>
+      <div>
+        <p>{{ errorMessage }}</p>
+        <ul class="feedback-list" *ngIf="validationIssueMessages.length > 0">
+          <li *ngFor="let issue of validationIssueMessages">{{ issue }}</li>
+        </ul>
+        <div class="error-actions">
+          <button type="button" class="btn btn--ghost" (click)="onCancel()">Back to Plans</button>
+          <button type="button" class="btn btn--primary" (click)="retry()">Retry</button>
+        </div>
+      </div>
+    </section>
+
+    <ng-container *ngIf="!loading && currentPlan as plan">
+      <article class="destination-recap">
+        <div class="recap-image" *ngIf="hasDestinationImage(); else recapPlaceholder">
+          <img [src]="destinationRecap?.coverImageUrl || plan.destinationCoverImageUrl" [alt]="plan.destinationTitle" loading="lazy" />
+        </div>
+
+        <ng-template #recapPlaceholder>
+          <div class="recap-image recap-image--placeholder">
+            <mat-icon class="material-icons-round" fontSet="material-icons-round">location_on</mat-icon>
+          </div>
+        </ng-template>
+
+        <div class="recap-text">
+          <p class="recap-label">Selected Destination</p>
+          <h2>{{ plan.destinationTitle }}</h2>
+          <p>
+            <mat-icon class="material-icons-round" fontSet="material-icons-round">public</mat-icon>
+            <span>{{ plan.destinationCountry }}{{ plan.destinationRegion ? ' - ' + plan.destinationRegion : '' }}</span>
+          </p>
+        </div>
+      </article>
+
+      <section class="feedback" *ngIf="errorMessage">
+        <mat-icon class="material-icons-round" fontSet="material-icons-round">error_outline</mat-icon>
+        <div>
+          <p>{{ errorMessage }}</p>
+          <ul class="feedback-list" *ngIf="validationIssueMessages.length > 0">
+            <li *ngFor="let issue of validationIssueMessages">{{ issue }}</li>
+          </ul>
+        </div>
+      </section>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="planner-form" novalidate>
+        <section class="form-card">
+          <header>
+            <h3><mat-icon class="material-icons-round" fontSet="material-icons-round">map</mat-icon> Trip Information</h3>
+            <p>Core trip context and scheduling details.</p>
+          </header>
+
+          <div class="trip-context-row">
+            <article class="context-chip">
+              <p>Destination</p>
+              <h4>{{ destinationLabel }}</h4>
+              <small>Destination is locked in edit mode.</small>
+            </article>
+
+            <article class="context-chip context-chip--pet">
+              <div class="pet-profile-section">
+                <span class="section-mini-label">PET PROFILE</span>
+
+                <button
+                  type="button"
+                  class="btn-select-pet"
+                  *ngIf="!selectedPet"
+                  (click)="openPetSelector()"
+                >
+                  <div class="pet-select-placeholder">
+                    <mat-icon class="material-icons-round" fontSet="material-icons-round">pets</mat-icon>
+                    <div>
+                      <strong>Select Pet Profile</strong>
+                      <span>Choose which pet is traveling</span>
+                    </div>
+                    <mat-icon class="material-icons-round chevron" fontSet="material-icons-round">chevron_right</mat-icon>
+                  </div>
+                </button>
+
+                <div class="pet-selected-display" *ngIf="selectedPet" (click)="openPetSelector()">
+                  <div class="pet-avatar">
+                    <img
+                      *ngIf="selectedPet.photoUrl"
+                      [src]="resolvePetPhotoUrl(selectedPet.photoUrl)"
+                      [alt]="selectedPet.name"
+                    />
+                    <mat-icon *ngIf="!selectedPet.photoUrl" class="material-icons-round" fontSet="material-icons-round">pets</mat-icon>
+                  </div>
+
+                  <div class="pet-info">
+                    <strong>{{ selectedPet.name }}</strong>
+                    <span>{{ (selectedPet.breed || 'Unknown breed') + ' - ' + (selectedPet.species || 'Unknown') }}</span>
+                  </div>
+
+                  <div class="pet-weight-chip">
+                    <mat-icon class="material-icons-round" fontSet="material-icons-round">monitor_weight</mat-icon>
+                    {{ selectedPet.weight | number: '1.0-2' }} kg
+                  </div>
+
+                  <button type="button" class="btn-change-pet" title="Change pet" (click)="$event.stopPropagation(); openPetSelector()">
+                    <mat-icon class="material-icons-round" fontSet="material-icons-round">edit</mat-icon>
+                  </button>
+                </div>
+
+                <small class="field-error" *ngIf="controlInvalid('petId')">
+                  Please select a pet profile.
+                </small>
+              </div>
+            </article>
+          </div>
+
+          <div class="form-grid two-col">
+            <label [class.is-invalid]="controlInvalid('origin')">
+              <span>Origin</span>
+              <input type="text" formControlName="origin" placeholder="City, airport, or station" />
+              <small class="field-error" *ngIf="controlInvalid('origin')">{{ validationMessage('origin') }}</small>
+            </label>
+
+            <label [class.is-invalid]="controlInvalid('transportType')">
+              <span>Transport Type</span>
+              <select formControlName="transportType">
+                <option *ngFor="let transport of transportOptions" [value]="transport.value">
+                  {{ transport.label }}
+                </option>
+              </select>
+              <small class="field-error" *ngIf="controlInvalid('transportType')">
+                {{ validationMessage('transportType') }}
+              </small>
+            </label>
+
+            <label [class.is-invalid]="controlInvalid('travelDate')">
+              <span>Travel Date</span>
+              <input type="date" formControlName="travelDate" [min]="minDate" />
+              <small class="field-error" *ngIf="controlInvalid('travelDate')">{{ validationMessage('travelDate') }}</small>
+              <span
+                class="field-error"
+                *ngIf="form.get('travelDate')?.touched && form.get('travelDate')?.errors?.['pastDate']"
+              >
+                Travel date must be in the future.
+              </span>
+            </label>
+
+            <label [class.is-invalid]="controlInvalid('returnDate')">
+              <span>Return Date</span>
+              <input type="date" formControlName="returnDate" [min]="minDate" />
+              <small class="field-error" *ngIf="controlInvalid('returnDate')">{{ validationMessage('returnDate') }}</small>
+              <span
+                class="field-error"
+                *ngIf="form.get('returnDate')?.touched && form.get('returnDate')?.errors?.['returnBeforeDeparture']"
+              >
+                Return date must be after the travel date.
+              </span>
+              <span
+                class="field-error"
+                *ngIf="form.get('returnDate')?.touched && form.get('returnDate')?.errors?.['pastDate']"
+              >
+                Return date must be in the future.
+              </span>
+            </label>
+          </div>
+        </section>
+
+        <section class="form-card estimates-card">
+          <header>
+            <h3><mat-icon class="material-icons-round" fontSet="material-icons-round">route</mat-icon> Route Estimator</h3>
+            <p>Estimate route distance and travel time from your origin to this destination.</p>
+          </header>
+
+          <div class="route-estimator-panel">
+            <div class="route-estimator-actions">
+              <button
+                type="button"
+                class="btn-estimate-route"
+                (click)="estimateRoute()"
+                [disabled]="estimatingRoute || !form.controls.origin.value || !destinationRecap"
+              >
+                <mat-icon
+                  class="material-icons-round"
+                  fontSet="material-icons-round"
+                  [class.icon-spin]="estimatingRoute"
+                >{{ estimatingRoute ? 'autorenew' : 'near_me' }}</mat-icon>
+                <span>{{ estimatingRoute ? 'Estimating route...' : 'Estimate Route' }}</span>
+              </button>
+
+              <span class="transport-chip">
+                <mat-icon class="material-icons-round" fontSet="material-icons-round">{{ getTransportIcon() }}</mat-icon>
+                {{ form.controls.transportType.value || 'CAR' }}
+              </span>
+            </div>
+
+            <p class="route-estimator-hint">
+              <mat-icon class="material-icons-round" fontSet="material-icons-round">info</mat-icon>
+              Enter your origin city, then estimate route duration automatically.
+            </p>
+
+            <div class="estimate-error" *ngIf="estimateError">
+              <mat-icon class="material-icons-round" fontSet="material-icons-round">error_outline</mat-icon>
+              <span>{{ estimateError }}</span>
+            </div>
+
+            <div class="estimate-result-grid" *ngIf="routeEstimate as estimate">
+              <article class="estimate-result-item">
+                <span>Distance</span>
+                <strong>{{ estimate.distanceKm | number: '1.0-1' }} km</strong>
+              </article>
+              <article class="estimate-result-item">
+                <span>Duration</span>
+                <strong>{{ estimate.durationHours | number: '1.1-2' }} h</strong>
+              </article>
+              <article class="estimate-result-item estimate-result-item--summary">
+                <span>Summary</span>
+                <strong>{{ estimate.summary }}</strong>
+              </article>
+            </div>
+          </div>
+
+          <small class="field-error" *ngIf="showCurrencyRequiredForCostError()">Currency is required when estimated cost is provided.</small>
+
+          <div class="form-grid three-col muted-grid">
+            <label>
+              <span>Estimated Travel Hours</span>
+              <input type="number" min="0" step="0.5" formControlName="estimatedTravelHours" readonly />
+              <small>Auto-filled from route estimation</small>
+            </label>
+
+            <label>
+              <span>Estimated Travel Cost</span>
+              <input type="number" min="0" step="0.01" formControlName="estimatedTravelCost" readonly />
+              <small>System-generated estimate</small>
+            </label>
+
+            <label>
+              <span>Currency</span>
+              <input type="text" formControlName="currency" readonly />
+              <small>Likely based on destination country</small>
+            </label>
+          </div>
+        </section>
+
+        <section class="form-card">
+          <header>
+            <h3><mat-icon class="material-icons-round" fontSet="material-icons-round">pets</mat-icon> Pet Information</h3>
+            <p>Weight detail used for readiness and logistics checks.</p>
+          </header>
+
+          <div class="form-grid two-col">
+            <label [class.is-invalid]="controlInvalid('animalWeight')">
+              <span>Animal Weight (kg)</span>
+              <input type="number" min="0" step="0.1" formControlName="animalWeight" placeholder="e.g. 12.3" />
+              <div class="weight-autofill-hint" *ngIf="selectedPet && form.get('animalWeight')?.value">
+                <mat-icon class="material-icons-round" fontSet="material-icons-round">check_circle</mat-icon>
+                Auto-filled from {{ selectedPet.name }}'s profile
+                <span class="hint-note">(you can adjust manually)</span>
+              </div>
+              <small class="field-error" *ngIf="controlInvalid('animalWeight')">
+                {{ validationMessage('animalWeight') }}
+              </small>
+            </label>
+          </div>
+        </section>
+
+        <section class="form-card">
+          <header>
+            <h3><mat-icon class="material-icons-round" fontSet="material-icons-round">inbox</mat-icon> Cage Dimensions</h3>
+            <p>Enter cage size to validate transport readiness.</p>
+          </header>
+
+          <div class="form-grid three-col">
+            <label [class.is-invalid]="controlInvalid('cageLength')">
+              <span>Length (cm)</span>
+              <input type="number" min="1" step="0.1" formControlName="cageLength" placeholder="e.g. 60" />
+              <small class="field-error" *ngIf="controlInvalid('cageLength')">{{ validationMessage('cageLength') }}</small>
+            </label>
+
+            <label [class.is-invalid]="controlInvalid('cageWidth')">
+              <span>Width (cm)</span>
+              <input type="number" min="1" step="0.1" formControlName="cageWidth" placeholder="e.g. 40" />
+              <small class="field-error" *ngIf="controlInvalid('cageWidth')">{{ validationMessage('cageWidth') }}</small>
+            </label>
+
+            <label [class.is-invalid]="controlInvalid('cageHeight')">
+              <span>Height (cm)</span>
+              <input type="number" min="1" step="0.1" formControlName="cageHeight" placeholder="e.g. 40" />
+              <small class="field-error" *ngIf="controlInvalid('cageHeight')">{{ validationMessage('cageHeight') }}</small>
+            </label>
+          </div>
+        </section>
+
+        <footer class="form-actions">
+          <button type="button" class="btn btn--ghost" (click)="onCancel()">Cancel</button>
+          <button type="button" class="btn btn--soft" (click)="onReset()">Reset</button>
+          <button type="submit" class="btn btn--primary" [disabled]="saving || loading || form.invalid">
+            <mat-icon
+              class="material-icons-round"
+              [class.icon-spin]="saving"
+              fontSet="material-icons-round"
+            >{{ saving ? 'autorenew' : 'save' }}</mat-icon>
+            <span>{{ saving ? 'Saving Changes...' : 'Save Changes' }}</span>
+          </button>
+        </footer>
+      </form>
+
+      <app-pet-selector-modal
+        *ngIf="showPetSelector"
+        [userId]="currentUserId"
+        (petSelected)="onPetSelected($event)"
+        (closed)="showPetSelector = false"
+      >
+      </app-pet-selector-modal>
+    </ng-container>
+  </section>
+</div>

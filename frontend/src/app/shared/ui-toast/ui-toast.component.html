@@ -1,0 +1,12 @@
+<section class="ui-toast-stack" aria-live="polite" aria-atomic="false">
+  <article
+    class="ui-toast"
+    *ngFor="let toast of uiToastService.toasts$ | async"
+    [ngClass]="toneClass(toast.type)">
+    <div class="ui-toast__copy">
+      <h4>{{ toast.title }}</h4>
+      <p>{{ toast.message }}</p>
+    </div>
+    <button type="button" (click)="dismiss(toast.id)" aria-label="Dismiss notification">×</button>
+  </article>
+</section>

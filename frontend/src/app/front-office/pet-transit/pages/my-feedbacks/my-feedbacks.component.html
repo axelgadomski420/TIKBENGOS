@@ -1,0 +1,294 @@
+<div class="my-feedbacks-page">
+  <header class="page-header">
+    <div class="header-left">
+      <h1>
+        <mat-icon class="h1-icon">reviews</mat-icon>
+        My Reviews &amp; Reports
+      </h1>
+      <p>Track all your feedback and admin responses.</p>
+    </div>
+
+    <button type="button" class="pill-btn muted" (click)="goToMyTrips()">
+      <mat-icon class="material-icons-round">luggage</mat-icon>
+      My Trips
+    </button>
+  </header>
+
+  <section class="stats-row" *ngIf="!loading && !errorMessage">
+    <div class="stat-card">
+      <mat-icon class="stat-icon stat-total">rate_review</mat-icon>
+      <span class="stat-count">{{ totalCount }}</span>
+      <span class="stat-label">Total</span>
+    </div>
+
+    <div class="stat-card">
+      <mat-icon class="stat-icon stat-review">star</mat-icon>
+      <span class="stat-count">{{ reviewCount }}</span>
+      <span class="stat-label">Reviews</span>
+    </div>
+
+    <div class="stat-card">
+      <mat-icon class="stat-icon stat-complaint">report_problem</mat-icon>
+      <span class="stat-count">{{ complaintsIncidentsCount }}</span>
+      <span class="stat-label">Reports</span>
+    </div>
+
+    <div class="stat-card">
+      <mat-icon class="stat-icon stat-pending">hourglass_top</mat-icon>
+      <span class="stat-count">{{ pendingResponseCount }}</span>
+      <span class="stat-label">Pending</span>
+    </div>
+  </section>
+
+  <section
+    class="action-bar mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2"
+    *ngIf="!loading && !errorMessage && feedbacks.length > 0"
+    aria-label="My feedback action bar"
+  >
+    <div class="relative">
+      <i class="fas fa-search pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400"></i>
+      <input
+        id="myFeedbackSearch"
+        type="search"
+        [value]="searchTerm"
+        (input)="onSearchChange($event)"
+        placeholder="Search by destination, title, type, status..."
+        class="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm text-slate-700 shadow-inner focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/20"
+      />
+    </div>
+
+    <button
+      type="button"
+      class="detail-secondary-button"
+      (click)="toggleFilters()"
+      [attr.aria-expanded]="showFilters"
+      aria-label="Toggle filters"
+    >
+      <i class="fas fa-filter"></i>
+      Filter
+    </button>
+  </section>
+
+  <section *ngIf="showFilters && !loading && !errorMessage && feedbacks.length > 0" class="filters-panel" aria-label="My feedback filters">
+    <label class="date-field" for="myFeedbackTypeFilter">
+      <span>Type</span>
+      <select
+        id="myFeedbackTypeFilter"
+        (change)="setTypeFilter($any($event.target).value)"
+        aria-label="Type filter"
+        class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/20"
+      >
+        <option *ngFor="let option of filterOptions" [value]="option.value" [selected]="activeTypeFilter === option.value">
+          {{ option.label }}
+        </option>
+      </select>
+    </label>
+
+    <label class="date-field" for="myFeedbackStatusFilter">
+      <span>Status</span>
+      <select
+        id="myFeedbackStatusFilter"
+        (change)="setStatusFilter($any($event.target).value)"
+        aria-label="Status filter"
+        class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/20"
+      >
+        <option *ngFor="let option of statusFilterOptions" [value]="option.value" [selected]="activeStatusFilter === option.value">
+          {{ option.label }}
+        </option>
+      </select>
+    </label>
+
+    <label class="date-field" for="myFeedbackStartDateFilter">
+      <span>Start Date</span>
+      <input
+        id="myFeedbackStartDateFilter"
+        type="date"
+        [value]="startDateFilter"
+        (input)="onStartDateFilterChange($event)"
+      />
+    </label>
+
+    <label class="date-field" for="myFeedbackEndDateFilter">
+      <span>End Date</span>
+      <input
+        id="myFeedbackEndDateFilter"
+        type="date"
+        [value]="endDateFilter"
+        (input)="onEndDateFilterChange($event)"
+      />
+    </label>
+
+    <button type="button" class="detail-secondary-button" *ngIf="hasFiltersApplied" (click)="clearFilters()">
+      <i class="fas fa-rotate-left"></i>
+      Reset
+    </button>
+  </section>
+
+  <section class="skeleton-list" *ngIf="loading">
+    <div class="skeleton-card" *ngFor="let item of [1, 2, 3]">
+      <div class="sk sk-title"></div>
+      <div class="sk sk-line"></div>
+      <div class="sk sk-line sk-line--short"></div>
+    </div>
+  </section>
+
+  <section class="error-state" *ngIf="!loading && errorMessage">
+    <mat-icon>error_outline</mat-icon>
+    <h2>Something went wrong</h2>
+    <p>{{ errorMessage }}</p>
+  </section>
+
+  <section class="empty-state" *ngIf="!loading && !errorMessage && feedbacks.length === 0">
+    <div class="empty-icon-wrap">
+      <mat-icon class="empty-icon">rate_review</mat-icon>
+    </div>
+    <h2>No feedback yet</h2>
+    <p>Share your experience after completing a trip.</p>
+    <button type="button" class="pill-btn primary" (click)="goToMyTrips()">
+      <mat-icon class="material-icons-round">luggage</mat-icon>
+      View My Trips
+    </button>
+  </section>
+
+  <section class="feedback-list" *ngIf="!loading && !errorMessage && feedbacks.length > 0">
+    <ng-container *ngIf="filteredFeedbacks.length === 0">
+      <p class="no-match">No feedback matches your current search and filters.</p>
+    </ng-container>
+
+    <article
+      class="feedback-card"
+      *ngFor="let fb of paginatedFeedbacks; trackBy: trackByFeedback"
+      [style.borderLeftColor]="typeConfig[fb.feedbackType].color"
+      [style.--type-rgb]="typeRgb(fb.feedbackType)"
+    >
+      <div class="fb-top">
+        <div class="fb-type-area">
+          <div
+            class="fb-type-icon"
+            [style.background]="typeConfig[fb.feedbackType].bgColor"
+            [style.color]="typeConfig[fb.feedbackType].color"
+          >
+            <mat-icon>{{ typeConfig[fb.feedbackType].icon }}</mat-icon>
+          </div>
+          <span
+            class="fb-type-pill"
+            [style.background]="typeConfig[fb.feedbackType].bgColor"
+            [style.color]="typeConfig[fb.feedbackType].color"
+          >
+            {{ typeConfig[fb.feedbackType].label }}
+          </span>
+        </div>
+
+        <div class="fb-meta">
+          <span class="fb-status-badge" [ngClass]="getStatusClass(fb.processingStatus)">
+            <mat-icon>{{ statusConfig[fb.processingStatus].icon }}</mat-icon>
+            {{ statusConfig[fb.processingStatus].label }}
+          </span>
+          <span class="fb-date">{{ formatDate(fb.createdAt) }}</span>
+        </div>
+      </div>
+
+      <div class="fb-middle">
+        <div class="fb-destination">
+          <mat-icon class="dest-icon">location_on</mat-icon>
+          <span>{{ fb.destinationTitle }}</span>
+        </div>
+
+        <div class="fb-stars" *ngIf="fb.feedbackType === 'REVIEW' && fb.rating">
+          <mat-icon class="star-icon" *ngFor="let star of starsArray(fb.rating)">star</mat-icon>
+          <mat-icon class="star-icon star-empty" *ngFor="let star of emptyStarsArray(fb.rating)">
+            star_border
+          </mat-icon>
+        </div>
+
+        <p class="fb-title-text" *ngIf="fb.title">{{ fb.title }}</p>
+        <p class="fb-message" *ngIf="fb.message">{{ fb.message }}</p>
+      </div>
+
+      <div class="admin-response-panel" *ngIf="fb.adminResponse">
+        <div class="admin-response-header">
+          <mat-icon>admin_panel_settings</mat-icon>
+          Admin Response
+        </div>
+        <p class="admin-response-text">{{ fb.adminResponse }}</p>
+        <p class="admin-response-meta">
+          {{ fb.respondedByAdminName || 'Support Team' }}
+          <span *ngIf="fb.respondedAt"> - {{ formatDate(fb.respondedAt) }}</span>
+        </p>
+      </div>
+
+      <div class="card-actions">
+        <button
+          mat-icon-button
+          title="View details"
+          class="btn-details"
+          (click)="openDetailsModal(fb)"
+          aria-label="View feedback details"
+        >
+          <mat-icon>visibility</mat-icon>
+        </button>
+
+        <button
+          mat-icon-button
+          title="Edit feedback"
+          class="btn-edit"
+          (click)="openEditModal(fb)"
+          aria-label="Edit feedback"
+        >
+          <mat-icon>edit</mat-icon>
+        </button>
+
+        <button
+          mat-icon-button
+          title="Delete feedback"
+          class="btn-delete"
+          [disabled]="!canDeleteFeedback(fb)"
+          [class.btn-disabled]="!canDeleteFeedback(fb)"
+          (click)="canDeleteFeedback(fb) ? openDeleteConfirm(fb.id, fb.travelPlanId) : null"
+          aria-label="Delete feedback"
+          [matTooltip]="getFeedbackDeleteTooltip(fb)"
+          [matTooltipDisabled]="canDeleteFeedback(fb)"
+          matTooltipPosition="above"
+        >
+          <mat-icon>delete</mat-icon>
+        </button>
+      </div>
+    </article>
+
+    <app-pagination
+      *ngIf="filteredFeedbacks.length > 0"
+      [totalItems]="totalItems"
+      [itemsPerPage]="itemsPerPage"
+      [currentPage]="currentPage"
+      (pageChange)="onPageChange($event)"
+    ></app-pagination>
+  </section>
+
+  <app-edit-feedback-modal
+    *ngIf="feedbackToEdit"
+    [feedback]="feedbackToEdit"
+    [planId]="feedbackToEdit.travelPlanId"
+    (updated)="onFeedbackUpdated()"
+    (closed)="closeEditModal()"
+  ></app-edit-feedback-modal>
+
+  <app-feedback-details-modal
+    *ngIf="feedbackToView"
+    [feedback]="feedbackToView"
+    (closed)="closeDetailsModal()"
+  ></app-feedback-details-modal>
+
+  <section class="dialog-backdrop" *ngIf="pendingDeleteId !== null">
+    <article class="dialog-card">
+      <h3>Are you sure you want to delete this feedback?</h3>
+      <p>This action cannot be undone and will remove your feedback permanently.</p>
+      <div class="dialog-actions">
+        <button type="button" class="pill-btn muted" (click)="closeDeleteConfirm()" [disabled]="deleting">Cancel</button>
+        <button type="button" class="pill-btn danger" (click)="confirmDelete()" [disabled]="deleting">
+          <mat-icon class="material-icons-round">delete</mat-icon>
+          <span>{{ deleting ? 'Deleting...' : 'Delete Feedback' }}</span>
+        </button>
+      </div>
+    </article>
+  </section>
+</div>

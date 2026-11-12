@@ -1,0 +1,27 @@
+.stars-wrap {
+  display: inline-flex;
+  gap: 0.28rem;
+  align-items: center;
+
+  &.stars-wrap--compact {
+    gap: 0.2rem;
+
+    .fa-star {
+      font-size: 0.78rem;
+    }
+  }
+
+  .fa-star {
+    font-size: 0.86rem;
+    transition: color 160ms ease, transform 160ms ease;
+  }
+}
+
+.stars-wrap__star--filled {
+  color: #f59e0b;
+  text-shadow: 0 3px 8px rgba(245, 158, 11, 0.35);
+}
+
+.stars-wrap__star--empty {
+  color: #d1d5db;
+}

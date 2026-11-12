@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Community Notification</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 0; background: #eef4f3; font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; }
+        .shell { padding: 32px 16px; }
+        .card { max-width: 620px; margin: 0 auto; background: #ffffff; border: 1px solid #dbe7e3; border-radius: 20px; overflow: hidden; box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08); }
+        .hero { padding: 32px 36px; background: #0f766e; color: #ffffff; }
+        .eyebrow { display: inline-block; padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,0.18); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+        .hero h1 { margin: 16px 0 8px; font-size: 28px; line-height: 1.15; }
+        .hero p { margin: 0; font-size: 14px; line-height: 1.7; color: rgba(255,255,255,0.88); }
+        .body { padding: 32px 36px 20px; }
+        .body p { margin: 0 0 14px; font-size: 15px; line-height: 1.75; }
+        .community-chip { display: inline-block; margin-bottom: 18px; padding: 8px 12px; border-radius: 999px; background: #f2fbf8; color: #0f766e; font-size: 12px; font-weight: 700; }
+        .cta-wrap { padding: 8px 36px 0; }
+        .cta { display: inline-block; padding: 14px 24px; border-radius: 999px; background: #0f766e; color: #ffffff !important; text-decoration: none; font-size: 14px; font-weight: 700; box-shadow: 0 12px 22px rgba(15, 118, 110, 0.22); }
+        .footer { padding: 28px 36px 34px; }
+        .footer-links { margin-top: 14px; }
+        .footer a { color: #0f766e; text-decoration: none; font-weight: 600; }
+        .muted { color: #6b7280; font-size: 12px; line-height: 1.7; }
+        @media (max-width: 600px) {
+            .hero, .body, .cta-wrap, .footer { padding-left: 22px; padding-right: 22px; }
+            .hero h1 { font-size: 24px; }
+        }
+    </style>
+</head>
+<body>
+<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;" th:text="${preheader}">Community update on Elif</div>
+<div class="shell">
+    <div class="card">
+        <div class="hero">
+            <span class="eyebrow" th:text="${eyebrow}">Community update</span>
+            <h1 th:text="${headline}">You have a new community update</h1>
+            <p>Elif keeps your community conversations close, calm, and easy to return to.</p>
+        </div>
+        <div class="body">
+            <div class="community-chip" th:text="${communityName}">Community</div>
+            <p>Hi <strong th:text="${firstName}">there</strong>,</p>
+            <p th:each="line : ${bodyLines}" th:text="${line}">Open Elif to see the latest update.</p>
+        </div>
+        <div class="cta-wrap">
+            <a class="cta" th:href="${ctaUrl}" th:text="${ctaLabel}">Open Elif</a>
+        </div>
+        <div class="footer">
+            <p class="muted">You are receiving this because you are a member of this community on Elif.</p>
+            <p class="muted footer-links">
+                <a th:href="${manageUrl}">Manage notification settings</a>
+                &nbsp;·&nbsp;
+                <a th:href="${baseUrl}">Open the app</a>
+            </p>
+        </div>
+    </div>
+</div>
+</body>
+</html>

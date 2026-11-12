@@ -1,0 +1,9 @@
+<div class="stars-wrap" [class.stars-wrap--compact]="compact">
+  <i
+    *ngFor="let star of stars"
+    class="fas fa-star"
+    [class.stars-wrap__star--filled]="isFilled(star)"
+    [class.stars-wrap__star--empty]="!isFilled(star)"
+  ></i>
+</div>
+

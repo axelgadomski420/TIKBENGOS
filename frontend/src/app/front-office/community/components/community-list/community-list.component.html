@@ -1,0 +1,529 @@
+<section class="community-page min-h-screen px-4 py-10 md:px-8" aria-label="Community discovery page">
+  <div class="max-w-7xl mx-auto relative">
+    <header class="community-hero">
+	      <div class="community-hero-grid">
+        <div class="community-hero-copy">
+          <p class="text-xs font-bold uppercase tracking-[0.24em] text-brand-teal">Community</p>
+          <h1 class="mt-4 text-4xl font-black leading-[1.02] text-slate-950 md:text-5xl">Find and join active pet communities.</h1>
+          <p class="mt-4 max-w-2xl text-sm leading-7 text-slate-600 md:text-base">Browse spaces, filter fast, and jump into live threads.</p>
+
+	          <div class="mt-6 flex flex-wrap gap-3">
+            <a *ngIf="isLoggedIn" routerLink="/app/community/create" class="community-hero-action community-hero-action-primary">
+              <i class="fas fa-plus mr-2"></i>Create community
+            </a>
+            <a *ngIf="!isLoggedIn" routerLink="/auth/login" class="community-hero-action community-hero-action-primary">
+              <i class="fas fa-right-to-bracket mr-2"></i>Log in to join
+            </a>
+	          </div>
+	        </div>
+	      </div>
+	    </header>
+
+    <div
+      class="community-search-dock"
+      [style.--search-progress]="searchDockProgress"
+      [class.community-search-dock-scrolled]="searchDockProgress > 0.08">
+      <div class="community-search-panel">
+        <div class="community-search-input-wrap">
+          <i class="fas fa-magnifying-glass community-search-icon"></i>
+          <input
+            [(ngModel)]="searchQuery"
+            (ngModelChange)="onSearchQueryChange($event)"
+            name="communityModuleSearch"
+            type="text"
+            class="community-search-input"
+            placeholder="Search posts and communities"
+            aria-label="Search posts and communities"
+            (keydown.enter)="runAiSearch()">
+          <button *ngIf="searchQuery" type="button" class="community-search-clear" (click)="clearSearch()" aria-label="Clear search">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <button type="button" class="community-search-submit community-search-submit-ai" (click)="runAiSearch()" [disabled]="aiSearchRunning">
+          <span class="material-icons-round thread-summary-action-btn-icon" aria-hidden="true">{{ aiSearchRunning ? 'refresh' : 'auto_awesome' }}</span>
+          {{ aiSearchRunning ? 'Thinking...' : 'Ask AI' }}
+        </button>
+      </div>
+    </div>
+
+    <div class="community-shell mt-8">
+      <aside class="community-left-rail space-y-4">
+        <div class="left-rail-card left-rail-joined-card p-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-extrabold uppercase tracking-[0.16em] text-slate-700">Quick Access</h2>
+            <i class="fas fa-compass text-brand-teal text-sm"></i>
+          </div>
+          <div class="mt-4 space-y-2">
+            <a *ngIf="isLoggedIn" routerLink="/app/community/inbox" class="left-rail-link text-sm" aria-label="Open community inbox">
+              <span class="inline-flex items-center gap-2 truncate">
+                <i class="fas fa-inbox text-brand-teal"></i>
+                Inbox
+              </span>
+              <i class="fas fa-chevron-right text-slate-400 text-xs"></i>
+            </a>
+            <a *ngIf="isLoggedIn" routerLink="/app/community/create" class="left-rail-link text-sm" aria-label="Create new community">
+              <span class="inline-flex items-center gap-2 truncate">
+                <i class="fas fa-plus-circle text-brand-teal"></i>
+                Create Community
+              </span>
+              <i class="fas fa-chevron-right text-slate-400 text-xs"></i>
+            </a>
+            <a *ngIf="!isLoggedIn" routerLink="/auth/login" class="left-rail-link text-sm" aria-label="Log in to join communities">
+              <span class="inline-flex items-center gap-2 truncate">
+                <i class="fas fa-right-to-bracket text-brand-teal"></i>
+                Log In To Join
+              </span>
+              <i class="fas fa-chevron-right text-slate-400 text-xs"></i>
+            </a>
+          </div>
+        </div>
+
+        <div class="left-rail-card p-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-extrabold uppercase tracking-[0.16em] text-slate-700">Feed Controls</h2>
+            <span class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Trending</span>
+          </div>
+          <div class="mt-4 grid grid-cols-2 gap-2">
+            <button type="button" (click)="onTrendingSortChange('HOT')" class="feed-control-button" [ngClass]="trendingSort === 'HOT' ? 'feed-control-button-active' : 'feed-control-button-idle'" [attr.aria-pressed]="trendingSort === 'HOT'">
+              <i class="fas fa-fire mr-1.5"></i>Hot
+            </button>
+            <button type="button" (click)="onTrendingSortChange('NEW')" class="feed-control-button" [ngClass]="trendingSort === 'NEW' ? 'feed-control-button-active' : 'feed-control-button-idle'" [attr.aria-pressed]="trendingSort === 'NEW'">
+              <i class="fas fa-clock mr-1.5"></i>New
+            </button>
+            <button type="button" (click)="onTrendingSortChange('TOP')" class="feed-control-button" [ngClass]="trendingSort === 'TOP' ? 'feed-control-button-active' : 'feed-control-button-idle'" [attr.aria-pressed]="trendingSort === 'TOP'">
+              <i class="fas fa-trophy mr-1.5"></i>Top
+            </button>
+            <button type="button" (click)="onTrendingSortChange('CONTROVERSIAL')" class="feed-control-button" [ngClass]="trendingSort === 'CONTROVERSIAL' ? 'feed-control-button-active' : 'feed-control-button-idle'" [attr.aria-pressed]="trendingSort === 'CONTROVERSIAL'">
+              <i class="fas fa-bolt mr-1.5"></i>Debate
+            </button>
+          </div>
+          <div class="mt-4">
+            <p class="feed-range-label">Range</p>
+            <div class="mt-2 flex flex-wrap gap-2">
+              <button
+                *ngFor="let option of feedWindows"
+                type="button"
+                (click)="onTrendingWindowChange(option.value)"
+                class="feed-range-button"
+                [ngClass]="trendingWindow === option.value ? 'feed-range-button-active' : 'feed-range-button-idle'">
+                {{ option.label }}
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="left-rail-card p-4">
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="text-sm font-extrabold uppercase tracking-[0.16em] text-slate-700">Joined Communities</h2>
+            <span class="text-xs text-slate-500">{{ joinedCommunities.length }}</span>
+          </div>
+
+          <div *ngIf="loading" class="mt-4 space-y-2">
+            <div *ngFor="let _ of [1,2,3]" class="h-11 rounded-xl bg-slate-100 animate-pulse"></div>
+          </div>
+
+          <div *ngIf="!loading && joinedCommunities.length === 0" class="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-xs leading-6 text-slate-500">
+            Join communities to pin them here and make your daily workflow much faster.
+          </div>
+
+          <div *ngIf="!loading && joinedCommunities.length > 0" class="mt-4 space-y-3">
+            <div *ngFor="let group of joinedGroupList; trackBy: trackByGroupKey" class="space-y-2">
+              <button
+                type="button"
+                (click)="toggleGroup(group.key)"
+                class="w-full inline-flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-600 hover:bg-slate-100"
+              >
+                <span>{{ group.title }}</span>
+                <span class="inline-flex items-center gap-2">
+                  <span class="rounded-full bg-white px-2 py-0.5 text-[10px] text-slate-500">{{ group.items.length }}</span>
+                  <i class="fas" [ngClass]="isGroupCollapsed(group.key) ? 'fa-chevron-down' : 'fa-chevron-up'"></i>
+                </span>
+              </button>
+
+              <div *ngIf="!isGroupCollapsed(group.key)" class="space-y-2">
+                <a
+                  *ngFor="let c of group.items; trackBy: trackByCommunityId"
+                  [routerLink]="['/app/community/c', c.slug]"
+                  class="left-rail-link"
+                  [attr.aria-label]="'Open joined community ' + c.name"
+                >
+                  <span class="min-w-0">
+                    <span class="block text-sm font-semibold truncate">{{ c.name }}</span>
+                    <span class="block text-[11px] text-slate-500">{{ roleLabel(c) }} · {{ c.memberCount }} members</span>
+                  </span>
+                  <i class="fas fa-chevron-right text-slate-400 text-xs"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="min-w-0">
+        <div class="main-and-right-rail">
+          <div class="min-w-0 space-y-6">
+	            <section *ngIf="hasSearchQuery" class="community-surface">
+              <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <p class="text-xs font-bold uppercase tracking-[0.16em] text-brand-teal">Search</p>
+                  <h2 class="mt-2 text-2xl font-black text-slate-950">Results for "{{ searchQuery.trim() }}"</h2>
+                  <p class="mt-2 text-sm leading-6 text-slate-500">Search across live posts and community spaces.</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <button type="button" (click)="onSearchModeChange('ALL')" class="feed-control-button" [ngClass]="searchMode === 'ALL' ? 'feed-control-button-active' : 'feed-control-button-idle'">All</button>
+                  <button type="button" (click)="onSearchModeChange('POSTS')" class="feed-control-button" [ngClass]="searchMode === 'POSTS' ? 'feed-control-button-active' : 'feed-control-button-idle'">Posts</button>
+                  <button type="button" (click)="onSearchModeChange('COMMUNITIES')" class="feed-control-button" [ngClass]="searchMode === 'COMMUNITIES' ? 'feed-control-button-active' : 'feed-control-button-idle'">Communities</button>
+                </div>
+              </div>
+
+              <div *ngIf="searching" class="mt-5 space-y-3">
+                <div *ngFor="let _ of [1,2,3]" class="rounded-3xl border border-slate-200 bg-white p-5 animate-pulse">
+                  <div class="h-4 w-32 rounded bg-slate-200 mb-3"></div>
+                  <div class="h-6 w-2/3 rounded bg-slate-200 mb-3"></div>
+                  <div class="h-4 w-full rounded bg-slate-100 mb-2"></div>
+                  <div class="h-4 w-1/2 rounded bg-slate-100"></div>
+                </div>
+              </div>
+
+              <section *ngIf="!searching && (aiAnswer || aiSearchError)" class="community-ai-answer-card mt-5" aria-live="polite">
+                <div class="community-ai-answer-head">
+                  <div class="community-ai-answer-title-wrap">
+                    <span class="community-ai-answer-kicker">AI Companion</span>
+                    <h3 class="community-ai-answer-title">Natural-language answer</h3>
+                  </div>
+                  <span *ngIf="aiSearchResult?.model" class="community-ai-answer-model">{{ aiSearchResult?.model }}</span>
+                </div>
+
+                <p *ngIf="aiAnswer" class="community-ai-answer-copy">{{ aiAnswer }}</p>
+                <p *ngIf="aiSearchError" class="community-ai-answer-warning">{{ aiSearchError }}</p>
+
+                <div *ngIf="aiFollowUps.length" class="community-ai-followups">
+                  <button
+                    *ngFor="let followUp of aiFollowUps"
+                    type="button"
+                    class="community-ai-followup-chip"
+                    (click)="applyFollowUp(followUp)">
+                    {{ followUp }}
+                  </button>
+                </div>
+
+                <div *ngIf="aiSearchResult" class="community-ai-source-metrics">
+                  <span class="community-ai-source-pill">Posts: {{ searchPosts.length }}</span>
+                  <span class="community-ai-source-pill">Communities: {{ aiCommunitiesCount }}</span>
+                </div>
+              </section>
+
+              <div *ngIf="!searching && searchError" class="mt-5 rounded-3xl border border-red-200 bg-red-50 px-6 py-4 text-sm text-red-700">
+                {{ searchError }}
+              </div>
+
+              <div *ngIf="!searching && !searchError && totalSearchResults === 0" class="mt-5 rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-6 py-8 text-slate-600">
+                <p class="font-semibold text-slate-900">No results yet.</p>
+                <p class="mt-2 text-sm">Try a broader keyword, a post title phrase, or a community name.</p>
+              </div>
+
+              <div *ngIf="!searching && !searchError && totalSearchResults > 0" class="mt-5 space-y-6">
+                <div *ngIf="visibleSearchPosts.length">
+                  <div class="mb-3 flex items-center justify-between">
+                    <h3 class="text-sm font-extrabold uppercase tracking-[0.14em] text-slate-700">Posts</h3>
+                    <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{{ visibleSearchPosts.length }}</span>
+                  </div>
+                  <div class="space-y-4">
+                    <div *ngFor="let p of visibleSearchPosts; trackBy: trackByPostId" class="motion-list-card">
+                      <div class="mb-2 flex items-center gap-2 px-1 text-xs text-slate-500">
+                        <i class="fas fa-layer-group text-brand-teal"></i>
+                        <ng-container *ngIf="communityFor(p) as c">
+                          <a [routerLink]="['/app/community/c', c.slug]" class="inline-flex items-center gap-2 font-semibold text-brand-teal hover:underline">
+                            <span>{{ c.name }}</span>
+                          </a>
+                        </ng-container>
+                        <span *ngIf="!communityFor(p)">Community</span>
+                      </div>
+                      <app-post-card
+                        [post]="p"
+                        [currentUserId]="userId"
+                        [canPinPost]="canManagePost(p)"
+                        (voted)="onPostVote(p, $event.value)">
+                      </app-post-card>
+                    </div>
+                  </div>
+                </div>
+
+                <div *ngIf="visibleSearchCommunities.length">
+                  <div class="mb-3 flex items-center justify-between">
+                    <h3 class="text-sm font-extrabold uppercase tracking-[0.14em] text-slate-700">Communities</h3>
+                    <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{{ visibleSearchCommunities.length }}</span>
+                  </div>
+                  <div class="grid gap-4 md:grid-cols-2">
+                    <a
+                      *ngFor="let community of visibleSearchCommunities; trackBy: trackByCommunityId"
+                      [routerLink]="['/app/community/c', community.slug]"
+                      class="community-card">
+                      <div class="community-card-body">
+                        <div class="community-card-header">
+                          <div class="flex items-center gap-3 min-w-0">
+                            <img *ngIf="community.iconUrl; else searchCommunityFallback" [src]="communityIconSrc(community)" [alt]="community.name + ' icon'" class="community-card-avatar" loading="lazy">
+                            <ng-template #searchCommunityFallback>
+                              <span class="community-card-avatar community-card-avatar-fallback">{{ communityInitial(community) }}</span>
+                            </ng-template>
+                            <div class="min-w-0">
+                              <h3 class="truncate text-base font-black text-slate-950">{{ community.name }}</h3>
+                              <p class="text-xs text-slate-500">{{ community.memberCount }} members</p>
+                            </div>
+                          </div>
+                          <span class="community-role-pill" [ngClass]="roleTone(community)">{{ roleLabel(community) }}</span>
+                        </div>
+                        <p class="mt-3 text-sm leading-6 text-slate-600">{{ community.description || 'No description yet.' }}</p>
+                      </div>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+	            <section class="community-surface">
+              <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <p class="text-xs font-bold uppercase tracking-[0.16em] text-brand-orange">Live feed</p>
+                  <h2 class="mt-2 text-2xl font-black text-slate-950">Trending conversations</h2>
+                  <p class="mt-2 text-sm leading-6 text-slate-500">Most active threads in the selected sort and time range.</p>
+                </div>
+                <div class="rounded-full bg-slate-100 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+                  {{ trendingSort.toLowerCase() }} · {{ trendingWindow === 'ALL' ? 'all time' : trendingWindow.toLowerCase() }}
+                </div>
+              </div>
+
+              <div *ngIf="loading || loadingTrending" class="mt-5 space-y-3">
+                <div *ngFor="let _ of [1,2,3]" class="rounded-3xl border border-slate-200 bg-white p-5 animate-pulse">
+                  <div class="flex gap-4 items-start">
+                    <div class="h-20 w-12 rounded-2xl bg-slate-200"></div>
+                    <div class="flex-1">
+                      <div class="h-4 w-32 rounded bg-slate-200 mb-2"></div>
+                      <div class="h-6 w-3/4 rounded bg-slate-200 mb-3"></div>
+                      <div class="h-4 w-full rounded bg-slate-100 mb-2"></div>
+                      <div class="h-4 w-2/3 rounded bg-slate-100"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div *ngIf="!loading && !loadingTrending && !error && trendingPosts.length === 0" class="mt-5 rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-6 py-8 text-slate-600">
+                <p class="font-semibold text-slate-900">No trending posts yet.</p>
+                <p class="mt-2 text-sm">Try a different sort or check back after new posts are published.</p>
+              </div>
+
+              <div class="mt-5 space-y-4" *ngIf="!loading && !loadingTrending && !error && trendingPosts.length">
+                <div *ngFor="let p of trendingPosts; trackBy: trackByPostId" class="motion-list-card">
+                  <div class="mb-2 flex items-center gap-2 px-1 text-xs text-slate-500">
+                    <i class="fas fa-layer-group text-brand-teal"></i>
+                    <ng-container *ngIf="communityFor(p) as c">
+                      <a
+                        [routerLink]="['/app/community/c', c.slug]"
+                        class="inline-flex items-center gap-2 font-semibold text-brand-teal hover:underline"
+                      >
+                        <ng-container *ngIf="c.iconUrl; else trendingCommunityIconFallback">
+                          <img
+                            [src]="communityIconSrc(c)"
+                            [alt]="c.name + ' icon'"
+                            loading="lazy"
+                            decoding="async"
+                            class="h-5 w-5 rounded-full object-cover ring-1 ring-slate-200"
+                          >
+                        </ng-container>
+                        <ng-template #trendingCommunityIconFallback>
+                          <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-teal/15 text-[10px] font-bold uppercase text-brand-teal ring-1 ring-brand-teal/25">
+                            {{ communityInitial(c) }}
+                          </span>
+                        </ng-template>
+                        <span>{{ c.name }}</span>
+                      </a>
+                    </ng-container>
+                    <span *ngIf="!communityFor(p)">Community</span>
+                  </div>
+                  <app-post-card
+                    [post]="p"
+                    [currentUserId]="userId"
+                    [canPinPost]="canManagePost(p)"
+                    (voted)="onPostVote(p, $event.value)">
+                  </app-post-card>
+                </div>
+              </div>
+            </section>
+
+            <section class="community-surface">
+              <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <p class="text-xs font-bold uppercase tracking-[0.16em] text-brand-teal">Discovery</p>
+                  <h2 class="mt-2 text-2xl font-black text-slate-950">Browse communities</h2>
+                  <p class="mt-2 text-sm leading-6 text-slate-500">Search and filter spaces, then open the right one instantly.</p>
+                </div>
+              </div>
+
+              <div class="mt-5 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  (click)="showJoinedOnly = !showJoinedOnly"
+                  class="community-filter-chip"
+                  [ngClass]="showJoinedOnly ? 'community-filter-chip-active' : 'community-filter-chip-idle'"
+                >
+                  <i class="fas fa-user-group mr-1.5"></i>Joined only
+                </button>
+                <button
+                  *ngIf="hasCommunityFilters"
+                  type="button"
+                  (click)="clearCommunityFilters()"
+                  class="community-filter-chip community-filter-chip-idle"
+                >
+                  <i class="fas fa-rotate-left mr-1.5"></i>Reset filters
+                </button>
+                <span class="ml-auto text-sm text-slate-500" aria-live="polite">{{ filteredCommunities.length }} results</span>
+              </div>
+
+	              <div class="relative mt-4">
+                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                <input
+                  id="community-discovery-search"
+                  [(ngModel)]="communitySearch"
+                  type="search"
+                  name="communitySearch"
+                  aria-label="Search communities"
+                  autocomplete="off"
+                  placeholder="Search communities by name or description"
+                  class="w-full rounded-2xl border border-slate-300 bg-white pl-11 pr-12 py-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-teal/30 focus:border-brand-teal"
+                >
+                <button
+                  *ngIf="communitySearch"
+                  type="button"
+                  (click)="communitySearch = ''"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full text-slate-500 hover:bg-slate-100"
+                  aria-label="Clear community search"
+                >
+                  <i class="fas fa-times text-xs"></i>
+	                </button>
+	              </div>
+
+	              <div *ngIf="!loading && !error && featuredCommunities.length > 0" class="community-featured-strip">
+	                <article *ngFor="let community of featuredCommunities; trackBy: trackByCommunityId" class="community-featured-card">
+	                  <div class="community-featured-topline">
+	                    <span class="community-featured-kicker">Featured</span>
+	                    <span class="community-featured-members">{{ community.memberCount }} members</span>
+	                  </div>
+	                  <h3>{{ community.name }}</h3>
+	                  <p>{{ communityActivityLabel(community) }}</p>
+	                  <a [routerLink]="['/app/community/c', community.slug]" class="community-featured-link">Open community</a>
+	                </article>
+	              </div>
+	            </section>
+
+            <div *ngIf="loading" class="grid grid-cols-1 gap-5 md:grid-cols-2">
+              <div *ngFor="let _ of [1,2,3,4]" class="rounded-3xl border border-slate-200 bg-white p-5 animate-pulse">
+                <div class="h-36 rounded-2xl bg-slate-200 mb-4"></div>
+                <div class="h-5 w-2/3 rounded bg-slate-200 mb-3"></div>
+                <div class="h-4 w-full rounded bg-slate-100 mb-2"></div>
+                <div class="h-4 w-3/4 rounded bg-slate-100"></div>
+              </div>
+            </div>
+
+            <div *ngIf="error" class="rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-red-700">{{ error }}</div>
+
+            <div *ngIf="!loading && !error && communities.length === 0" class="community-empty-state">
+              <p class="text-lg font-semibold text-slate-900">No communities yet.</p>
+              <p class="mt-2 text-sm text-slate-500">Create the first one and establish the tone for the whole hub.</p>
+            </div>
+
+            <div class="grid grid-cols-1 gap-5 md:grid-cols-2" *ngIf="!loading && !error && filteredCommunities.length">
+              <a
+                *ngFor="let c of filteredCommunities; trackBy: trackByCommunityId"
+                [routerLink]="['/app/community/c', c.slug]"
+                class="community-card group"
+                [attr.aria-label]="'Open community ' + c.name"
+              >
+                <div class="community-card-banner">
+                  <ng-container *ngIf="c.bannerUrl; else communityColorBanner">
+                    <img [src]="communityBannerSrc(c)" [alt]="c.name + ' banner'" loading="lazy" decoding="async" class="community-card-banner-image">
+                  </ng-container>
+                  <ng-template #communityColorBanner>
+                    <div class="community-card-banner-fallback" [style.backgroundColor]="bannerFallbackColor(c)"></div>
+                  </ng-template>
+                  <div class="community-card-banner-overlay"></div>
+                  <span class="community-card-type-pill" [ngClass]="c.type === 'PUBLIC' ? 'community-card-type-public' : 'community-card-type-private'">
+                    <i class="fas" [ngClass]="c.type === 'PUBLIC' ? 'fa-earth-africa' : 'fa-lock'"></i>
+                    {{ c.type === 'PUBLIC' ? 'Public' : 'Private' }}
+                  </span>
+                </div>
+
+                <div class="community-card-body">
+                  <div class="community-card-header">
+                    <div class="flex min-w-0 items-center gap-3">
+                      <ng-container *ngIf="c.iconUrl; else communityIconFallback">
+                        <img [src]="communityIconSrc(c)" [alt]="c.name + ' icon'" loading="lazy" decoding="async" class="community-card-avatar">
+                      </ng-container>
+                      <ng-template #communityIconFallback>
+                        <div class="community-card-avatar community-card-avatar-fallback">{{ communityInitial(c) }}</div>
+                      </ng-template>
+                      <div class="min-w-0">
+                        <h3 class="truncate text-lg font-black text-slate-950">{{ c.name }}</h3>
+                        <p class="truncate text-xs text-slate-500">c/{{ c.slug }}</p>
+                      </div>
+                    </div>
+
+                    <span *ngIf="c.userRole" class="community-role-pill" [ngClass]="roleTone(c)">
+                      {{ roleLabel(c) }}
+                    </span>
+                  </div>
+
+	                  <p class="mt-4 line-clamp-3 text-sm leading-6 text-slate-600">{{ c.description || 'A community for pet lovers to share updates, questions, and advice.' }}</p>
+	                  <div class="community-card-activity" [ngClass]="communityActivityTone(c)">
+	                    <i class="fas fa-signal"></i>
+	                    <span>{{ communityActivityLabel(c) }}</span>
+	                  </div>
+
+	                  <div class="community-card-footer">
+                    <div class="community-card-metrics">
+                      <span><i class="fas fa-users text-brand-teal"></i>{{ c.memberCount }} members</span>
+                      <span><i class="fas fa-calendar text-brand-orange"></i>{{ c.createdAt | date:'MMM y' }}</span>
+                    </div>
+                    <span class="community-card-arrow">
+                      Explore <i class="fas fa-arrow-right ml-1"></i>
+                    </span>
+                  </div>
+                </div>
+              </a>
+            </div>
+
+            <div *ngIf="!loading && !error && communities.length > 0 && filteredCommunities.length === 0" class="community-empty-state">
+              <p class="text-lg font-semibold text-slate-900">No communities match your search.</p>
+              <p class="mt-2 text-sm text-slate-500">Try a broader keyword or clear the joined-only filter.</p>
+              <button type="button" (click)="clearCommunityFilters()" class="community-inline-action mt-4">
+                <i class="fas fa-rotate-left mr-2"></i>Reset filters
+              </button>
+            </div>
+          </div>
+
+	          <aside class="right-rail space-y-4">
+	            <div class="right-rail-card p-4">
+              <div class="flex items-center justify-between">
+                <h3 class="text-sm font-extrabold uppercase tracking-[0.14em] text-slate-700">Top Communities</h3>
+                <i class="fas fa-chart-line text-brand-teal text-xs"></i>
+              </div>
+              <div *ngIf="loading" class="mt-4 space-y-2">
+                <div *ngFor="let _ of [1,2,3]" class="h-11 rounded-xl bg-slate-100 animate-pulse"></div>
+              </div>
+              <div *ngIf="!loading && topCommunities.length > 0" class="mt-4 space-y-2">
+                <a *ngFor="let c of topCommunities; trackBy: trackByCommunityId" [routerLink]="['/app/community/c', c.slug]" class="right-rail-community-link" [attr.aria-label]="'Open top community ' + c.name">
+                  <span class="min-w-0">
+                    <span class="block truncate text-sm font-semibold text-slate-800">{{ c.name }}</span>
+                    <span class="block text-[11px] text-slate-500">{{ c.memberCount }} members</span>
+                  </span>
+                  <i class="fas fa-arrow-right text-[11px] text-slate-400"></i>
+                </a>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </main>
+    </div>
+
+  </div>
+</section>

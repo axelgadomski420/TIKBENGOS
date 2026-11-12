@@ -1,0 +1,300 @@
+<div class="event-detail" *ngIf="!loading && event; else loadingState">
+  <app-admin-toast-container></app-admin-toast-container>
+  
+  <!-- Header -->
+  <div class="detail-header">
+    <div class="header-left">
+      <button class="btn-back" (click)="goBack()">
+        <mat-icon>arrow_back</mat-icon>
+        Back to Events
+      </button>
+    </div>
+    <div class="header-right">
+      <button class="action-button action-button--outline" (click)="goToEdit()" *ngIf="canCancel()">
+        <mat-icon>restart_alt</mat-icon>
+        Edit Event
+      </button>
+      <button class="action-button action-button--danger" (click)="confirmCancel()" *ngIf="canCancel()">
+        <mat-icon>close</mat-icon>
+        Cancel Event
+      </button>
+      <button class="action-button action-button--danger" (click)="confirmDelete()">
+        <mat-icon>cancel</mat-icon>
+        Delete
+      </button>
+    </div>
+  </div>
+
+  <!-- Event Cover -->
+  <div class="event-cover" [style.background-image]="event.coverImageUrl ? 'url(' + event.coverImageUrl + ')' : ''">
+    <div class="cover-overlay">
+      <div class="cover-content">
+        <span class="event-status" [style.background]="statusColors[event.status]">
+          {{ statusLabels[event.status] }}
+        </span>
+        <h1 class="event-title">{{ event.title }}</h1>
+        <div class="event-meta">
+          <span><mat-icon>calendar_month</mat-icon> {{ formatDate(event.startDate) }} at {{ formatTime(event.startDate) }}</span>
+          <span><mat-icon>place</mat-icon> {{ event.location }}</span>
+          <span><mat-icon>pets</mat-icon> {{ event.maxParticipants }} seats</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab" [class.active]="activeTab === 'info'" (click)="setTab('info')">
+      <mat-icon>info</mat-icon>
+      Information
+    </button>
+    <button class="tab" [class.active]="activeTab === 'participants'" (click)="setTab('participants')">
+      <mat-icon>pets</mat-icon>
+      Participants
+      <span class="badge" *ngIf="pendingList.length > 0">{{ pendingList.length }}</span>
+    </button>
+    <button class="tab" [class.active]="activeTab === 'waitlist'" (click)="setTab('waitlist')">
+      <mat-icon>schedule</mat-icon>
+      Waitlist
+      <span class="badge" *ngIf="waitlist.length > 0">{{ waitlist.length }}</span>
+    </button>
+    <button class="tab" [class.active]="activeTab === 'reviews'" (click)="setTab('reviews')">
+      <mat-icon>star</mat-icon>
+      Reviews
+      <span class="badge" *ngIf="reviews.length > 0">{{ reviews.length }}</span>
+    </button>
+    <button class="tab" [class.active]="activeTab === 'weather'" (click)="setTab('weather')">
+      <mat-icon>partly_cloudy_day</mat-icon>
+      Weather
+    </button>
+    <button class="tab" [class.active]="activeTab === 'virtual'" (click)="setTab('virtual')">
+      <mat-icon>event</mat-icon>
+      Virtual Session
+    </button>
+  </div>
+
+  <!-- Tab Content -->
+  <div class="tab-content">
+    
+    <!-- Info Tab -->
+    <div *ngIf="activeTab === 'info'" class="info-tab">
+      <div class="info-grid">
+        <div class="info-card">
+          <h3>Description</h3>
+          <p>{{ event.description || 'No description provided.' }}</p>
+        </div>
+        
+        <div class="info-card">
+          <h3>Details</h3>
+          <div class="detail-row"><span>Category:</span><strong>{{ event.category.icon }} {{ event.category.name }}</strong></div>
+          <div class="detail-row"><span>Location:</span><strong>{{ event.location }}</strong></div>
+          <div class="detail-row"><span>Start Date:</span><strong>{{ formatDate(event.startDate) }} at {{ formatTime(event.startDate) }}</strong></div>
+          <div class="detail-row"><span>End Date:</span><strong>{{ formatDate(event.endDate) }} at {{ formatTime(event.endDate) }}</strong></div>
+          <div class="detail-row"><span>Capacity:</span><strong>{{ event.maxParticipants }} seats</strong></div>
+          <div class="detail-row"><span>Created by:</span><strong>{{ event.organizerName }}</strong></div>
+          <div class="detail-row"><span>Created at:</span><strong>{{ formatDate(event.createdAt) }}</strong></div>
+        </div>
+        
+        <!-- Capacity Card -->
+        <div class="info-card" *ngIf="capacityData || loadingCapacity">
+          <h3>Capacity Status</h3>
+          <div *ngIf="loadingCapacity">Loading...</div>
+          <div *ngIf="!loadingCapacity && capacityData">
+            <div class="capacity-stats">
+              <div class="stat"><span>Confirmed:</span><strong>{{ capacityData.confirmedParticipants }}</strong></div>
+              <div class="stat"><span>Remaining:</span><strong>{{ capacityData.remainingSlots }}</strong></div>
+              <div class="stat"><span>Waitlist:</span><strong>{{ capacityData.waitlistCount }}</strong></div>
+            </div>
+            <div class="capacity-bar">
+              <div class="capacity-fill" [style.width.%]="getFillRate()" 
+                   [class.fill-warn]="getFillRate() >= 75"
+                   [class.fill-full]="capacityData.isFull"></div>
+            </div>
+            <div class="capacity-actions">
+              <button class="detail-secondary-button" (click)="recalculateCapacity()"><mat-icon>refresh</mat-icon> Recalculate</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Participants Tab -->
+    <div *ngIf="activeTab === 'participants'" class="participants-tab">
+      <div class="tab-header">
+        <h3>Participants</h3>
+        <button type="button" class="detail-secondary-button" (click)="exportParticipants()" [disabled]="exporting">
+          <mat-icon>assignment</mat-icon>
+          Export CSV
+        </button>
+      </div>
+      
+      <div *ngIf="loadingParticipants">Loading...</div>
+      
+      <!-- Confirmed Participants -->
+      <div class="participants-section">
+        <h4>Confirmed ({{ participants.length }})</h4>
+        <div *ngIf="participants.length === 0" class="empty">No confirmed participants.</div>
+        <table class="data-table" *ngIf="participants.length > 0">
+          <thead>
+            <tr><th>Participant</th><th>Seats</th><th>Registered on</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let p of participants">
+              <td><div class="participant-cell"><div class="avatar">{{ p.userName.charAt(0) }}</div>{{ p.userName }}</div></td>
+              <td>{{ p.numberOfSeats }} seat{{ p.numberOfSeats > 1 ? 's' : '' }}</td>
+              <td>{{ formatDate(p.registeredAt) }}</td>
+              <td><span class="status-badge confirmed"><mat-icon>check_circle</mat-icon> Confirmed</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Pending Participants -->
+      <div class="participants-section">
+        <h4>Pending Approval ({{ pendingList.length }})</h4>
+        <div *ngIf="pendingList.length === 0" class="empty">No pending registrations.</div>
+        <table class="data-table" *ngIf="pendingList.length > 0">
+          <thead>
+            <tr><th>Participant</th><th>Seats</th><th>Registered on</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let p of pendingList">
+              <td><div class="participant-cell"><div class="avatar pending">{{ p.userName.charAt(0) }}</div>{{ p.userName }}</div></td>
+              <td>{{ p.numberOfSeats }} seat{{ p.numberOfSeats > 1 ? 's' : '' }}</td>
+              <td>{{ formatDate(p.registeredAt) }}</td>
+              <td>
+                <button class="action-button action-button--outline action-button--sm" (click)="approveParticipant(p)">Approve</button>
+                <button class="action-button action-button--danger action-button--sm" (click)="rejectParticipant(p)">Reject</button>
+               </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Waitlist Tab -->
+    <div *ngIf="activeTab === 'waitlist'" class="waitlist-tab">
+      <div class="tab-header">
+        <h3>Waitlist ({{ waitlist.length }})</h3>
+        <button class="detail-primary-button" (click)="promoteNext()" *ngIf="waitlist.length > 0">
+          <mat-icon>arrow_forward</mat-icon>
+          Promote Next
+        </button>
+      </div>
+      
+      <div *ngIf="loadingWaitlist">Loading...</div>
+      <div *ngIf="waitlist.length === 0 && !loadingWaitlist" class="empty">Waitlist is empty.</div>
+      
+      <table class="data-table" *ngIf="waitlist.length > 0">
+        <thead>
+          <tr><th>#</th><th>User</th><th>Seats</th><th>People Ahead</th><th>Joined</th><th>Notified</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let w of waitlist">
+            <td><span class="position">{{ w.position }}</span></td>
+            <td><div class="participant-cell"><div class="avatar">{{ w.userName.charAt(0) }}</div>{{ w.userName }}</div></td>
+            <td>{{ w.numberOfSeats }} seat{{ w.numberOfSeats > 1 ? 's' : '' }}</td>
+            <td>{{ w.peopleAhead }} person{{ w.peopleAhead > 1 ? 's' : '' }}</td>
+            <td>{{ formatDate(w.joinedAt) }}</td>
+            <td><span class="badge" [class.success]="w.notified">{{ w.notified ? 'Yes' : '—' }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Reviews Tab -->
+    <div *ngIf="activeTab === 'reviews'" class="reviews-tab">
+      <h3>Reviews & Ratings ({{ reviews.length }})</h3>
+      
+      <div *ngIf="loadingReviews">Loading...</div>
+      <div *ngIf="reviews.length === 0 && !loadingReviews" class="empty">No reviews yet.</div>
+      
+      <div class="reviews-list" *ngIf="reviews.length > 0">
+        <div *ngFor="let r of reviews" class="review-card">
+          <div class="review-header">
+            <div class="reviewer">
+              <div class="avatar">{{ r.userName.charAt(0) }}</div>
+              <div>
+                <div class="name">{{ r.userName }}</div>
+                <div class="date">{{ formatDate(r.createdAt) }}</div>
+              </div>
+            </div>
+            <div class="rating">
+              <span *ngFor="let s of starsArray(r.rating)" [class.star-filled]="s <= r.rating">★</span>
+              <span class="rating-value">{{ r.rating }}/5</span>
+            </div>
+            <button type="button" class="action-button action-button--danger" (click)="deleteReview(r.id)"><mat-icon>cancel</mat-icon> Delete</button>
+          </div>
+          <p class="review-comment" *ngIf="r.comment">{{ r.comment }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Weather Tab -->
+    <div *ngIf="activeTab === 'weather'" class="weather-tab">
+      <div *ngIf="loadingWeather">Loading weather data...</div>
+      
+      <div *ngIf="!loadingWeather && weather" class="weather-card">
+        <div class="weather-header">
+          <div class="weather-summary">
+            <span class="weather-icon">{{ weatherIcons[weather.condition] }}</span>
+            <div>
+              <div class="weather-eyebrow">Live forecast</div>
+              <div class="weather-city">{{ weather.city }}</div>
+              <div class="weather-desc">{{ weather.description | titlecase }}</div>
+            </div>
+          </div>
+          <div class="weather-temp">{{ weather.temperature }}°C</div>
+        </div>
+        
+        <div class="weather-details">
+          <div class="detail"><span><mat-icon>water_drop</mat-icon> Humidity</span><strong>{{ weather.humidity }}%</strong></div>
+          <div class="detail"><span><mat-icon>air</mat-icon> Wind</span><strong>{{ weather.windSpeed }} km/h</strong></div>
+          <div class="detail"><span><mat-icon>tune</mat-icon> Condition</span><strong>{{ weather.condition }}</strong></div>
+          <div class="detail"><span><mat-icon>calendar_month</mat-icon> Event day</span><strong [class.text-green]="weather.eventDay">{{ weather.eventDay ? 'Confirmed' : 'Forecast only' }}</strong></div>
+        </div>
+        
+        <div class="recommendation" [class.outdoor]="weather.recommendation === 'OUTDOOR'" [class.indoor]="weather.recommendation === 'INDOOR'">
+          <div class="rec-badge">{{ weather.recommendation === 'OUTDOOR' ? 'Outdoor friendly' : 'Indoor recommended' }}</div>
+          <p>{{ weather.recommendationMsg }}</p>
+        </div>
+      </div>
+      <div *ngIf="!loadingWeather && !weather" class="empty">Weather data is not available for this event yet.</div>
+    </div>
+
+    <!-- Virtual Session Tab -->
+    <div *ngIf="activeTab === 'virtual'" class="virtual-tab">
+      <app-admin-virtual-session 
+        [eventId]="event!.id" 
+        [adminId]="getAdminId()">
+      </app-admin-virtual-session>
+    </div>
+
+  </div>
+
+  <!-- Confirm Dialog -->
+  <div class="dialog-backdrop" *ngIf="showConfirmDialog" role="presentation" (click)="closeConfirm()">
+    <section class="dialog-panel" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+      <div class="dialog-icon dialog-icon--danger">
+        <mat-icon>{{ confirmAction?.title === 'Delete Event' ? 'cancel' : 'warning' }}</mat-icon>
+      </div>
+      <div class="dialog-copy">
+        <h3>{{ confirmAction?.title }}</h3>
+        <p>{{ confirmAction?.message }}</p>
+      </div>
+      <footer class="dialog-actions">
+        <button type="button" class="btn btn--ghost" (click)="closeConfirm()">Cancel</button>
+        <button type="button" class="btn btn--confirm btn--danger" (click)="confirmAction?.action()">{{ confirmAction?.title === 'Delete Event' ? 'Delete' : 'Cancel Event' }}</button>
+      </footer>
+    </section>
+  </div>
+
+</div>
+
+<ng-template #loadingState>
+  <div class="loading-state">
+    <div class="spinner"></div>
+    <span>Loading event details...</span>
+  </div>
+</ng-template>
+

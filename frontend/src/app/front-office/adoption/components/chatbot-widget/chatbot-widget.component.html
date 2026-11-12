@@ -1,0 +1,104 @@
+<!-- ── BOUTON FLOTTANT ── -->
+<div class="chat-fab" (click)="toggleChat()" [class.open]="isOpen">
+  <div class="fab-icon" *ngIf="!isOpen">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>
+    <span class="fab-pulse"></span>
+  </div>
+  <div class="fab-close-icon" *ngIf="isOpen">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  </div>
+</div>
+
+<!-- ── FENÊTRE CHATBOT ── -->
+<div class="chat-window" [class.visible]="isOpen">
+
+  <!-- Header -->
+  <div class="chat-header">
+    <div class="chat-header-left">
+      <div class="bot-avatar">
+        <span>🐾</span>
+        <span class="online-dot"></span>
+      </div>
+      <div class="chat-header-info">
+        <div class="chat-header-name">PURRE PETS Assistant</div>
+        <div class="chat-header-status">Always here to help</div>
+      </div>
+    </div>
+    <button class="chat-header-close" (click)="closeChat()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Messages -->
+  <div class="chat-messages">
+
+    <div *ngFor="let msg of messages"
+         class="msg-row"
+         [class.msg-user]="msg.role === 'user'"
+         [class.msg-bot]="msg.role === 'assistant'">
+
+      <!-- Avatar bot -->
+      <div class="msg-avatar" *ngIf="msg.role === 'assistant'">🐾</div>
+
+      <!-- Bubble -->
+      <div class="msg-bubble" [class.bubble-user]="msg.role === 'user'" [class.bubble-bot]="msg.role === 'assistant'">
+
+        <!-- Loading dots -->
+        <div *ngIf="msg.loading" class="typing-dots">
+          <span></span><span></span><span></span>
+        </div>
+
+        <!-- Contenu -->
+        <div *ngIf="!msg.loading" [innerHTML]="formatMessage(msg.content)"></div>
+
+        <!-- Timestamp -->
+        <div class="msg-time" *ngIf="!msg.loading">
+          {{ msg.timestamp | date:'HH:mm' }}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Quick suggestions (seulement si dernier message est du bot et pas loading) -->
+    <div class="quick-suggestions"
+         *ngIf="messages.length > 0 && messages[messages.length-1].role === 'assistant' && !isLoading">
+      <button *ngFor="let s of quickSuggestions"
+              class="suggestion-btn"
+              (click)="sendQuickMessage(s)">
+        {{ s }}
+      </button>
+    </div>
+
+    <div #messagesEnd></div>
+  </div>
+
+  <!-- Input -->
+  <div class="chat-input-area">
+    <div class="chat-input-wrap">
+      <textarea
+        class="chat-input"
+        [(ngModel)]="userInput"
+        (keydown)="onKeyDown($event)"
+        placeholder="Ask me anything about adoption..."
+        rows="1"
+        [disabled]="isLoading">
+      </textarea>
+      <button class="send-btn"
+              (click)="sendMessage()"
+              [disabled]="!userInput.trim() || isLoading">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+    <div class="chat-footer-note">Powered by Claude AI · PURRE PETS Adoption Platform</div>
+  </div>
+
+</div>

@@ -1,0 +1,338 @@
+<section class="details-page">
+  <app-transit-toast-container></app-transit-toast-container>
+  <app-transit-confirmation-dialog></app-transit-confirmation-dialog>
+
+  <div class="ambient-orb ambient-orb--teal"></div>
+  <div class="ambient-orb ambient-orb--orange"></div>
+
+  <section *ngIf="loading" class="state-card state-card--loading">
+    <i class="fas fa-spinner fa-spin"></i>
+    <p>Loading destination details...</p>
+  </section>
+
+  <section *ngIf="!loading && errorMessage" class="state-card state-card--error">
+    <i class="fas fa-triangle-exclamation"></i>
+    <div class="state-copy">
+      <p>{{ errorMessage }}</p>
+      <button type="button" class="retry-button" (click)="reload()">
+        <i class="fas fa-rotate-right"></i>
+        Retry
+      </button>
+    </div>
+  </section>
+
+  <ng-container *ngIf="!loading && !errorMessage && destination as details">
+    <header class="page-header">
+      <button type="button" class="back-btn" (click)="goBack()">
+        <i class="fas fa-arrow-left"></i>
+        Back to Destinations
+      </button>
+
+      <div class="header-copy">
+        <p class="eyebrow">Transit Admin</p>
+        <h1>{{ details.title }}</h1>
+        <p class="subtitle">Destination details and admin controls</p>
+      </div>
+
+      <div class="header-actions">
+        <button type="button" class="btn btn--ghost" (click)="editDestination()">
+          <i class="fas fa-pen-to-square"></i>
+          Edit
+        </button>
+
+        <button type="button" class="btn btn--ghost" (click)="toggleArchive()" [disabled]="actionInProgress">
+          <i class="fas" [ngClass]="details.status === 'ARCHIVED' ? 'fa-box-open' : 'fa-box-archive'"></i>
+          {{ details.status === 'ARCHIVED' ? 'Restore' : 'Archive' }}
+        </button>
+
+        <span
+          class="action-wrapper"
+          [matTooltip]="getDestinationDeleteTooltip()"
+          [matTooltipDisabled]="canDeleteDestination()"
+          matTooltipPosition="above"
+        >
+          <button
+            type="button"
+            class="btn btn--danger"
+            (click)="canDeleteDestination() ? deleteDestination() : null"
+            [disabled]="actionInProgress || !canDeleteDestination()"
+            [class.btn-disabled]="!canDeleteDestination()"
+          >
+            <i class="fas fa-trash-can"></i>
+            Delete
+          </button>
+        </span>
+      </div>
+    </header>
+
+    <section class="content-grid">
+      <article class="hero-card">
+        <div class="hero-media" *ngIf="currentGalleryImage as activeImage">
+          <div class="bo-detail-carousel-wrapper">
+            <div class="bo-detail-carousel-track" [style.transform]="'translateX(-' + activeGalleryIndex * 100 + '%)'">
+              <div
+                class="bo-detail-carousel-slide"
+                *ngFor="let image of galleryImages; let imageIndex = index; trackBy: trackByGalleryImage"
+              >
+                <img
+                  [src]="image.url"
+                  [alt]="image.alt"
+                  (error)="onGalleryImageError($event)"
+                  (click)="openLightbox()"
+                />
+              </div>
+            </div>
+            <div class="hero-overlay"></div>
+            <app-destination-status-badge class="hero-status" [status]="details.status"></app-destination-status-badge>
+
+            <button type="button" class="hero-expand" (click)="openLightbox()" aria-label="Open fullscreen gallery">
+              <i class="fas fa-expand"></i>
+            </button>
+
+            <button
+              type="button"
+              class="hero-nav hero-nav--prev"
+              *ngIf="hasGalleryCarousel"
+              (click)="showPreviousGalleryImage()"
+              aria-label="Previous image"
+            >
+              <i class="fas fa-chevron-left"></i>
+            </button>
+
+            <button
+              type="button"
+              class="hero-nav hero-nav--next"
+              *ngIf="hasGalleryCarousel"
+              (click)="showNextGalleryImage()"
+              aria-label="Next image"
+            >
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+
+          <div class="thumbnail-strip" *ngIf="hasGalleryCarousel">
+            <button
+              type="button"
+              class="thumbnail-item"
+              *ngFor="let image of galleryImages; let imageIndex = index; trackBy: trackByGalleryImage"
+              [class.active]="activeGalleryIndex === imageIndex"
+              (click)="selectGalleryImage(imageIndex)"
+            >
+              <img [src]="image.url" [alt]="image.alt" (error)="onGalleryImageError($event)" />
+            </button>
+          </div>
+        </div>
+
+        <div class="hero-content">
+          <div class="location">
+            <i class="fas fa-location-dot"></i>
+            <div class="location-edit-fields">
+              <input
+                type="text"
+                [value]="details.country"
+                (input)="details.country = $any($event.target).value; onCountryOrRegionChange()"
+                placeholder="Country"
+                aria-label="Country"
+              />
+              <input
+                type="text"
+                [value]="details.region"
+                (input)="details.region = $any($event.target).value; onCountryOrRegionChange()"
+                placeholder="Region"
+                aria-label="Region"
+              />
+            </div>
+          </div>
+
+          <div class="meta-row">
+            <span>
+              <i class="fas" [ngClass]="getDestinationTypeIcon(details.destinationType)"></i>
+              {{ formatDestinationType(details.destinationType) }}
+            </span>
+
+            <span>
+              <i class="fas" [ngClass]="getTransportIcon(details.recommendedTransportType)"></i>
+              {{ formatTransportType(details.recommendedTransportType) }}
+            </span>
+          </div>
+
+          <div class="rating-row">
+            <span class="label">Pet-friendly level</span>
+            <app-pet-friendly-stars [level]="details.petFriendlyLevel"></app-pet-friendly-stars>
+          </div>
+
+          <div class="timeline-grid">
+            <p><span>Created</span><strong>{{ details.createdAt | date: 'medium' }}</strong></p>
+            <p *ngIf="details.updatedAt"><span>Updated</span><strong>{{ details.updatedAt | date: 'medium' }}</strong></p>
+            <p *ngIf="details.publishedAt"><span>Published</span><strong>{{ details.publishedAt | date: 'medium' }}</strong></p>
+            <p *ngIf="details.scheduledPublishAt"><span>Scheduled</span><strong>{{ details.scheduledPublishAt | date: 'medium' }}</strong></p>
+          </div>
+        </div>
+      </article>
+
+      <article class="details-section">
+        <h2>Description</h2>
+        <p>{{ details.description }}</p>
+      </article>
+
+      <article class="details-section">
+        <h2>Safety Tips</h2>
+        <p>{{ details.safetyTips }}</p>
+      </article>
+
+      <article class="details-section docs-section">
+        <div class="docs-header">
+          <div class="docs-title-wrap">
+            <span class="docs-icon" aria-hidden="true">
+              <i class="fas fa-file-shield"></i>
+            </span>
+            <div>
+              <h2>Required Documents</h2>
+              <p class="docs-subtitle">Checklist reviewed during destination verification and transport preparation.</p>
+            </div>
+          </div>
+
+          <span class="docs-count" *ngIf="details.requiredDocuments.length > 0">
+            {{ details.requiredDocuments.length }} {{ details.requiredDocuments.length === 1 ? 'document' : 'documents' }}
+          </span>
+        </div>
+
+        <div class="documents-wrap" *ngIf="details.requiredDocuments.length > 0; else noDocuments">
+          <span class="document-chip" *ngFor="let documentType of details.requiredDocuments">
+            {{ formatDocument(documentType) }}
+          </span>
+        </div>
+
+        <div class="info-box-docs" *ngIf="details.requiredDocuments.length > 0">
+          <i class="fas fa-circle-info info-icon"></i>
+          <p>These documents are required to verify travel compliance and may be requested before approval or during transport checks.</p>
+        </div>
+
+        <ng-template #noDocuments>
+          <p class="muted">No required documents configured.</p>
+        </ng-template>
+      </article>
+
+      <article class="details-section map-section-premium" *ngIf="hasCoordinates(details)">
+        <div class="section-header-map">
+          <div class="section-icon-wrap">
+            <mat-icon>pin_drop</mat-icon>
+          </div>
+          <div>
+            <h3>Destination Location</h3>
+            <p>Pinned destination coordinates on map.</p>
+          </div>
+        </div>
+
+        <div class="map-wrapper">
+          <button type="button" class="map-fullscreen-btn" (click)="toggleMapFullscreen()" title="Open fullscreen">
+            <i class="fas fa-expand"></i>
+          </button>
+
+          <app-map-picker
+            [latitude]="details.latitude ?? null"
+            [longitude]="details.longitude ?? null"
+            [readonly]="false"
+            [searchQuery]="mapSearchQuery"
+            [height]="'380px'"
+            [markerLabel]="details.title"
+            (locationSelected)="onMapLocationSelected($event)"
+            (locationResolved)="onLocationResolved($event)"
+          >
+          </app-map-picker>
+
+          <div class="map-sync-hint">
+            <mat-icon>sync</mat-icon>
+            Country and Region sync automatically with the map
+          </div>
+        </div>
+
+        <div class="coords-row">
+          <div class="coord-chip">
+            <mat-icon>north</mat-icon>
+            Latitude: {{ details.latitude | number: '1.4-4' }}
+          </div>
+          <div class="coord-chip">
+            <mat-icon>east</mat-icon>
+            Longitude: {{ details.longitude | number: '1.4-4' }}
+          </div>
+        </div>
+      </article>
+    </section>
+  </ng-container>
+
+  <section class="lightbox" *ngIf="lightboxOpen && currentLightboxImage as expandedImage" (click)="closeLightbox()">
+    <div class="lightbox-surface" (click)="$event.stopPropagation()">
+      <button type="button" class="lightbox-close" (click)="closeLightbox()" aria-label="Close fullscreen gallery">
+        <i class="fas fa-xmark"></i>
+      </button>
+
+      <button
+        type="button"
+        class="lightbox-nav lightbox-nav--prev"
+        *ngIf="hasGalleryCarousel"
+        (click)="showPreviousLightboxImage()"
+        aria-label="Previous image"
+      >
+        <i class="fas fa-chevron-left"></i>
+      </button>
+
+      <img [src]="expandedImage.url" [alt]="expandedImage.alt" (error)="onGalleryImageError($event)" />
+
+      <button
+        type="button"
+        class="lightbox-nav lightbox-nav--next"
+        *ngIf="hasGalleryCarousel"
+        (click)="showNextLightboxImage()"
+        aria-label="Next image"
+      >
+        <i class="fas fa-chevron-right"></i>
+      </button>
+
+      <div class="lightbox-caption">
+        <strong>{{ lightboxIndex + 1 }} / {{ galleryImages.length }}</strong>
+        <span>{{ destination?.title }}</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="map-modal" *ngIf="isMapFullscreen && destination as details" (click)="closeMapFullscreen()">
+    <div class="map-modal-surface" (click)="$event.stopPropagation()">
+      <div class="map-modal-header">
+        <div>
+          <h3>Destination Location</h3>
+          <p>Expanded map view for precise location review.</p>
+        </div>
+
+        <button type="button" class="map-modal-close" (click)="closeMapFullscreen()" aria-label="Close fullscreen map">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="map-modal-body">
+        <app-map-picker
+          [latitude]="details.latitude ?? null"
+          [longitude]="details.longitude ?? null"
+          [readonly]="false"
+          [searchQuery]="mapSearchQuery"
+          [height]="'min(72vh, 44rem)'"
+          [markerLabel]="details.title"
+          (locationSelected)="onMapLocationSelected($event)"
+          (locationResolved)="onLocationResolved($event)"
+        >
+        </app-map-picker>
+      </div>
+
+      <div class="coords-row coords-row--modal">
+        <div class="coord-chip">
+          <mat-icon>north</mat-icon>
+          Latitude: {{ details.latitude | number: '1.4-4' }}
+        </div>
+        <div class="coord-chip">
+          <mat-icon>east</mat-icon>
+          Longitude: {{ details.longitude | number: '1.4-4' }}
+        </div>
+      </div>
+    </div>
+  </section>
+</section>

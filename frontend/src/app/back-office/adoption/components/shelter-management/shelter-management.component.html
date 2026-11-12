@@ -1,0 +1,244 @@
+<div class="shelter-management">
+
+  <!-- ── HEADER avec bouton Add ── -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1>🏠 Manage Shelters</h1>
+      <p class="subtitle">Approve, edit, or remove shelters</p>
+    </div>
+    <button class="btn-add" (click)="openAddModal()">
+      <i class="fas fa-plus"></i> Add Shelter
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Loading shelters...</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error" class="error">{{ error }}</div>
+
+  <!-- ── PENDING SHELTERS (inchangé) ── -->
+  <div *ngIf="!loading && pendingShelters.length > 0" class="section">
+    <h2>⏳ Pending Approval</h2>
+    <div class="shelters-grid">
+      <div *ngFor="let shelter of pendingShelters" class="shelter-card pending">
+        <div class="card-header">
+          <h3>{{ shelter.name }}</h3>
+          <span class="badge pending">Pending</span>
+        </div>
+        <div class="card-body">
+          <p><strong>Email:</strong> {{ shelter.email }}</p>
+          <p><strong>Phone:</strong> {{ shelter.phone || 'Not specified' }}</p>
+          <p><strong>Address:</strong> {{ shelter.address }}</p>
+          <p *ngIf="shelter.description" class="description">
+            {{ shelter.description | slice:0:100 }}...
+          </p>
+        </div>
+        <div class="card-actions">
+          <button class="btn-view" (click)="viewShelterDetails(shelter)">👁️ View Details</button>
+          <button class="btn-approve" (click)="approveShelter(shelter)">✓ Approve</button>
+          <button class="btn-reject" (click)="rejectShelter(shelter)">✗ Reject</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── VERIFIED SHELTERS (inchangé) ── -->
+  <div *ngIf="!loading" class="section">
+    <h2>✓ Verified Shelters</h2>
+    <div *ngIf="verifiedShelters.length === 0" class="empty-state">
+      <p>No verified shelters yet.</p>
+    </div>
+    <div class="shelters-grid">
+      <div *ngFor="let shelter of verifiedShelters" class="shelter-card verified">
+        <div class="card-header">
+          <h3>{{ shelter.name }}</h3>
+          <span class="badge verified">✓ Verified</span>
+        </div>
+        <div class="card-body">
+          <p><strong>Email:</strong> {{ shelter.email }}</p>
+          <p><strong>Phone:</strong> {{ shelter.phone || 'Not specified' }}</p>
+          <p><strong>Address:</strong> {{ shelter.address }}</p>
+          <p *ngIf="shelter.description" class="description">
+            {{ shelter.description | slice:0:100 }}...
+          </p>
+        </div>
+        <div class="card-actions">
+          <button class="btn-view" (click)="viewShelterDetails(shelter)">👁️ View Details</button>
+          <button class="btn-edit" (click)="startEdit(shelter)">✏️ Edit</button>
+          <button class="btn-delete" (click)="deleteShelter(shelter)">🗑️ Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       ✅ MODAL : ADD SHELTER (nouveau, formulaire amélioré)
+       ============================================================ -->
+  <div *ngIf="showAddModal" class="modal-backdrop" (click)="closeAddModal()"></div>
+  <div *ngIf="showAddModal" class="modal">
+    <div class="modal-add-content" (click)="$event.stopPropagation()">
+
+      <!-- Header vert -->
+      <div class="modal-add-header">
+        <div>
+          <h3>➕ Add New Shelter</h3>
+          <p>Fill in the details to create a new shelter</p>
+        </div>
+        <button class="close-white" (click)="closeAddModal()">✕</button>
+      </div>
+
+      <!-- Body : formulaire en grille -->
+      <div class="modal-body">
+        <form [formGroup]="addForm">
+          <div class="form-grid">
+
+            <!-- Nom -->
+            <div class="form-group">
+              <label class="req">Shelter Name</label>
+              <input type="text" formControlName="name" class="form-control"
+                     placeholder="e.g., Refuge Les Amis"
+                     [class.is-invalid]="addForm.get('name')?.touched && addForm.get('name')?.invalid">
+              <div class="error-text"
+                   *ngIf="addForm.get('name')?.touched && addForm.get('name')?.invalid">
+                Name is required (min 2 characters)
+              </div>
+            </div>
+
+            <!-- Email -->
+            <div class="form-group">
+              <label class="req">Email</label>
+              <input type="email" formControlName="email" class="form-control"
+                     placeholder="shelter@example.com"
+                     [class.is-invalid]="addForm.get('email')?.touched && addForm.get('email')?.invalid">
+              <div class="error-text"
+                   *ngIf="addForm.get('email')?.touched && addForm.get('email')?.invalid">
+                Valid email is required
+              </div>
+            </div>
+
+            <!-- Adresse (full width) -->
+            <div class="form-group full">
+              <label class="req">Address</label>
+              <input type="text" formControlName="address" class="form-control"
+                     placeholder="Street, City, ZIP"
+                     [class.is-invalid]="addForm.get('address')?.touched && addForm.get('address')?.invalid">
+              <div class="error-text"
+                   *ngIf="addForm.get('address')?.touched && addForm.get('address')?.invalid">
+                Address is required
+              </div>
+            </div>
+
+            <!-- Téléphone -->
+            <div class="form-group">
+              <label>Phone</label>
+              <input type="text" formControlName="phone" class="form-control"
+                     placeholder="+33 6 12 34 56 78">
+            </div>
+
+            <!-- Numéro de licence -->
+            <div class="form-group">
+              <label>License Number</label>
+              <input type="text" formControlName="licenseNumber" class="form-control"
+                     placeholder="AGR-75-2024-00001">
+            </div>
+
+            <!-- Logo URL (full width) -->
+            <div class="form-group full">
+              <label>Logo URL</label>
+              <input type="text" formControlName="logoUrl" class="form-control"
+                     placeholder="https://example.com/logo.png">
+            </div>
+
+            <!-- Description (full width) -->
+            <div class="form-group full">
+              <label>Description</label>
+              <textarea formControlName="description" rows="3" class="form-control"
+                        placeholder="Describe the shelter's mission and animals..."></textarea>
+            </div>
+
+            <!-- Toggle Verified (full width) -->
+            <div class="form-group full">
+              <label class="verified-toggle">
+                <input type="checkbox" formControlName="verified">
+                <span>Mark as verified immediately</span>
+              </label>
+            </div>
+
+          </div>
+        </form>
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-add-footer">
+        <button class="btn-cancel" (click)="closeAddModal()" [disabled]="submitting">
+          Cancel
+        </button>
+        <button class="btn-create" (click)="submitAddShelter()" [disabled]="submitting">
+          <i class="fas" [ngClass]="submitting ? 'fa-spinner fa-spin' : 'fa-plus'"></i>
+          {{ submitting ? 'Creating...' : 'Create Shelter' }}
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================
+       MODAL : EDIT SHELTER (inchangé)
+       ============================================================ -->
+  <div class="modal" [class.show]="editingShelter"
+       [style.display]="editingShelter ? 'flex' : 'none'">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Edit Shelter</h3>
+        <button class="close" (click)="cancelEdit()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form [formGroup]="editForm">
+          <div class="form-group">
+            <label>Name *</label>
+            <input type="text" formControlName="name" class="form-control"
+                   [class.is-invalid]="editForm.get('name')?.touched && editForm.get('name')?.invalid">
+            <div *ngIf="editForm.get('name')?.touched && editForm.get('name')?.invalid"
+                 class="error-text">Name is required</div>
+          </div>
+          <div class="form-group">
+            <label>Address *</label>
+            <input type="text" formControlName="address" class="form-control"
+                   [class.is-invalid]="editForm.get('address')?.touched && editForm.get('address')?.invalid">
+            <div *ngIf="editForm.get('address')?.touched && editForm.get('address')?.invalid"
+                 class="error-text">Address is required</div>
+          </div>
+          <div class="form-group">
+            <label>Phone</label>
+            <input type="text" formControlName="phone" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>Email *</label>
+            <input type="email" formControlName="email" class="form-control"
+                   [class.is-invalid]="editForm.get('email')?.touched && editForm.get('email')?.invalid">
+            <div *ngIf="editForm.get('email')?.touched && editForm.get('email')?.invalid"
+                 class="error-text">Valid email is required</div>
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea formControlName="description" rows="3" class="form-control"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Logo URL</label>
+            <input type="text" formControlName="logoUrl" class="form-control">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="cancelEdit()">Cancel</button>
+        <button class="btn-save" (click)="saveEdit()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+  <div *ngIf="editingShelter" class="modal-backdrop"></div>
+
+</div>

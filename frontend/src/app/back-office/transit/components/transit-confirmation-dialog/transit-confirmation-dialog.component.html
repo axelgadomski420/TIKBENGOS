@@ -1,0 +1,26 @@
+<div
+  *ngIf="dialogState$ | async as dialog"
+  class="dialog-backdrop"
+  role="presentation"
+  (click)="onBackdropClick($event)"
+>
+  <section class="dialog-panel" role="dialog" aria-modal="true" [attr.aria-label]="dialog.title">
+    <div class="dialog-icon" [ngClass]="'dialog-icon--' + dialog.tone">
+      <i class="fas" [ngClass]="dialog.iconClass"></i>
+    </div>
+
+    <div class="dialog-copy">
+      <h3>{{ dialog.title }}</h3>
+      <p>{{ dialog.message }}</p>
+    </div>
+
+    <footer class="dialog-actions">
+      <button type="button" class="btn btn--ghost" (click)="cancel()">
+        {{ dialog.cancelLabel }}
+      </button>
+      <button type="button" class="btn btn--confirm" [ngClass]="'btn--' + dialog.tone" (click)="confirm()">
+        {{ dialog.confirmLabel }}
+      </button>
+    </footer>
+  </section>
+</div>

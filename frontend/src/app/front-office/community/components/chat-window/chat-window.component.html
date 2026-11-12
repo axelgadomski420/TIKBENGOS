@@ -1,0 +1,321 @@
+<section class="community-page chat-page-shell min-h-screen px-4 py-6 md:px-8 md:py-10">
+  <div class="mx-auto max-w-4xl chat-surface overflow-hidden">
+    <header class="chat-header">
+      <div class="chat-header-main">
+        <div class="chat-counterpart-avatar">{{ counterpartInitials() }}</div>
+
+        <div class="chat-header-copy">
+          <p class="chat-kicker">Direct chat</p>
+          <div class="chat-title-row">
+            <h1 class="chat-title">{{ counterpartName }}</h1>
+            <span class="chat-presence-pill" [ngClass]="counterpartOnline ? 'chat-presence-pill-online' : 'chat-presence-pill-offline'">
+              <span class="presence-dot" [ngClass]="counterpartOnline ? 'presence-dot--online' : 'presence-dot--offline'"></span>
+              {{ counterpartOnline ? 'Online' : 'Offline' }}
+            </span>
+          </div>
+          <p class="chat-profile-snippet">
+            {{ counterpartRoleLabel || 'Community member' }}
+          </p>
+          <p class="chat-presence-row">
+            <span class="chat-status-chip">{{ chatMomentumLabel() }}</span>
+            <span *ngIf="counterpartTyping" class="typing-hint">Typing a reply...</span>
+            <span *ngIf="!counterpartTyping && messages.length">{{ messages.length }} messages</span>
+            <span *ngIf="!counterpartTyping && sharedMediaCount()">{{ sharedMediaCount() }} shared media</span>
+          </p>
+        </div>
+      </div>
+    </header>
+
+    <div #messagesContainer class="chat-messages-wrap" (scroll)="onMessagesScroll()">
+      <div class="chat-messages-tint"></div>
+
+      <div *ngIf="loading" class="chat-loading">Loading conversation...</div>
+
+      <div *ngIf="!loading && error" class="chat-error">
+        <p>{{ error }}</p>
+        <button type="button" class="chat-error-retry" (click)="loadMessages()">
+          <i class="fas fa-rotate-right mr-2"></i>Retry
+        </button>
+      </div>
+
+      <div *ngIf="!loading && !error && !messages.length" class="chat-empty-state">
+        <div class="chat-empty-icon">
+          <i class="fas fa-comments"></i>
+        </div>
+        <div>
+          <h3>No messages yet.</h3>
+          <p>Start the conversation, reply to a previous thread, or attach a GIF to break the ice.</p>
+        </div>
+        <div class="chat-empty-actions">
+          <button type="button" (click)="openGifPicker()" class="chat-empty-action-secondary">
+            <i class="fas fa-icons mr-2"></i>Send GIF
+          </button>
+          <button type="button" (click)="scrollComposerIntoView()" class="chat-empty-action-primary">
+            <i class="fas fa-paper-plane mr-2"></i>Write message
+          </button>
+        </div>
+      </div>
+
+      <ng-container *ngFor="let m of messages; let i = index">
+        <div *ngIf="shouldShowDateSeparator(i)" class="chat-day-separator" aria-hidden="true">
+          <span>{{ messageDayLabel(m.createdAt) }}</span>
+        </div>
+
+        <div *ngIf="shouldShowNewMessagesDivider(i)" class="chat-new-divider" aria-live="polite">
+          <span>New messages</span>
+        </div>
+
+        <div
+          class="chat-message-row"
+          [ngClass]="{
+            'chat-message-row-self': isOwnMessage(m),
+            'chat-message-row-other': !isOwnMessage(m),
+            'chat-message-row-cluster-start': isMessageClusterStart(i),
+            'chat-message-row-cluster-end': isMessageClusterEnd(i)
+          }"
+          [style.--motion-index]="i"
+          [attr.id]="'message-' + m.id">
+
+          <div *ngIf="!isOwnMessage(m)" class="chat-message-avatar-slot">
+            <div *ngIf="shouldShowAvatar(i)" class="chat-message-avatar chat-message-avatar-other">
+              {{ messageAvatarInitials(m) }}
+            </div>
+          </div>
+
+          <div class="chat-message-stack" [ngClass]="isOwnMessage(m) ? 'chat-message-stack-self' : 'chat-message-stack-other'">
+            <div
+              *ngIf="!isOwnMessage(m) && isMessageClusterStart(i)"
+              class="chat-message-meta-row chat-message-meta-row-other">
+              <span class="message-author">{{ messageDisplayName(m) }}</span>
+              <span class="message-profile-snippet">{{ messageRoleLabel(m) }}</span>
+            </div>
+
+            <div
+              *ngIf="isOwnMessage(m) && isMessageClusterStart(i)"
+              class="chat-message-meta-row chat-message-meta-row-self">
+              <span class="message-profile-snippet">You</span>
+            </div>
+
+            <button
+              *ngIf="!m.deletedAt && replyContext(m) as reply"
+              type="button"
+              class="message-reply-ghost"
+              [ngClass]="m.senderId === userId ? 'message-reply-ghost-self' : 'message-reply-ghost-other'"
+              (click)="jumpToMessage(m.replyToMessageId)">
+              <span class="message-reply-ghost-label">Replying to {{ reply.author }}</span>
+              <span class="message-reply-ghost-quote">{{ reply.quote }}</span>
+            </button>
+
+            <div
+              class="chat-message-bubble"
+              [ngClass]="{
+                'chat-message-self motion-message-self': m.senderId === userId,
+                'chat-message-other motion-message-other': m.senderId !== userId,
+                'chat-message-bubble-cluster-start': isMessageClusterStart(i),
+                'chat-message-bubble-cluster-end': isMessageClusterEnd(i)
+              }">
+              <div class="chat-bubble-topline">
+                <span class="chat-bubble-time" [attr.title]="messageDateTimeLabel(m.createdAt)">{{ messageTimeLabel(m.createdAt) }}</span>
+
+                <div class="message-actions" *ngIf="!m.deletedAt">
+                  <button type="button" class="message-action-btn" (click)="startReply(m)" aria-label="Reply">
+                    <i class="fas fa-reply"></i>
+                  </button>
+                  <button *ngIf="canModifyMessage(m)" type="button" class="message-action-btn" (click)="startEdit(m)" aria-label="Edit">
+                    <i class="fas fa-pen"></i>
+                  </button>
+                  <button *ngIf="canModifyMessage(m)" type="button" class="message-action-btn" (click)="deleteMessage(m)" aria-label="Delete">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div
+                *ngIf="m.deletedAt"
+                class="message-deleted-state"
+                [ngClass]="m.senderId === userId ? 'message-deleted-state-self' : 'message-deleted-state-other'">
+                Message deleted
+              </div>
+
+              <p *ngIf="!m.deletedAt && messageDisplayContent(m)" class="chat-message-copy" [innerHTML]="messageDisplayContent(m) | mentionHighlight"></p>
+
+              <div *ngIf="m.attachments?.length && !m.deletedAt" class="message-attachments">
+                <ng-container *ngFor="let attachment of m.attachments">
+                  <img
+                    *ngIf="resolvedAttachmentUrl(attachment) as attachmentSrc; else attachmentLoading"
+                    class="message-image"
+                    [src]="attachmentSrc"
+                    [alt]="attachment.fileType || 'Message image'"
+                    loading="lazy"
+                    (click)="openAttachmentPreview(attachment)" />
+                  <ng-template #attachmentLoading>
+                    <div class="message-image-skeleton">
+                      <i class="fas fa-spinner fa-spin"></i>
+                    </div>
+                  </ng-template>
+                </ng-container>
+              </div>
+
+              <div class="chat-bubble-footer" [ngClass]="m.senderId === userId ? 'chat-bubble-footer-self' : 'chat-bubble-footer-other'">
+                <span *ngIf="isEdited(m)">Edited</span>
+                <span *ngIf="m.senderId === userId">{{ messageStatusLabel(m) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+    </div>
+
+    <button
+      *ngIf="showScrollToBottom"
+      type="button"
+      class="chat-jump-bottom-btn"
+      (click)="jumpToLatest()"
+      aria-label="Jump to latest message">
+      <i class="fas fa-arrow-down"></i>
+    </button>
+
+    <footer class="chat-footer" id="chat-composer">
+      <div class="chat-composer-shell">
+        <div class="chat-composer-toolbar">
+          <input
+            #imageInput
+            type="file"
+            accept="image/*"
+            (change)="onImageSelected($event)"
+            hidden />
+
+          <button
+            type="button"
+            (click)="triggerImagePicker()"
+            class="chat-attach-btn"
+            [disabled]="loading || sendingImage"
+            aria-label="Attach image">
+            <i class="fas fa-image"></i>
+          </button>
+
+          <button
+            type="button"
+            (click)="openGifPicker()"
+            class="chat-attach-btn"
+            [disabled]="loading || sendingImage"
+            aria-label="Attach GIF">
+            <i class="fas fa-icons"></i>
+          </button>
+        </div>
+
+        <div class="chat-composer-main">
+          <div *ngIf="replyingToMessage" class="chat-composer-banner chat-composer-banner-reply">
+            <div>
+              <p class="chat-composer-banner-label">Replying to {{ messageDisplayName(replyingToMessage) }}</p>
+              <p class="chat-composer-banner-preview">{{ composerPreview(replyingToMessage) || 'Attachment' }}</p>
+            </div>
+            <button type="button" class="chat-composer-banner-close" (click)="cancelReply()" aria-label="Cancel reply">
+              <i class="fas fa-xmark"></i>
+            </button>
+          </div>
+
+          <div *ngIf="editingMessageId !== null" class="chat-composer-banner chat-composer-banner-edit">
+            <div>
+              <p class="chat-composer-banner-label">Editing message</p>
+              <p class="chat-composer-banner-preview">Update the text, then send to save.</p>
+            </div>
+            <button type="button" class="chat-composer-banner-close" (click)="cancelEdit()" aria-label="Cancel edit">
+              <i class="fas fa-xmark"></i>
+            </button>
+          </div>
+
+          <div *ngIf="selectedImageFile || selectedGif" class="chat-preview-stack">
+            <div *ngIf="selectedImageFile" class="chat-image-preview">
+              <img [src]="selectedImagePreviewUrl || ''" [alt]="selectedImageFile.name" />
+              <div class="chat-image-preview-meta">
+                <strong>{{ selectedImageFile.name }}</strong>
+                <small>{{ formatFileSize(selectedImageFile.size) }}</small>
+                <div *ngIf="sendingImage && uploadProgress > 0" class="chat-upload-progress">
+                  <span [style.width.%]="uploadProgress"></span>
+                </div>
+              </div>
+              <button type="button" (click)="clearSelectedImage()" aria-label="Remove selected image">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+
+            <div *ngIf="selectedGif" class="chat-image-preview">
+              <img [src]="selectedGif.previewUrl" [alt]="selectedGif.title" />
+              <div class="chat-image-preview-meta">
+                <strong>{{ selectedGif.title }}</strong>
+                <small>GIF preview</small>
+              </div>
+              <button type="button" (click)="clearSelectedGif()" aria-label="Remove selected GIF">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="chat-input-row">
+            <div class="chat-input-shell">
+              <div class="community-mention-editor w-full">
+                <div
+                  #draftOverlay
+                  class="community-mention-editor-overlay chat-input chat-input-multiline"
+                  [innerHTML]="(draft || '') | mentionHighlight"></div>
+
+                <textarea
+                  #composerTextarea
+                  [(ngModel)]="draft"
+                  id="chat-draft"
+                  name="chatDraft"
+                  aria-label="Type your message"
+                  autocomplete="off"
+                  (input)="onDraftInput()"
+                  (keydown)="onComposerKeydown($event)"
+                  (scroll)="syncDraftOverlay($event, draftOverlay)"
+                  (blur)="onDraftBlur()"
+                  class="chat-input chat-input-multiline community-mention-editor-input"
+                  rows="1"
+                  [placeholder]="editingMessageId !== null ? 'Edit your message...' : 'Say something thoughtful...'"></textarea>
+              </div>
+
+              <button type="button" (click)="send()" class="chat-send-btn" [disabled]="sendingImage" aria-label="Send message">
+                <i class="fas" [ngClass]="sendingImage ? 'fa-spinner fa-spin' : 'fa-paper-plane'"></i>
+              </button>
+            </div>
+
+            <app-mention-picker
+              class="mt-2"
+              [open]="mentionPickerOpen"
+              [suggestions]="mentionSuggestions"
+              [activeIndex]="mentionActiveIndex"
+              [label]="'Mention someone'"
+              (selectMention)="selectDraftMention($event)">
+            </app-mention-picker>
+            <p class="mt-2 text-xs text-slate-500">Type &#64; to mention someone.</p>
+          </div>
+
+          <div *ngIf="composerError" class="chat-composer-error">
+            <span>{{ composerError }}</span>
+            <button type="button" class="chat-composer-error-retry" (click)="send()">
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </div>
+</section>
+
+<div
+  *ngIf="selectedAttachmentPreviewUrl"
+  class="image-modal-backdrop"
+  (click)="closeAttachmentPreview()"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Message image preview">
+  <div class="image-modal-content" (click)="$event.stopPropagation()">
+    <button type="button" class="image-modal-close" (click)="closeAttachmentPreview()" aria-label="Close image preview">
+      <i class="fas fa-times"></i>
+    </button>
+    <img [src]="selectedAttachmentPreviewUrl" alt="Expanded message image" class="image-modal-img" />
+  </div>
+</div>

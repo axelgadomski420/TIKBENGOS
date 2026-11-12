@@ -1,0 +1,25 @@
+:host {
+	display: block;
+}
+
+.post-create-page .create-surface {
+	padding: 1.5rem;
+}
+
+.post-create-page .create-section {
+	border-radius: 1.2rem;
+}
+
+.post-create-page .post-compose-target {
+	border-style: dashed;
+}
+
+.post-create-page .post-compose-preview-card {
+	background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+@media (max-width: 768px) {
+	.post-create-page .create-surface {
+		padding: 1rem;
+	}
+}

@@ -1,0 +1,151 @@
+<section class="p-6 lg:p-10 max-w-7xl mx-auto">
+  <app-user-delete-dialog></app-user-delete-dialog>
+  <app-user-detail-dialog></app-user-detail-dialog>
+
+  <div class="admin-entry-hero mb-6">
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div>
+        <p class="text-[11px] uppercase tracking-[0.2em] text-slate-500 font-bold">Back Office</p>
+        <h2 class="text-2xl md:text-3xl font-black text-gray-900 mt-1">User Administration</h2>
+        <p class="text-gray-600 mt-2 max-w-2xl">Manage accounts, inspect profiles, and handle user lifecycle operations from one place.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button (click)="openCreateUserModal()" class="px-3 py-2 rounded-lg bg-brand-teal text-white text-sm font-semibold hover:bg-teal-700">
+          <i class="fas fa-plus mr-1"></i>Create User
+        </button>
+        <button (click)="loadUsers()" class="px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50">
+          <i class="fas fa-rotate-right mr-1"></i>Refresh
+        </button>
+      </div>
+    </div>
+
+    <div class="mt-4 flex flex-wrap items-center gap-2">
+      <span class="admin-entry-chip"><i class="fas fa-users text-brand-teal mr-1"></i>{{ users.length }} total</span>
+      <span class="admin-entry-chip"><i class="fas fa-filter text-brand-orange mr-1"></i>{{ filteredUsers.length }} visible</span>
+      <span class="admin-entry-chip"><i class="fas fa-id-card text-brand-teal mr-1"></i>{{ selectedUser ? selectedUser.email : 'No selection' }}</span>
+    </div>
+  </div>
+
+  <div class="admin-surface mb-4 p-4 hover-lift">
+    <div class="flex items-center justify-between gap-3 mb-2">
+      <label for="user-search" class="text-sm font-semibold text-gray-700">Search Users</label>
+      <span class="text-xs uppercase tracking-[0.12em] text-gray-400">Live Filter</span>
+    </div>
+    <div class="relative">
+      <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+      <input
+        id="user-search"
+        [(ngModel)]="search"
+        placeholder="Search by name, email, or id"
+        class="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2 text-sm transition-shadow duration-150 focus:outline-none focus:ring-4 focus:ring-brand-teal/15 focus:border-brand-teal"
+      >
+    </div>
+  </div>
+
+  <div *ngIf="createUserSuccess" class="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-700 text-sm">
+    {{ createUserSuccess }}
+  </div>
+
+  <div *ngIf="error" class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 text-sm">
+    {{ error }}
+  </div>
+
+  <div *ngIf="loading" class="rounded-xl border border-gray-200 bg-white px-4 py-8 text-center text-gray-500">
+    <i class="fas fa-spinner fa-spin mr-2 text-brand-teal"></i>Loading users...
+  </div>
+
+  <div *ngIf="!loading" class="admin-surface rounded-xl shadow-sm overflow-hidden hover-lift">
+    <table class="w-full">
+      <thead class="bg-gray-50 border-b border-gray-100">
+        <tr>
+          <th class="px-5 py-3 text-left text-xs font-bold text-gray-700 uppercase">Name</th>
+          <th class="px-5 py-3 text-left text-xs font-bold text-gray-700 uppercase">Email</th>
+          <th class="px-5 py-3 text-left text-xs font-bold text-gray-700 uppercase">Role</th>
+          <th class="px-5 py-3 text-right text-xs font-bold text-gray-700 uppercase">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        <tr *ngFor="let user of filteredUsers" [ngClass]="isSelected(user) ? 'bg-brand-teal/5 hover:bg-brand-teal/10 transition-colors' : 'hover:bg-slate-50 transition-colors'">
+          <td class="px-5 py-3 text-sm font-medium text-gray-900">{{ user.firstName }} {{ user.lastName }}</td>
+          <td class="px-5 py-3 text-sm text-gray-700">{{ user.email }}</td>
+          <td class="px-5 py-3 text-sm text-gray-700">
+            <span
+              class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] leading-none font-semibold uppercase tracking-[0.04em]"
+              [ngClass]="(user.role || '').toUpperCase() === 'ADMIN' ? 'bg-teal-100 text-teal-800' : 'bg-gray-100 text-gray-700'"
+            >
+              {{ user.role }}
+            </span>
+          </td>
+          <td class="px-5 py-3 text-right space-x-2">
+            <button
+              (click)="openDetails(user)"
+              class="inline-flex items-center justify-center h-8 px-3 rounded-md text-xs font-semibold border border-brand-teal text-brand-teal bg-white hover:bg-brand-teal/5"
+            >
+              Details
+            </button>
+            <button
+              (click)="deleteUser(user)"
+              [disabled]="deletingId === user.id || !canDeleteUser(user)"
+              class="inline-flex items-center justify-center h-8 px-3 rounded-md text-xs font-semibold border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-60"
+            >
+              {{ deletingId === user.id ? 'Deleting...' : (canDeleteUser(user) ? 'Delete' : 'Current User') }}
+            </button>
+          </td>
+        </tr>
+        <tr *ngIf="!filteredUsers.length">
+          <td colspan="4" class="px-5 py-8 text-center text-sm text-gray-500">No users found.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div *ngIf="showCreateUserModal" class="fixed inset-0 z-[90] bg-slate-900/45 backdrop-blur-[2px] flex items-center justify-center p-4" (click)="closeCreateUserModal()">
+    <div class="w-full max-w-3xl overflow-hidden bg-white rounded-2xl border border-slate-200 shadow-2xl" (click)="$event.stopPropagation()">
+      <div class="px-5 py-4 border-b border-slate-200 bg-gradient-to-r from-brand-teal/10 via-white to-brand-orange/10 flex items-center justify-between">
+        <div>
+          <p class="text-[11px] uppercase tracking-[0.14em] text-slate-500 font-semibold">Back Office</p>
+          <h3 class="text-lg font-bold text-gray-900 mt-0.5">Create New User</h3>
+        </div>
+        <button type="button" (click)="closeCreateUserModal()" class="h-8 w-8 rounded-lg border border-gray-200 text-gray-500 hover:bg-white" aria-label="Close create user modal">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="p-5">
+        <p class="text-sm text-slate-600 mb-4">Add a new account directly from administration. Required fields are marked by validation.</p>
+
+        <div *ngIf="createUserError" class="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-700 text-sm">{{ createUserError }}</div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs uppercase tracking-[0.08em] text-slate-500 font-semibold">First Name</label>
+            <input [(ngModel)]="newUser.firstName" placeholder="First name" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-teal/30 focus:border-brand-teal">
+          </div>
+          <div>
+            <label class="text-xs uppercase tracking-[0.08em] text-slate-500 font-semibold">Last Name</label>
+            <input [(ngModel)]="newUser.lastName" placeholder="Last name" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-teal/30 focus:border-brand-teal">
+          </div>
+          <div>
+            <label class="text-xs uppercase tracking-[0.08em] text-slate-500 font-semibold">Email</label>
+            <input [(ngModel)]="newUser.email" type="email" placeholder="Email" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-teal/30 focus:border-brand-teal">
+          </div>
+          <div>
+            <label class="text-xs uppercase tracking-[0.08em] text-slate-500 font-semibold">Password</label>
+            <input [(ngModel)]="newUser.password" type="password" placeholder="Password" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-teal/30 focus:border-brand-teal">
+          </div>
+        </div>
+
+        <div class="mt-4 flex items-center justify-end gap-2">
+          <button type="button" (click)="closeCreateUserModal()" class="px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50">Cancel</button>
+          <button
+            (click)="createUser()"
+            [disabled]="creatingUser"
+            class="px-3 py-2 rounded-lg bg-brand-teal text-white text-sm font-semibold hover:bg-teal-700 disabled:opacity-60"
+          >
+            {{ creatingUser ? 'Creating...' : 'Create User' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,99 @@
+<section class="coach" *ngIf="canDisplayCoach" [class.coach--loading]="state === 'loading'">
+  <header class="coach__header">
+    <div>
+      <p class="coach__eyebrow">ELIF Event Intelligence</p>
+      <h3 class="coach__title">Event Coach</h3>
+      <p class="coach__subtitle">Live AI guidance for attendance potential, engagement, and next-best edits.</p>
+    </div>
+
+    <div class="coach__meta">
+      <div class="coach__readiness">
+        <span class="coach__readiness-value">{{ readiness }}%</span>
+        <span class="coach__readiness-label">{{ readinessLabel }}</span>
+      </div>
+      <button type="button" class="coach__refresh" (click)="refresh()" [disabled]="state === 'loading'">
+        Refresh
+      </button>
+    </div>
+  </header>
+
+  <div class="coach__notice" *ngIf="state === 'idle'">
+    Add a stronger description, schedule, or audience focus to improve the analysis.
+  </div>
+
+  <div class="coach__notice coach__notice--error" *ngIf="state === 'error'">
+    {{ errorMessage }}
+  </div>
+
+  <div class="coach__loading" *ngIf="state === 'loading'">
+    <span class="coach__spinner"></span>
+    <div>
+      <strong>Analyzing your event draft</strong>
+      <p>The coach is recalculating the score and recommendations.</p>
+    </div>
+  </div>
+
+  <ng-container *ngIf="result as insight">
+    <div class="coach__metrics">
+      <article class="coach__metric coach__metric--score">
+        <span class="coach__metric-label">Success score</span>
+        <strong class="coach__metric-value">{{ insight.score }}/100</strong>
+      </article>
+
+      <article class="coach__metric">
+        <span class="coach__metric-label">Predicted attendance</span>
+        <strong class="coach__metric-value">{{ insight.prediction_attendance }}</strong>
+      </article>
+
+      <article class="coach__metric">
+        <span class="coach__metric-label">Predicted engagement</span>
+        <strong class="coach__metric-value">{{ insight.prediction_engagement }}/10</strong>
+      </article>
+    </div>
+
+    <div class="coach__analysis">
+      <div>
+        <span class="coach__section-label">Analysis</span>
+        <p>{{ insight.analysis }}</p>
+      </div>
+      <span class="coach__timestamp" *ngIf="lastAnalyzedAt">Updated {{ lastAnalyzedAt | date:'shortTime' }}</span>
+    </div>
+
+    <div class="coach__recommendations" *ngIf="insight.recommendations.length > 0; else noRecommendations">
+      <div class="coach__recommendations-head">
+        <span class="coach__section-label">Recommendations</span>
+        <span>{{ insight.recommendations.length }} suggestion{{ insight.recommendations.length > 1 ? 's' : '' }}</span>
+      </div>
+
+      <article
+        class="coach__recommendation"
+        *ngFor="let recommendation of insight.recommendations; trackBy: trackRecommendation">
+        <div class="coach__recommendation-copy">
+          <div class="coach__recommendation-field">{{ recommendation.field }}</div>
+          <p>{{ recommendation.reason }}</p>
+          <div class="coach__suggested">
+            Suggested value:
+            <strong>{{ formatSuggestedValue(recommendation.suggested_value) }}</strong>
+          </div>
+        </div>
+
+        <button type="button" class="coach__apply" (click)="applyRecommendation(recommendation)">
+          Apply
+        </button>
+      </article>
+    </div>
+
+    <ng-template #noRecommendations>
+      <div class="coach__empty">
+        The coach does not recommend any immediate changes for this draft.
+      </div>
+    </ng-template>
+  </ng-container>
+
+  <div class="coach__history" *ngIf="appliedChanges.length > 0">
+    <span class="coach__section-label">Applied changes</span>
+    <ul class="coach__history-list">
+      <li *ngFor="let change of appliedChanges">{{ change }}</li>
+    </ul>
+  </div>
+</section>

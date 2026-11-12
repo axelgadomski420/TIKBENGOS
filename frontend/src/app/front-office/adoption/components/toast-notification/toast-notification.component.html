@@ -1,0 +1,18 @@
+<div class="toast-container">
+  <div *ngFor="let notification of notifications" 
+       class="toast-notification {{ getHeaderClass(notification.type) }}"
+       [class.slide-in]="true">
+    
+    <div class="toast-header">
+      <i [class]="getIconClass(notification.type)"></i>
+      <strong class="toast-title">{{ notification.title }}</strong>
+      <button class="toast-close" (click)="removeNotification(notification.id)">×</button>
+    </div>
+    
+    <div class="toast-body">
+      <p>{{ notification.message }}</p>
+    </div>
+    
+    <div class="toast-progress" [style.animation-duration.ms]="notification.duration || 5000"></div>
+  </div>
+</div>

@@ -1,0 +1,235 @@
+<div class="comment-thread" [ngClass]="depth > 0 ? 'comment-thread-nested' : ''">
+  <article [attr.id]="'comment-' + comment.id" class="comment-card" [ngClass]="depth === 0 ? 'comment-card-root rounded-[1.35rem] border border-slate-200 bg-white p-4 shadow-sm' : 'comment-card-nested py-2'">
+    <div class="flex items-start gap-3 md:gap-4">
+      <app-vote-buttons
+        [score]="comment.voteScore"
+        [userVote]="comment.userVote || null"
+        (voted)="onVote($event)">
+      </app-vote-buttons>
+
+      <div class="min-w-0 flex-1">
+        <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+          <span class="font-semibold text-slate-900">{{ comment.authorName || 'Unknown user' }}</span>
+          <span>{{ comment.createdAt | date:'MMM d, y · h:mm a' }}</span>
+          <span
+            *ngIf="comment.acceptedAnswer"
+            class="inline-flex items-center gap-1 rounded-full border border-brand-teal/20 bg-brand-teal/5 px-2.5 py-1 font-semibold text-brand-teal">
+            <i class="fas fa-circle-check text-[10px]"></i>Accepted answer
+          </span>
+        </div>
+
+        <div
+          class="mt-3 whitespace-pre-line text-sm leading-7"
+          [ngClass]="comment.content === '[deleted]' ? 'italic text-slate-400' : 'text-slate-700'">
+          <span [innerHTML]="comment.content | mentionHighlight"></span>
+        </div>
+
+        <div *ngIf="!isDeletedComment && (editingComment || editError || canEditComment || canDeleteComment)" class="mt-4">
+          <div *ngIf="editError" class="mb-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {{ editError }}
+          </div>
+
+          <form *ngIf="editingComment" (ngSubmit)="saveEditComment()" [formGroup]="editCommentForm" class="rounded-[1.2rem] border border-slate-200 bg-slate-50 p-4" aria-label="Edit comment form">
+            <div class="flex items-center justify-between gap-3">
+              <h3 class="text-sm font-bold text-slate-950">Edit comment</h3>
+              <span class="text-xs text-slate-400">{{ editContentLength }}/2000</span>
+            </div>
+
+            <textarea
+              formControlName="content"
+              [id]="'edit-content-' + comment.id"
+              rows="3"
+              maxlength="2000"
+              [attr.aria-label]="'Edit comment by ' + (comment.authorName || 'user')"
+              class="mt-4 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm leading-7 text-slate-800 focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/20 resize-none"
+              [class.border-red-400]="contentInvalid"
+              placeholder="Edit your comment"></textarea>
+
+            <div class="mt-2 flex items-center justify-between">
+              <div *ngIf="contentInvalid" class="text-xs text-red-600">
+                <div *ngFor="let error of contentErrors">{{ error }}</div>
+              </div>
+            </div>
+
+            <div class="mt-3 flex flex-wrap items-center gap-2">
+              <input [id]="editImageInputId" type="file" accept="image/*" aria-label="Attach image to comment edit" (change)="onEditImagePicked($event)" class="hidden">
+              <label [for]="editImageInputId" class="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-50">
+                <i class="fas fa-paperclip text-brand-teal"></i>Attach image
+              </label>
+              <button type="button" (click)="openEditGifPicker()" class="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                <i class="fas fa-icons text-brand-teal"></i>GIF
+              </button>
+              <button *ngIf="editImageUrl" type="button" (click)="clearEditImage()" class="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-700 hover:bg-red-100">
+                <i class="fas fa-xmark"></i>Remove image
+              </button>
+            </div>
+
+            <input formControlName="imageUrl" placeholder="Paste an image URL or data URL" class="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/20">
+
+            <img
+              *ngIf="editImageUrl"
+              [src]="editImageUrl"
+              alt="Edited comment image preview"
+              class="mt-4 w-full max-h-56 rounded-2xl border border-slate-200 object-cover">
+
+            <div class="mt-4 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <p class="text-sm text-slate-500">Save updates only for this comment.</p>
+              <div class="flex items-center gap-2">
+                <button type="button" (click)="cancelEditComment()" class="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                  Cancel
+                </button>
+                <button type="submit" [disabled]="savingComment || editCommentForm.invalid" class="inline-flex items-center justify-center rounded-full bg-brand-teal px-5 py-2.5 text-xs font-semibold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-50">
+                  <i class="fas fa-save mr-2"></i>{{ savingComment ? 'Saving...' : 'Save changes' }}
+                </button>
+              </div>
+            </div>
+          </form>
+
+          <div *ngIf="!editingComment" class="mt-3 flex flex-wrap items-center gap-2">
+            <button
+              *ngIf="canEditComment"
+              type="button"
+              (click)="beginEditComment()"
+              class="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+              <i class="fas fa-pen text-brand-teal"></i>Edit
+            </button>
+            <button
+              *ngIf="canDeleteComment"
+              type="button"
+              (click)="deleteComment()"
+              [disabled]="deletingComment"
+              class="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50">
+              <i class="fas" [ngClass]="deletingComment ? 'fa-spinner fa-spin' : 'fa-trash'"></i>{{ deletingComment ? 'Deleting...' : 'Delete' }}
+            </button>
+          </div>
+        </div>
+
+        <img
+          *ngIf="comment.imageUrl"
+          [src]="comment.imageUrl"
+          alt="Comment attachment"
+          class="mt-4 w-full max-h-72 rounded-2xl border border-slate-200 object-cover comment-image-clickable"
+          (click)="previewImage(comment.imageUrl)">
+
+        <div class="mt-4 flex flex-wrap items-center gap-2">
+          <button
+            *ngIf="canAccept"
+            type="button"
+            (click)="acceptAnswer()"
+            class="inline-flex items-center gap-2 rounded-full border border-brand-teal/20 bg-brand-teal px-4 py-2 text-xs font-semibold text-white hover:bg-teal-700">
+            <i class="fas fa-check text-[11px]"></i>Accept answer
+          </button>
+
+          <button
+            type="button"
+            (click)="toggleReplyForm()"
+            class="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+            <i class="fas fa-reply text-[11px] text-brand-teal"></i>{{ showReplyForm ? 'Cancel reply' : 'Reply' }}
+          </button>
+
+          <span *ngIf="hasReplies" class="rounded-full bg-slate-100 px-3 py-1.5 text-[11px] font-semibold text-slate-500">
+            {{ comment.replies.length }} {{ comment.replies.length === 1 ? 'reply' : 'replies' }}
+          </span>
+        </div>
+
+        <div *ngIf="replyError" class="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {{ replyError }}
+        </div>
+
+        <form *ngIf="showReplyForm" (ngSubmit)="submitReply()" [formGroup]="replyForm" class="mt-4 rounded-[1.2rem] border border-slate-200 bg-slate-50 p-4" aria-label="Reply form">
+          <div class="flex items-center justify-between gap-3">
+            <h3 class="text-sm font-bold text-slate-950">Write a reply</h3>
+            <span class="text-xs text-slate-400">{{ replyContentLength }}/2000</span>
+          </div>
+
+          <div class="relative mt-4">
+            <div class="community-mention-editor">
+              <div
+                #replyOverlay
+                class="community-mention-editor-overlay w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm leading-7"
+                [innerHTML]="(replyContent || '') | mentionHighlight"></div>
+
+              <textarea
+                [id]="'reply-content-' + comment.id"
+                formControlName="content"
+                rows="3"
+                maxlength="2000"
+                [attr.aria-label]="'Reply to comment by ' + (comment.authorName || 'user')"
+                placeholder="Add a reply that is useful, specific, and easy to act on."
+                class="community-mention-editor-input w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm leading-7 text-slate-800 focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/20 resize-none"
+                [class.border-red-400]="replyContentInvalid"
+                (input)="onReplyInput($event)"
+                (keydown)="onReplyKeydown($event)"
+                (scroll)="syncReplyOverlay($event, replyOverlay)"
+                (blur)="onReplyMentionBlur()"></textarea>
+            </div>
+
+            <app-mention-picker
+              class="absolute left-0 right-0 z-30 mt-2"
+              [open]="replyMentionPickerOpen"
+              [suggestions]="replyMentionSuggestions"
+              [activeIndex]="replyMentionActiveIndex"
+              [label]="'Mention someone'"
+              (selectMention)="selectReplyMention($event)">
+            </app-mention-picker>
+          </div>
+          <div class="mt-2 flex items-center justify-between">
+            <div *ngIf="replyContentInvalid" class="text-xs text-red-600">
+              <div *ngFor="let error of replyContentErrors">{{ error }}</div>
+            </div>
+            <p class="text-xs text-slate-500">Type &#64; to mention someone.</p>
+          </div>
+
+          <div class="mt-3 flex flex-wrap items-center gap-2">
+            <input [id]="replyImageInputId" type="file" accept="image/*" aria-label="Attach image to reply" (change)="onReplyImagePicked($event)" class="hidden">
+            <label [for]="replyImageInputId" class="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-50">
+              <i class="fas fa-paperclip text-brand-teal"></i>Attach image
+            </label>
+            <button type="button" (click)="openGifPicker()" class="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+              <i class="fas fa-icons text-brand-teal"></i>GIF
+            </button>
+            <button
+              *ngIf="replyImageUrl"
+              type="button"
+              (click)="clearReplyImage()"
+              class="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-700 hover:bg-red-100">
+              <i class="fas fa-xmark"></i>Remove image
+            </button>
+          </div>
+
+          <img
+            *ngIf="replyImageUrl"
+            [src]="replyImageUrl"
+            alt="Reply image preview"
+            class="mt-4 w-full max-h-56 rounded-2xl border border-slate-200 object-cover">
+
+          <div class="mt-4 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <p class="text-sm text-slate-500">Keep replies concise and directly tied to the thread.</p>
+            <button
+              type="submit"
+              [disabled]="replyForm.invalid || submittingReply"
+              class="inline-flex items-center justify-center rounded-full bg-brand-teal px-5 py-2.5 text-xs font-semibold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-50">
+              <i class="fas fa-paper-plane mr-2"></i>{{ submittingReply ? 'Posting...' : 'Post reply' }}
+            </button>
+          </div>
+        </form>
+
+        <div class="mt-5 space-y-3" *ngIf="hasReplies">
+          <app-comment-tree
+            *ngFor="let child of comment.replies"
+            [comment]="child"
+            [postId]="postId"
+            [postOwnerId]="postOwnerId"
+            [postType]="postType"
+            [depth]="depth + 1"
+            [userId]="userId"
+            [canModerateCommunity]="canModerateCommunity"
+            [acceptedAnswerSelected]="acceptedAnswerSelected"
+            (accept)="accept.emit($event)"
+            (imagePreview)="imagePreview.emit($event)">
+          </app-comment-tree>
+        </div>
+      </div>
+    </div>
+  </article>
+</div>

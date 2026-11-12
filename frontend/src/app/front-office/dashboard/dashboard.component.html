@@ -1,0 +1,216 @@
+<div class="dashboard-shell">
+  <div class="dashboard-header">
+    <div>
+      <p class="dashboard-kicker">Personal Workspace</p>
+      <h1>Welcome back, {{ userFirstName }}.</h1>
+      <p class="dashboard-subtitle">Your pets, travel, and community activity in one place.</p>
+    </div>
+    <div class="header-actions">
+      <app-button text="Manage Pets" variant="outline" (onClick)="openPetsPage()"></app-button>
+      <app-button text="Open Community" variant="primary" (onClick)="openCommunityPage()"></app-button>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="dashboard-error">
+    {{ error }}
+  </div>
+
+  <div *ngIf="loading" class="dashboard-loading">
+    Loading your dashboard...
+  </div>
+
+  <div *ngIf="!loading" class="dashboard-grid">
+    <div class="dashboard-main">
+      <section class="stats-grid">
+        <article class="metric-card">
+          <p>Pets</p>
+          <h3>{{ pets.length }}</h3>
+        </article>
+        <article class="metric-card">
+          <p>Active Travel Plans</p>
+          <h3>{{ activeTravelPlansCount }}</h3>
+        </article>
+        <article class="metric-card">
+          <p>Joined Communities</p>
+          <h3>{{ joinedCommunitiesCount }}</h3>
+        </article>
+        <article class="metric-card metric-card--accent">
+          <p>Unread Inbox</p>
+          <h3>{{ unreadMessagesCount }}</h3>
+        </article>
+      </section>
+
+      <section class="dashboard-card">
+        <div class="section-head">
+          <h2>My Pets</h2>
+          <button type="button" (click)="openPetsPage()">View all</button>
+        </div>
+
+        <div *ngIf="pets.length; else noPets" class="pets-grid">
+          <article *ngFor="let pet of pets; trackBy: trackByPetId" class="pet-card">
+            <div class="pet-avatar">
+              <img *ngIf="pet.photoUrl; else fallbackPetAvatar" [src]="pet.photoUrl" [alt]="pet.name">
+              <ng-template #fallbackPetAvatar>
+                <span>{{ pet.name.charAt(0) }}</span>
+              </ng-template>
+            </div>
+
+            <div class="pet-details">
+              <h3>{{ pet.name }}</h3>
+              <p>{{ formatSpecies(pet.species) }} • {{ pet.ageDisplay || 'Unknown age' }}</p>
+              <span class="pet-chip">Updated {{ formatRelativeDate(pet.updatedAt) }}</span>
+            </div>
+
+            <app-button text="View" variant="outline" (onClick)="viewPet(pet.id)"></app-button>
+          </article>
+        </div>
+
+        <ng-template #noPets>
+          <div class="empty-state">
+            <p>No pet profiles yet.</p>
+            <span>Create your first pet profile to populate this dashboard.</span>
+            <div>
+              <app-button text="Create Pet Profile" variant="primary" (onClick)="openPetsPage()"></app-button>
+            </div>
+          </div>
+        </ng-template>
+      </section>
+
+      <section class="dashboard-card">
+        <div class="section-head">
+          <h2>Community Workspace</h2>
+          <button type="button" (click)="openCommunityPage()">Open community</button>
+        </div>
+
+        <div class="community-overview-grid">
+          <article class="community-overview-card">
+            <p class="label">Managed Communities</p>
+            <p class="value">{{ managedCommunitiesCount }}</p>
+          </article>
+          <article class="community-overview-card">
+            <p class="label">Trending Posts</p>
+            <p class="value">{{ postsCount }}</p>
+          </article>
+          <article class="community-overview-card">
+            <p class="label">My Recent Posts</p>
+            <p class="value">{{ myPosts.length }}</p>
+          </article>
+        </div>
+
+        <div *ngIf="communities.length; else noCommunities" class="community-list">
+          <article *ngFor="let community of communities.slice(0, 4); trackBy: trackByCommunityId" class="community-row">
+            <div>
+              <h3>{{ community.name }}</h3>
+              <p>{{ community.memberCount }} members • {{ formatCommunityRole(community.userRole) }}</p>
+            </div>
+            <button type="button" class="row-action" (click)="viewCommunity(community.slug)">Open</button>
+          </article>
+        </div>
+
+        <ng-template #noCommunities>
+          <div class="empty-state empty-state--small">
+            <p>You have not joined any communities yet.</p>
+            <span>Explore groups and jump into your first discussion.</span>
+            <div>
+              <app-button text="Explore Community" variant="secondary" (onClick)="openCommunityPage()"></app-button>
+            </div>
+          </div>
+        </ng-template>
+      </section>
+
+      <section class="dashboard-card">
+        <div class="section-head">
+          <h2>Recent Activity</h2>
+          <button type="button" (click)="openCommunityPage()">See all</button>
+        </div>
+
+        <ul *ngIf="recentActivity.length; else noActivity" class="activity-list">
+          <li *ngFor="let activity of recentActivity; trackBy: trackByActivity">
+            <div class="activity-icon" [ngClass]="'activity-icon--' + activity.kind">
+              <span *ngIf="activity.kind === 'pet'">P</span>
+              <span *ngIf="activity.kind === 'travel'">T</span>
+              <span *ngIf="activity.kind === 'community'">C</span>
+            </div>
+            <div class="activity-copy">
+              <p>{{ activity.title }}</p>
+              <span>{{ activity.subtitle }}</span>
+            </div>
+            <time>{{ formatRelativeDate(activity.timestamp) }}</time>
+          </li>
+        </ul>
+
+        <ng-template #noActivity>
+          <p class="muted-message">No recent activity yet.</p>
+        </ng-template>
+      </section>
+    </div>
+
+    <aside class="dashboard-rail">
+      <section class="travel-spotlight">
+        <div class="spotlight-head">
+          <h2>Upcoming Travel</h2>
+          <i class="fas fa-plane-departure"></i>
+        </div>
+
+        <div *ngIf="upcomingTravelPlan; else noUpcomingTravel" class="spotlight-body">
+          <h3>{{ upcomingTravelPlan.destinationTitle }}</h3>
+          <p>for {{ upcomingTravelPlan.petName || 'your pet' }}</p>
+          <ul>
+            <li>Date: {{ formatDate(upcomingTravelPlan.travelDate) }}</li>
+            <li>Country: {{ upcomingTravelPlan.destinationCountry }}</li>
+            <li>Status: {{ upcomingTravelPlan.status }}</li>
+          </ul>
+        </div>
+
+        <ng-template #noUpcomingTravel>
+          <p class="spotlight-empty">No upcoming travel plans found.</p>
+        </ng-template>
+
+        <button type="button" class="spotlight-cta" (click)="openTransitPage()">Manage Travel Plans</button>
+      </section>
+
+      <section class="dashboard-card rail-card">
+        <div class="section-head section-head--rail">
+          <h2>Community Inbox</h2>
+          <span class="badge">{{ unreadMessagesCount }} unread</span>
+        </div>
+
+        <div *ngIf="latestConversation; else noInboxPreview" class="inbox-preview">
+          <p class="inbox-name">{{ latestConversation.counterpartName || 'Conversation' }}</p>
+          <p class="inbox-meta">Last activity {{ formatRelativeDate(latestConversation.lastMessageAt) }}</p>
+        </div>
+
+        <ng-template #noInboxPreview>
+          <p class="muted-message">No conversations yet.</p>
+        </ng-template>
+
+        <div class="rail-actions">
+          <app-button text="Open Inbox" variant="secondary" [fullWidth]="true" (onClick)="openCommunityInbox()"></app-button>
+          <app-button text="Create Community" variant="outline" [fullWidth]="true" (onClick)="openCreateCommunity()"></app-button>
+        </div>
+      </section>
+
+      <section class="dashboard-card rail-card">
+        <div class="section-head section-head--rail">
+          <h2>My Posts</h2>
+        </div>
+
+        <div *ngIf="myPosts.length; else noMyPosts" class="my-posts-list">
+          <button
+            *ngFor="let post of myPosts; trackBy: trackByPostId"
+            type="button"
+            class="post-row"
+            (click)="viewPost(post.id)"
+          >
+            <span class="post-title">{{ post.title }}</span>
+            <span class="post-meta">{{ post.commentCount ?? 0 }} comments • {{ formatRelativeDate(post.createdAt) }}</span>
+          </button>
+        </div>
+
+        <ng-template #noMyPosts>
+          <p class="muted-message">No recent personal posts in trending yet.</p>
+        </ng-template>
+      </section>
+    </aside>
+  </div>
+</div>

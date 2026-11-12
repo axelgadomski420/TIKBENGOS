@@ -1,0 +1,98 @@
+<div class="gif-dialog-shell">
+  <div class="gif-dialog-header">
+    <div>
+      <p class="gif-dialog-eyebrow">GIF search</p>
+      <h2 class="gif-dialog-title">{{ data.title || 'Choose a GIF' }}</h2>
+      <p class="gif-dialog-subtitle">Pick something quick, expressive, and easy to scan in chat.</p>
+    </div>
+    <button type="button" class="gif-dialog-close" (click)="close()" aria-label="Close GIF picker">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+
+  <div class="gif-dialog-search-panel">
+    <div class="gif-dialog-search">
+      <div class="gif-dialog-input-wrap">
+        <i class="fas fa-magnifying-glass gif-dialog-search-icon"></i>
+        <input
+          #gifQueryInput
+          cdkFocusInitial
+          [(ngModel)]="query"
+          name="gifQuery"
+          type="text"
+          placeholder="Search GIFs"
+          autocomplete="off"
+          (keydown.space)="$event.stopPropagation()"
+          (keydown.enter)="search()"
+          class="gif-dialog-input">
+      </div>
+      <button type="button" class="gif-dialog-search-btn" (click)="search()">
+        <i class="fas fa-bolt"></i>
+        Search
+      </button>
+    </div>
+
+    <div class="gif-dialog-topic-row">
+      <span class="gif-dialog-topic-label">Quick picks</span>
+      <div class="gif-dialog-topic-list">
+        <button
+          type="button"
+          *ngFor="let topic of quickTopics"
+          class="gif-dialog-chip"
+          [ngClass]="activeTopic.toLowerCase() === topic.toLowerCase() ? 'gif-dialog-chip-active' : ''"
+          (click)="runTopic(topic)">
+          {{ topic }}
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="recentQueries.length" class="gif-dialog-topic-row">
+      <div class="gif-dialog-recent-head">
+        <span class="gif-dialog-topic-label">Recent</span>
+        <button type="button" class="gif-dialog-clear-btn" (click)="clearRecentQueries()">Clear</button>
+      </div>
+      <div class="gif-dialog-topic-list">
+        <button
+          type="button"
+          *ngFor="let recent of recentQueries"
+          class="gif-dialog-chip gif-dialog-chip-soft"
+          (click)="runTopic(recent)">
+          {{ recent }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="gif-dialog-meta-row">
+    <div class="gif-dialog-status">
+      <div *ngIf="error" class="gif-dialog-error">{{ error }}</div>
+      <div *ngIf="loading" class="gif-dialog-loading">Loading GIFs...</div>
+      <div *ngIf="!loading && !error" class="gif-dialog-hint">Click a GIF to drop it straight into the composer.</div>
+    </div>
+
+    <div *ngIf="results.length" class="gif-dialog-count">{{ results.length }} results</div>
+  </div>
+
+  <div *ngIf="results.length" class="gif-dialog-results-wrap">
+    <div class="gif-dialog-grid">
+      <button type="button" *ngFor="let gif of results" class="gif-dialog-card" (click)="selectGif(gif)">
+        <div class="gif-dialog-card-media">
+          <img [src]="gif.previewUrl" [alt]="gif.title" loading="lazy" class="gif-dialog-card-image">
+          <span class="gif-dialog-card-cta">Use GIF</span>
+        </div>
+        <div class="gif-dialog-card-copy">
+          <span class="gif-dialog-card-title">{{ gif.title || 'Untitled reaction' }}</span>
+          <span class="gif-dialog-card-subtitle">{{ activeTopic || query }}</span>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && !results.length && !error" class="gif-dialog-empty">
+    <i class="fas fa-icons gif-dialog-empty-icon"></i>
+    <div>
+      <strong>No GIFs yet</strong>
+      <p>Try a different mood, action, or reaction word.</p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,102 @@
+<div class="shelter-detail-container">
+  <div class="page-header">
+    <div class="overlay"></div>
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-8 mx-auto text-center">
+          <h1 class="display-4 fw-bold">🏠 Shelter Details</h1>
+          <p class="lead">Review and manage shelter information</p>
+          <button class="btn btn-outline-light btn-lg mt-3" (click)="goBack()">
+            ← Back to Shelters
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container py-5">
+    <!-- Loading -->
+    <div *ngIf="loading" class="text-center py-5">
+      <div class="spinner-border text-primary"></div>
+      <p class="mt-2">Loading shelter details...</p>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="error" class="alert alert-danger">
+      {{ error }}
+    </div>
+
+    <!-- Shelter Details -->
+    <div *ngIf="!loading && !error && shelter" class="detail-card">
+      <div class="card-header">
+        <h2>{{ shelter.name }}</h2>
+        <div class="status-badge" [ngClass]="shelter.verified ? 'verified' : 'pending'">
+          {{ shelter.verified ? '✓ Verified' : '⏳ Pending Approval' }}
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="info-grid">
+          <div class="info-item">
+            <i class="fas fa-envelope"></i>
+            <strong>Email</strong>
+            <p>{{ shelter.email }}</p>
+          </div>
+          <div class="info-item">
+            <i class="fas fa-phone"></i>
+            <strong>Phone</strong>
+            <p>{{ shelter.phone || 'Not specified' }}</p>
+          </div>
+          <div class="info-item">
+            <i class="fas fa-map-marker-alt"></i>
+            <strong>Address</strong>
+            <p>{{ shelter.address }}</p>
+          </div>
+          <div class="info-item">
+            <i class="fas fa-id-card"></i>
+            <strong>License Number</strong>
+            <p>{{ shelter.licenseNumber || 'Not specified' }}</p>
+          </div>
+        </div>
+
+        <div class="description">
+          <strong>📝 Description</strong>
+          <p>{{ shelter.description || 'No description available.' }}</p>
+        </div>
+
+        <div class="user-info" *ngIf="shelter.userId">
+          <strong>👤 Associated User</strong>
+          <p>User ID: {{ shelter.userId }}</p>
+          <p>Email: {{ shelter.userEmail || 'Not available' }}</p>
+          <p>Verified: {{ shelter.userVerified ? 'Yes' : 'No' }}</p>
+        </div>
+
+        <div class="stats" *ngIf="shelter.pets?.length">
+          <strong>🐾 Pets in this shelter</strong>
+          <p>{{ shelter.pets.length }} animals registered</p>
+        </div>
+      </div>
+
+      <!-- DEBUG SECTION -->
+      <div class="debug-section" style="background: #f0f0f0; padding: 1rem; margin: 1rem; border-radius: 8px;">
+        <h4>🔍 Debug Info</h4>
+        <p><strong>Verified:</strong> {{ shelter.verified }}</p>
+        <p><strong>Has userId:</strong> {{ shelter.userId ? 'Yes (' + shelter.userId + ')' : 'No' }}</p>
+        <p><strong>Show Approve Button:</strong> {{ !shelter.verified ? 'Yes' : 'No' }}</p>
+        <p><strong>Show Reject Button:</strong> {{ !shelter.verified ? 'Yes' : 'No' }}</p>
+      </div>
+
+      <div class="card-actions">
+        <button class="btn-back" (click)="goBack()">
+          ← Cancel
+        </button>
+        <button *ngIf="!shelter.verified" class="btn-approve" (click)="confirmApprove()">
+          ✓ Approve Shelter
+        </button>
+        <button *ngIf="!shelter.verified" class="btn-reject" (click)="rejectShelter()">
+          ✗ Reject Shelter
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

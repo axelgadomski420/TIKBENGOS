@@ -1,0 +1,120 @@
+<div class="feedback-modal-overlay" (click)="onBackdropClick($event)">
+  <section class="feedback-modal-box" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <div
+      class="modal-accent-bar"
+      [style.background]="typeConfig[feedback.feedbackType].gradient"
+    ></div>
+
+    <header class="modal-header">
+      <div class="modal-header-left">
+        <mat-icon [style.color]="typeConfig[feedback.feedbackType].color">
+          {{ typeConfig[feedback.feedbackType].icon }}
+        </mat-icon>
+        <h2>Feedback Details</h2>
+      </div>
+
+      <button type="button" class="icon-close" (click)="closeModal()" aria-label="Close">
+        <mat-icon>close</mat-icon>
+      </button>
+    </header>
+
+    <div class="modal-body">
+      <div
+        class="type-pill"
+        [style.background]="typeConfig[feedback.feedbackType].bgColor"
+        [style.color]="typeConfig[feedback.feedbackType].color"
+      >
+        <span class="type-emoji">{{ typeConfig[feedback.feedbackType].emoji }}</span>
+        <span>{{ typeConfig[feedback.feedbackType].label }}</span>
+      </div>
+
+      <div class="section-block">
+        <div class="info-row">
+          <span class="info-label">Destination</span>
+          <div class="info-value with-icon">
+            <mat-icon>location_on</mat-icon>
+            <span>{{ valueOrDash(feedback.destinationTitle) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-block">
+        <div class="info-row" *ngIf="feedback.title">
+          <span class="info-label">Title</span>
+          <span class="info-value">{{ feedback.title }}</span>
+        </div>
+
+        <div class="info-row" *ngIf="feedback.feedbackType === 'REVIEW' && feedback.rating !== undefined">
+          <span class="info-label">Rating</span>
+          <div class="rating-value">
+            <div class="rating-stars">
+              <mat-icon class="star-filled" *ngFor="let star of starsArray(feedback.rating)">star</mat-icon>
+              <mat-icon class="star-empty" *ngFor="let star of emptyStarsArray(feedback.rating)">
+                star_border
+              </mat-icon>
+            </div>
+            <span>{{ feedback.rating }}/5 stars</span>
+          </div>
+        </div>
+
+        <div class="info-row" *ngIf="feedback.message">
+          <span class="info-label">Message</span>
+          <p class="message-box">{{ feedback.message }}</p>
+        </div>
+
+        <div class="info-row" *ngIf="feedback.incidentLocation">
+          <span class="info-label">Location</span>
+          <div class="info-value with-icon">
+            <mat-icon>location_on</mat-icon>
+            <span>{{ feedback.incidentLocation }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-block">
+        <div class="info-row">
+          <span class="info-label">Status</span>
+          <span
+            class="status-badge"
+            [style.color]="statusConfig[feedback.processingStatus].color"
+            [style.background]="statusConfig[feedback.processingStatus].bgColor"
+          >
+            <mat-icon>{{ statusConfig[feedback.processingStatus].icon }}</mat-icon>
+            {{ statusConfig[feedback.processingStatus].label }}
+          </span>
+        </div>
+
+        <div class="info-row">
+          <span class="info-label">Submitted</span>
+          <div class="info-value with-icon">
+            <mat-icon>calendar_today</mat-icon>
+            <span>{{ formatDate(feedback.createdAt) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-response-box" *ngIf="feedback.adminResponse; else noResponseState">
+        <div class="admin-response-header">
+          <mat-icon>support_agent</mat-icon>
+          <span>Admin Response</span>
+        </div>
+        <p class="admin-response-text">{{ feedback.adminResponse }}</p>
+        <p class="admin-response-meta">
+          {{ valueOrDash(feedback.respondedByAdminName) }}
+          <span *ngIf="feedback.respondedAt"> - {{ formatDate(feedback.respondedAt) }}</span>
+        </p>
+      </div>
+
+      <ng-template #noResponseState>
+        <div class="no-response-box">
+          <mat-icon>hourglass_empty</mat-icon>
+          <p>No admin response yet.</p>
+        </div>
+      </ng-template>
+    </div>
+
+    <footer class="modal-footer">
+      <button type="button" class="btn-close" (click)="closeModal()">Close</button>
+    </footer>
+  </section>
+</div>

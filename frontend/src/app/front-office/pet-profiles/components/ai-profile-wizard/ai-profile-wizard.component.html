@@ -1,0 +1,280 @@
+<div class="ai-wizard-overlay" (click)="cancel()">
+  <div class="ai-wizard-modal" (click)="$event.stopPropagation()">
+    
+    <!-- Header -->
+    <div class="wizard-header">
+      <div class="wizard-header-content">
+        <div class="wizard-icon">
+          <i class="fas fa-sparkles"></i>
+        </div>
+        <div>
+          <h2>Smart Profile Creator</h2>
+          <p>Upload a photo and we'll help fill in the details</p>
+        </div>
+      </div>
+      <button type="button" class="wizard-close" (click)="cancel()" aria-label="Close wizard">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="wizard-progress">
+      <div class="wizard-progress-bar" [style.width.%]="getProgressPercentage()"></div>
+    </div>
+
+    <!-- Step Indicators -->
+    <div class="wizard-steps">
+      <div class="wizard-step" 
+           *ngFor="let step of [1,2,3]" 
+           [class.active]="currentStep >= step"
+           [class.current]="currentStep === step">
+        <div class="step-circle">
+          <i class="fas" 
+             [class.fa-check]="currentStep > step"
+             [class.fa-spinner]="currentStep === step && analyzing"
+             [class.fa-spin]="currentStep === step && analyzing">
+            <span *ngIf="currentStep < step || (!analyzing && currentStep === step)">{{ step }}</span>
+          </i>
+        </div>
+        <span class="step-label">
+          {{ step === 1 ? 'Upload' : step === 2 ? 'Review' : 'Confirm' }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Content Area -->
+    <div class="wizard-content">
+      
+      <!-- Error Message -->
+      <div class="wizard-alert wizard-alert-error" *ngIf="error">
+        <i class="fas fa-triangle-exclamation"></i>
+        <span>{{ error }}</span>
+      </div>
+
+      <!-- Success Message -->
+      <div class="wizard-alert wizard-alert-success" *ngIf="success">
+        <i class="fas fa-circle-check"></i>
+        <span>{{ success }}</span>
+      </div>
+
+      <!-- Step 1: Photo Upload -->
+      <div class="wizard-step-content" *ngIf="currentStep === 1">
+        <div class="step-header">
+          <h3>{{ getStepTitle() }}</h3>
+          <p>{{ getStepDescription() }}</p>
+        </div>
+
+        <div class="photo-upload-zone" 
+             [class.drag-active]="isDragActive"
+             [class.has-photo]="photoPreviewUrl"
+             (dragover)="onDragOver($event)"
+             (dragleave)="onDragLeave($event)"
+             (drop)="onDrop($event)"
+             (click)="triggerFileInput()">
+          
+          <div class="photo-preview" *ngIf="photoPreviewUrl">
+            <img [src]="photoPreviewUrl" alt="Pet photo preview">
+            <button type="button" class="photo-remove" (click)="removePhoto(); $event.stopPropagation()">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+
+          <div class="photo-upload-prompt" *ngIf="!photoPreviewUrl">
+            <i class="fas fa-cloud-arrow-up"></i>
+            <h4>Drop your pet's photo here</h4>
+            <p>or click anywhere to browse</p>
+            <span class="upload-hint">Max 8MB • JPG, PNG, WebP</span>
+          </div>
+        </div>
+
+        <input type="file" 
+               accept="image/*" 
+               (change)="onFileSelected($event)"
+               #fileInput
+               style="display: none;">
+
+        <div class="photo-tips">
+          <h4><i class="fas fa-lightbulb"></i> Tips for Best Results</h4>
+          <ul>
+            <li>Use a clear, well-lit photo</li>
+            <li>Ensure your pet is the main subject</li>
+            <li>Avoid blurry or distant shots</li>
+            <li>Front or side view works best</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Step 2: Review & Edit Form -->
+      <div class="wizard-step-content" *ngIf="currentStep === 2">
+        <div class="step-header">
+          <h3>{{ getStepTitle() }}</h3>
+          <p>{{ getStepDescription() }}</p>
+        </div>
+
+        <form [formGroup]="profileForm" class="wizard-form">
+          <div class="form-row">
+            <div class="form-field">
+              <label for="pet-name">Pet Name *</label>
+              <input type="text" 
+                     id="pet-name" 
+                     formControlName="name" 
+                     placeholder="Enter pet's name">
+              <span class="field-error" *ngIf="profileForm.get('name')?.invalid && profileForm.get('name')?.touched">
+                Name is required
+              </span>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label for="pet-species">Species *</label>
+              <select id="pet-species" formControlName="species">
+                <option value="">Select species</option>
+                <option value="DOG">Dog</option>
+                <option value="CAT">Cat</option>
+                <option value="BIRD">Bird</option>
+                <option value="RABBIT">Rabbit</option>
+                <option value="HAMSTER">Hamster</option>
+                <option value="FISH">Fish</option>
+                <option value="REPTILE">Reptile</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+
+            <div class="form-field">
+              <label for="pet-breed">Breed</label>
+              <input type="text" 
+                     id="pet-breed" 
+                     formControlName="breed" 
+                     placeholder="Enter breed">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label for="pet-gender">Gender *</label>
+              <select id="pet-gender" formControlName="gender">
+                <option value="">Select gender</option>
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+                <option value="UNKNOWN">Unknown</option>
+              </select>
+            </div>
+
+            <div class="form-field">
+              <label for="pet-dob">Date of Birth</label>
+              <input type="date" 
+                     id="pet-dob" 
+                     formControlName="dateOfBirth">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label for="pet-weight">Weight (kg)</label>
+              <input type="number" 
+                     id="pet-weight" 
+                     formControlName="weight" 
+                     step="0.1" 
+                     min="0.1"
+                     placeholder="Enter weight">
+            </div>
+          </div>
+        </form>
+
+        <div class="wizard-alert wizard-alert-info">
+          <i class="fas fa-info-circle"></i>
+          <span>Please review and adjust the information above before proceeding.</span>
+        </div>
+      </div>
+
+      <!-- Step 3: Final Confirmation -->
+      <div class="wizard-step-content" *ngIf="currentStep === 3">
+        <div class="step-header">
+          <h3>{{ getStepTitle() }}</h3>
+          <p>{{ getStepDescription() }}</p>
+        </div>
+
+        <div class="confirmation-summary">
+          <div class="summary-photo">
+            <img [src]="photoPreviewUrl" alt="Pet photo">
+          </div>
+
+          <div class="summary-details">
+            <h4>{{ profileForm.get('name')?.value }}</h4>
+            <div class="summary-grid">
+              <div class="summary-item">
+                <span class="summary-label">Species</span>
+                <strong>{{ profileForm.get('species')?.value }}</strong>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Breed</span>
+                <strong>{{ profileForm.get('breed')?.value || 'Not specified' }}</strong>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Gender</span>
+                <strong>{{ profileForm.get('gender')?.value }}</strong>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Date of Birth</span>
+                <strong>{{ profileForm.get('dateOfBirth')?.value || 'Not specified' }}</strong>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Weight</span>
+                <strong>{{ profileForm.get('weight')?.value || 'Not specified' }} kg</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="wizard-alert wizard-alert-success">
+          <i class="fas fa-check-circle"></i>
+          <span>Profile is ready to be created! Click "Create Profile" to finish.</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer Actions -->
+    <div class="wizard-footer">
+      <button type="button" 
+              class="btn-secondary" 
+              (click)="previousStep()" 
+              *ngIf="currentStep > 1 && !analyzing">
+        <i class="fas fa-arrow-left"></i>
+        Back
+      </button>
+
+      <div class="footer-spacer"></div>
+
+      <button type="button" 
+              class="btn-ghost" 
+              (click)="cancel()"
+              *ngIf="!analyzing">
+        Cancel
+      </button>
+
+      <button type="button" 
+              class="btn-primary" 
+              (click)="nextStep()" 
+              [disabled]="!canProceedToNextStep() || analyzing"
+              *ngIf="currentStep < 3">
+        <i class="fas" 
+           [class.fa-spinner]="analyzing"
+           [class.fa-spin]="analyzing"
+           [class.fa-arrow-right]="!analyzing"></i>
+        {{ analyzing ? 'Analyzing...' : (currentStep === 1 && selectedFile && !aiResponse ? 'Analyze Photo' : 'Continue') }}
+      </button>
+
+      <button type="button" 
+              class="btn-success" 
+              (click)="submitProfile()" 
+              [disabled]="profileForm.invalid"
+              *ngIf="currentStep === 3">
+        <i class="fas fa-check"></i>
+        Create Profile
+      </button>
+    </div>
+
+  </div>
+</div>

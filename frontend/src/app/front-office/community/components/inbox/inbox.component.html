@@ -1,0 +1,161 @@
+<section class="community-page inbox-page-shell min-h-screen py-10 px-4 md:px-8">
+  <div class="max-w-5xl mx-auto inbox-surface">
+    <div class="inbox-head">
+      <div>
+        <p class="inbox-kicker">Community Workspace</p>
+        <h1><i class="fas fa-inbox mr-2 text-brand-teal"></i>Inbox</h1>
+        <p>Your direct community conversations in one place.</p>
+      </div>
+      <div class="inbox-head-actions">
+        <button type="button" class="start-chat-btn" (click)="openPicker()">
+          <i class="fas fa-pen-to-square mr-2"></i>Start New Chat
+        </button>
+        <img src="images/animals/hamster.png" alt="" aria-hidden="true" class="h-10 hidden sm:block opacity-70">
+      </div>
+    </div>
+
+    <div class="inbox-helper-row">
+      <i class="fas fa-circle-info text-brand-teal"></i>
+      Select a conversation to continue where you left off.
+    </div>
+
+    <section class="inbox-preferences-card" *ngIf="!loading && !error">
+      <div class="inbox-preferences-copy">
+        <p class="inbox-preferences-kicker">Chat notifications</p>
+        <h2>Email me about unread direct messages</h2>
+        <p>Manage inbox nudges here so the setting lives next to your chat activity instead of inside one community.</p>
+      </div>
+
+      <div class="inbox-preferences-actions">
+        <div *ngIf="loadingDirectMessagePreferences" class="inbox-preferences-status">Loading setting...</div>
+        <div *ngIf="directMessagePreferenceError" class="inbox-preferences-error">{{ directMessagePreferenceError }}</div>
+        <label *ngIf="directMessagePreferences as prefs" class="inbox-toggle">
+          <input
+            type="checkbox"
+            [checked]="prefs.emailOnUnreadDirectMessage"
+            [disabled]="savingDirectMessagePreference"
+            (change)="updateDirectMessagePreference($any($event.target).checked)">
+          <span class="inbox-toggle-slider"></span>
+        </label>
+      </div>
+    </section>
+
+    <div class="inbox-stat-strip" *ngIf="!loading && !error && conversations.length > 0">
+      <div class="inbox-stat-card">
+        <span class="inbox-stat-label">Total chats</span>
+        <strong class="inbox-stat-value">{{ conversations.length }}</strong>
+      </div>
+      <div class="inbox-stat-card">
+        <span class="inbox-stat-label">Unread</span>
+        <strong class="inbox-stat-value">{{ unreadConversationCount }}</strong>
+      </div>
+      <div class="inbox-stat-card">
+        <span class="inbox-stat-label">Active now</span>
+        <strong class="inbox-stat-value">{{ activeNowCount }}</strong>
+      </div>
+    </div>
+
+    <div *ngIf="loading" class="inbox-loading"><i class="fas fa-spinner fa-spin mr-2 text-brand-teal"></i>Loading inbox...</div>
+    <div *ngIf="error" class="inbox-error">{{ error }}</div>
+
+    <div class="inbox-list" *ngIf="!loading && !error">
+      <section *ngFor="let group of groupedConversations" class="inbox-group">
+        <div class="inbox-group-header">
+          <div>
+            <h2>{{ group.label }}</h2>
+            <p>{{ sectionSummary(group.key) }}</p>
+          </div>
+          <span class="inbox-group-count">{{ group.items.length }}</span>
+        </div>
+
+        <button
+          *ngFor="let c of group.items; let i = index; trackBy: trackByConversationId"
+          (click)="open(c.id)"
+          [style.--motion-index]="i"
+          [attr.aria-label]="'Open conversation with ' + (c.counterpartName || 'Unknown User')"
+          class="inbox-conversation-item"
+          [ngClass]="c.unreadCount > 0 ? 'inbox-conversation-item-unread' : ''">
+          <div class="flex justify-between items-center">
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="h-11 w-11 rounded-full bg-brand-teal/15 text-brand-teal flex items-center justify-center shrink-0">
+                <i class="fas fa-user"></i>
+              </span>
+              <div class="min-w-0">
+                <p class="font-bold text-gray-900 truncate flex items-center gap-2">
+                  <span>{{ c.counterpartName || 'Unknown User' }}</span>
+                  <span *ngIf="isCounterpartOnline(c)" class="online-pill">online</span>
+                </p>
+                <p class="text-sm text-gray-500 truncate inbox-preview-line">{{ previewPrefix(c) }}</p>
+              </div>
+            </div>
+            <div class="inbox-meta-column">
+              <span class="text-xs text-gray-500">{{ relativeTimeLabel(c) }}</span>
+              <span class="text-xs px-2 py-1 rounded-full font-semibold" [ngClass]="c.unreadCount > 0 ? 'bg-brand-orange/20 text-brand-orange' : 'bg-gray-100 text-gray-500'">
+                {{ c.unreadCount > 0 ? (c.unreadCount + ' unread') : 'Read' }}
+              </span>
+            </div>
+          </div>
+        </button>
+      </section>
+
+      <div *ngIf="conversations.length === 0" class="inbox-empty">
+        <i class="fas fa-message mr-1 text-brand-teal"></i>No conversations yet.
+      </div>
+    </div>
+
+  </div>
+
+  <div *ngIf="pickerOpen" class="recipient-picker-overlay" (click)="closePicker()">
+    <div class="recipient-picker-panel" (click)="$event.stopPropagation()">
+      <div class="picker-header">
+        <h2><i class="fas fa-user-plus"></i>Choose any user to chat with</h2>
+        <button type="button" class="picker-close" (click)="closePicker()" aria-label="Close new chat picker">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="picker-search">
+        <i class="fas fa-magnifying-glass"></i>
+        <input
+          [(ngModel)]="searchTerm"
+          id="chat-search"
+          name="chatSearch"
+          type="text"
+          placeholder="Search by name, role, or email"
+          autocomplete="off"
+        >
+      </div>
+
+      <div *ngIf="recipientsLoading" class="picker-state">
+        <i class="fas fa-spinner fa-spin mr-2 text-brand-teal"></i>Loading users...
+      </div>
+
+      <div *ngIf="recipientsError" class="picker-error">{{ recipientsError }}</div>
+
+      <div *ngIf="!recipientsLoading && !recipientsError" class="picker-list">
+        <button
+          *ngFor="let candidate of filteredCandidates; trackBy: trackByCandidateId"
+          type="button"
+          class="candidate-row"
+          [disabled]="startingChatUserId === candidate.userId"
+          (click)="startChatWith(candidate)">
+          <span class="candidate-avatar">
+            {{ candidate.name.charAt(0) }}
+          </span>
+          <span class="candidate-copy">
+            <strong>{{ candidate.name }}</strong>
+            <small>{{ formatCandidateMeta(candidate) }}</small>
+          </span>
+          <span class="candidate-action">
+            <i *ngIf="startingChatUserId !== candidate.userId" class="fas fa-paper-plane"></i>
+            <i *ngIf="startingChatUserId === candidate.userId" class="fas fa-spinner fa-spin"></i>
+          </span>
+        </button>
+
+        <div *ngIf="!filteredCandidates.length" class="picker-state">
+          No matching users found.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

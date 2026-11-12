@@ -1,0 +1,76 @@
+.form-bg {
+  @apply min-h-screen py-10 px-4 bg-gray-50;
+}
+
+.service-form-container {
+  @apply max-w-4xl mx-auto;
+}
+
+.service-card {
+  @apply bg-white rounded-3xl shadow-sm border border-gray-100 p-8 mb-8 relative;
+}
+
+.service-form-group {
+  @apply flex flex-col gap-2 mb-6;
+}
+
+.service-form-label {
+  @apply text-sm font-bold text-gray-700 uppercase tracking-widest;
+}
+
+.service-form-input {
+  @apply w-full bg-gray-50 border-2 border-transparent rounded-2xl px-5 py-4 text-gray-800 font-medium placeholder-gray-400 focus:outline-none focus:border-brand-teal focus:bg-white transition-all shadow-sm;
+}
+
+.service-form-textarea {
+  @apply w-full bg-gray-50 border-2 border-transparent rounded-2xl px-5 py-4 text-gray-800 font-medium placeholder-gray-400 focus:outline-none focus:border-brand-teal focus:bg-white transition-all shadow-sm min-h-[120px] resize-none;
+}
+
+
+.spinner-sm {
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Radio Card Styling for specific selections like room type or pet size */
+.radio-card {
+  @apply flex items-center gap-3 px-5 py-3 border-2 border-gray-100 rounded-2xl cursor-pointer transition-all duration-300 bg-white hover:border-brand-teal/50;
+}
+
+.radio-card:has(input:checked) {
+  @apply border-brand-teal bg-brand-teal/5 ring-4 ring-brand-teal/10;
+}
+
+.radio-card input {
+  @apply accent-brand-teal;
+}
+
+/* Category Sections Headers */
+.category-header {
+  @apply flex items-center gap-4 py-4 px-6 rounded-t-2xl mb-6 -mx-6 -mt-6 border-b text-white font-black uppercase text-sm tracking-widest;
+}
+
+.category-header.VETERINARY { @apply bg-red-500 border-red-600; }
+.category-header.GROOMING   { @apply bg-purple-500 border-purple-600; }
+.category-header.TRAINING   { @apply bg-blue-600 border-blue-700; }
+.category-header.BOARDING   { @apply bg-green-500 border-green-600; }
+.category-header.HOTEL      { @apply bg-amber-500 border-amber-600; }
+.category-header.WALKING    { @apply bg-teal-500 border-teal-600; }
+
+/* Zone drag & drop image */
+.image-drop-zone {
+  @apply w-full border-2 border-dashed border-gray-200 rounded-3xl py-10 px-6
+         flex flex-col items-center justify-center cursor-pointer
+         bg-gray-50 hover:bg-brand-teal/5 hover:border-brand-teal
+         transition-all duration-300;
+}
+
+.image-drop-zone.drag-over {
+  @apply border-brand-teal bg-brand-teal/10 scale-[1.01] shadow-lg shadow-brand-teal/10;
+}

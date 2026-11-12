@@ -1,0 +1,151 @@
+<div class="atrisk-page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <div>
+        <h1>🔴 At-Risk Animals</h1>
+        <p>AI-powered detection of animals needing urgent attention</p>
+      </div>
+      <button class="btn-refresh" (click)="load()">
+        <i class="fas fa-sync-alt"></i> Refresh Analysis
+      </button>
+    </div>
+  </div>
+
+  <div class="page-body">
+
+    <!-- KPI -->
+    <div class="kpi-row" *ngIf="!loading && !error">
+      <div class="kpi" [class.active]="selectedLevel === ''" (click)="selectedLevel = ''">
+        <span class="kpi-n">{{ pets.length }}</span>
+        <span class="kpi-l">Total Flagged</span>
+      </div>
+      <div class="kpi critical-kpi" [class.active]="selectedLevel === 'CRITICAL'"
+           (click)="selectedLevel = selectedLevel === 'CRITICAL' ? '' : 'CRITICAL'">
+        <span class="kpi-n">{{ critical }}</span>
+        <span class="kpi-l">🔴 Critical</span>
+      </div>
+      <div class="kpi atrisk-kpi" [class.active]="selectedLevel === 'AT_RISK'"
+           (click)="selectedLevel = selectedLevel === 'AT_RISK' ? '' : 'AT_RISK'">
+        <span class="kpi-n">{{ atRisk }}</span>
+        <span class="kpi-l">🟠 At Risk</span>
+      </div>
+      <div class="kpi watch-kpi" [class.active]="selectedLevel === 'WATCH'"
+           (click)="selectedLevel = selectedLevel === 'WATCH' ? '' : 'WATCH'">
+        <span class="kpi-n">{{ watch }}</span>
+        <span class="kpi-l">🟡 Watch</span>
+      </div>
+    </div>
+
+    <!-- Info banner -->
+    <div class="info-banner" *ngIf="!loading">
+      <i class="fas fa-robot"></i>
+      <span>AI analyzes: time in shelter, number of requests, animal age & type, special needs, and photo quality.</span>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="state-center">
+      <div class="spinner"></div>
+      <p>Running AI analysis...</p>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="error" class="error-box">{{ error }}</div>
+
+    <!-- Empty -->
+    <div *ngIf="!loading && pets.length === 0" class="empty-box">
+      <div style="font-size:3.5rem;margin-bottom:.75rem">🟢</div>
+      <h3>All animals are doing great!</h3>
+      <p>No animals flagged at risk. Keep up the excellent work!</p>
+    </div>
+
+    <!-- Cards -->
+    <div *ngIf="!loading && filtered.length > 0" class="cards-grid">
+      <div *ngFor="let pet of filtered" class="pet-card"
+           [style.border-left-color]="pet.riskColor">
+
+        <!-- Top row: image + info + score -->
+        <div class="card-top">
+
+          <!-- Photo -->
+          <div class="pet-thumb">
+            <img *ngIf="getFirstPhoto(pet.petPhotos)"
+                 [src]="'http://localhost:8087/elif' + getFirstPhoto(pet.petPhotos)"
+                 [alt]="pet.petName">
+            <div *ngIf="!getFirstPhoto(pet.petPhotos)" class="no-photo">
+              <i class="fas fa-camera-slash"></i>
+            </div>
+          </div>
+
+          <!-- Info -->
+          <div class="pet-info">
+            <div class="pet-name-row">
+              <h3>{{ pet.petName }}</h3>
+              <span class="level-badge" [ngClass]="getLevelClass(pet.riskLevel)">
+                {{ getLevelLabel(pet.riskLevel) }}
+              </span>
+            </div>
+            <p class="pet-meta">
+              {{ pet.petType }} • {{ pet.petBreed || 'Unknown breed' }} •
+              {{ pet.petAge ? (pet.petAge + ' months') : '?' }}
+            </p>
+            <div class="pet-stats">
+              <span class="stat-pill">
+                <i class="fas fa-calendar"></i> {{ pet.daysInShelter }} days in shelter
+              </span>
+              <span class="stat-pill" [class.zero]="pet.requestCount === 0">
+                <i class="fas fa-envelope"></i> {{ pet.requestCount }} request{{ pet.requestCount !== 1 ? 's' : '' }}
+              </span>
+              <span class="stat-pill warn" *ngIf="pet.specialNeeds">
+                <i class="fas fa-heartbeat"></i> Special needs
+              </span>
+            </div>
+          </div>
+
+          <!-- Score circle -->
+          <div class="score-circle" [style.border-color]="pet.riskColor"
+               [style.color]="pet.riskColor">
+            <div class="score-n">{{ pet.riskScore }}</div>
+            <div class="score-l">/ 100</div>
+          </div>
+
+        </div>
+
+        <!-- Risk factors -->
+        <div class="factors-row">
+          <div *ngFor="let factor of pet.riskFactors" class="factor-chip">
+            {{ factor }}
+          </div>
+        </div>
+
+        <!-- Recommendations (accordion) -->
+        <div class="recs-section">
+          <button class="recs-toggle" (click)="toggleExpand(pet.petId)">
+            <i class="fas fa-lightbulb"></i>
+            AI Recommendations ({{ pet.recommendations.length }})
+            <i class="fas" [ngClass]="expandedPetId === pet.petId ? 'fa-chevron-up' : 'fa-chevron-down'"
+               style="margin-left:auto"></i>
+          </button>
+          <div class="recs-list" *ngIf="expandedPetId === pet.petId">
+            <div *ngFor="let rec of pet.recommendations" class="rec-item">
+              <span>{{ rec }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="card-actions">
+          <button class="btn-edit" (click)="editPet(pet.petId)">
+            <i class="fas fa-edit"></i> Edit Profile
+          </button>
+          <button class="btn-requests" (click)="viewRequests(pet.petId)">
+            <i class="fas fa-list"></i> View Requests
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>

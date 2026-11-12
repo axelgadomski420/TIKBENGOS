@@ -1,0 +1,46 @@
+:host { display: block; }
+
+.post-image-clickable {
+	cursor: zoom-in;
+}
+
+.image-modal-backdrop {
+	position: fixed;
+	inset: 0;
+	background: rgba(15, 23, 42, 0.74);
+	backdrop-filter: blur(3px);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 1rem;
+	z-index: 1200;
+}
+
+.image-modal-content {
+	position: relative;
+	width: min(95vw, 1000px);
+	max-height: 90vh;
+	border-radius: 1rem;
+	overflow: hidden;
+	background: #0f172a;
+	border: 1px solid rgba(148, 163, 184, 0.45);
+}
+
+.image-modal-img {
+	display: block;
+	width: 100%;
+	max-height: 90vh;
+	object-fit: contain;
+}
+
+.image-modal-close {
+	position: absolute;
+	top: 0.7rem;
+	right: 0.7rem;
+	width: 2rem;
+	height: 2rem;
+	border-radius: 999px;
+	background: rgba(15, 23, 42, 0.68);
+	color: #fff;
+	border: 1px solid rgba(226, 232, 240, 0.45);
+}

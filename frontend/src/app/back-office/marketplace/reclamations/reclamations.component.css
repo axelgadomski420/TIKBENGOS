@@ -1,0 +1,137 @@
+:host {
+  display: block;
+}
+
+.reclamation-filter-shell {
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  background: #f8fafc;
+  padding: 0.9rem;
+}
+
+.reclamation-filter-label {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #64748b;
+}
+
+.reclamation-filter-input {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  background: #fff;
+  color: #0f172a;
+  font-size: 0.86rem;
+  padding: 0.55rem 0.7rem;
+}
+
+.reclamation-filter-input:focus {
+  outline: none;
+  border-color: #0f766e;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.14);
+}
+
+.reclamation-filter-meta {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.reclamation-clear-btn {
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  background: #fff;
+  color: #0f172a;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.45rem 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.reclamation-clear-btn:hover:not(:disabled) {
+  border-color: #0f766e;
+  color: #0f766e;
+  background: #f0fdfa;
+}
+
+.reclamation-clear-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.reclamation-kpi-grid {
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+  .reclamation-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .reclamation-kpi-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.reclamation-kpi-card {
+  border: 1px solid #dbeafe;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 0.9rem;
+  padding: 0.7rem 0.85rem;
+}
+
+.reclamation-kpi-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.reclamation-kpi-value {
+  margin-top: 0.22rem;
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.reclamation-status-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.reclamation-status-success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.reclamation-status-danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.reclamation-status-warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.reclamation-status-neutral {
+  background: #e2e8f0;
+  color: #334155;
+}

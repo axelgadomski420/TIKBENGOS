@@ -1,0 +1,80 @@
+<div class="pet-selector-backdrop" (click)="onBackdropClick($event)">
+  <section class="pet-selector-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <header class="modal-header">
+      <div class="header-copy">
+        <h2>
+          <mat-icon class="material-icons-round">pets</mat-icon>
+          <span>Select Your Pet</span>
+        </h2>
+        <p>Choose the pet traveling with you</p>
+      </div>
+
+      <button type="button" class="btn-close" (click)="close()" aria-label="Close pet selector">
+        <mat-icon class="material-icons-round">close</mat-icon>
+      </button>
+    </header>
+
+    <div class="modal-body">
+      <div class="pet-grid" *ngIf="loading">
+        <article class="pet-card pet-card--skeleton" *ngFor="let slot of [1, 2]">
+          <div class="skeleton-avatar"></div>
+          <div class="skeleton-line skeleton-line--lg"></div>
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line skeleton-line--sm"></div>
+        </article>
+      </div>
+
+      <section class="empty-state" *ngIf="!loading && !errorMessage && pets.length === 0">
+        <mat-icon class="material-icons-round">pets</mat-icon>
+        <h3>No pets found</h3>
+        <p>Create a pet profile first.</p>
+      </section>
+
+      <section class="empty-state empty-state--error" *ngIf="!loading && errorMessage">
+        <mat-icon class="material-icons-round">error_outline</mat-icon>
+        <h3>Unable to load pets</h3>
+        <p>{{ errorMessage }}</p>
+      </section>
+
+      <div class="pet-grid" *ngIf="!loading && pets.length > 0">
+        <article class="pet-card" *ngFor="let pet of pets; trackBy: trackByPet" (click)="selectPet(pet)">
+          <div class="pet-card-top">
+            <div class="pet-photo">
+              <img *ngIf="resolvePetPhotoUrl(pet.photoUrl) as imageUrl; else defaultPhoto" [src]="imageUrl" [alt]="pet.name" />
+              <ng-template #defaultPhoto>
+                <div class="pet-photo-fallback">
+                  <mat-icon class="material-icons-round">pets</mat-icon>
+                </div>
+              </ng-template>
+
+              <span class="species-badge" [ngClass]="speciesBadgeClass(pet.species)">
+                {{ formatSpecies(pet.species) }}
+              </span>
+            </div>
+          </div>
+
+          <div class="pet-card-middle">
+            <h4>{{ pet.name }}</h4>
+            <p>{{ pet.breed || 'Unknown breed' }}</p>
+            <span class="gender-chip">{{ pet.gender || 'Unknown' }}</span>
+          </div>
+
+          <div class="pet-card-bottom">
+            <span class="metric">
+              <mat-icon class="material-icons-round">monitor_weight</mat-icon>
+              <strong>{{ pet.weight | number: '1.0-2' }} kg</strong>
+            </span>
+            <span class="metric metric--muted" *ngIf="getAgeLabel(pet.dateOfBirth) as age">
+              <mat-icon class="material-icons-round">cake</mat-icon>
+              {{ age }}
+            </span>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <footer class="modal-footer">
+      <button type="button" class="btn-cancel" (click)="close()">Cancel</button>
+    </footer>
+  </section>
+</div>

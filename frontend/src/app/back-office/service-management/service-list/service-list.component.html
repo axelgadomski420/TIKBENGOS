@@ -1,0 +1,336 @@
+<div class="min-h-screen bg-gray-50 py-12 px-6">
+  <div class="max-w-7xl mx-auto space-y-10">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- LOADING APPROVAL CHECK                              -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <div *ngIf="approvalLoading" class="flex flex-col items-center justify-center py-24">
+      <div class="w-10 h-10 border-4 border-gray-200 border-t-teal-500 rounded-full animate-spin mb-4"></div>
+      <p class="text-gray-400 font-medium">Checking your status...</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- NOT APPROVED — Landing page + request                -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <div *ngIf="!approvalLoading && !isApproved" class="space-y-8">
+
+      <!-- ══ HERO SECTION ══ -->
+      <div class="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden flex flex-col-reverse lg:flex-row">
+        <div class="p-10 md:p-14 lg:w-1/2 flex flex-col justify-center">
+          <p class="text-xs font-extrabold text-[#368b75] uppercase tracking-[0.15em] mb-4">Provider Portal</p>
+          <h1 class="text-4xl md:text-[2.75rem] font-black text-[#0f172a] leading-[1.1] mb-6">
+            Care, grooming, training and much more.
+          </h1>
+          <p class="text-[#64748b] text-[1.05rem] leading-relaxed mb-8 max-w-lg">
+            Offer your services to pet owners. Manage your bookings and join a passionate community with the same visual style as yours.
+          </p>
+          <div class="flex flex-wrap gap-4">
+            <!-- Bouton principal (style "Browse Products") -->
+            <button (click)="goToProviderRequest()"
+              [disabled]="requestStatus === 'PENDING'"
+              class="inline-flex items-center justify-center gap-2.5 bg-[#368b75] text-white px-8 py-3.5 rounded-full font-black text-[15px] hover:bg-[#2c7562] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+              </svg>
+              <span *ngIf="requestStatus !== 'PENDING'">Become a Provider</span>
+              <span *ngIf="requestStatus === 'PENDING'">Request sent</span>
+            </button>
+            
+            <!-- Bouton secondaire (style "Open Cart") -->
+            <a routerLink="/frontoffice"
+              class="inline-flex items-center justify-center gap-2.5 bg-white text-[#0f172a] px-8 py-3.5 rounded-full font-black text-[15px] border border-gray-200 hover:bg-gray-50 transition-colors">
+              <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+              </svg>
+              Explore services
+            </a>
+          </div>
+        </div>
+        <div class="lg:w-1/2 relative min-h-[300px]">
+          <img src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&q=80&w=1000" alt="Pet care services" class="absolute inset-0 w-full h-full object-cover" />
+          <div class="absolute inset-0 bg-gradient-to-r from-white via-white/40 to-transparent lg:block hidden"></div>
+          <div class="absolute inset-0 bg-gradient-to-t from-white via-white/60 to-transparent lg:hidden block"></div>
+        </div>
+      </div>
+      <!-- ══ SERVICE CATEGORIES ══ -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-md hover:-translate-y-0.5 transition-all">
+          <div class="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-2xl mb-4">🩺</div>
+          <h3 class="font-extrabold text-gray-900 text-lg mb-1.5">Veterinary</h3>
+          <p class="text-gray-500 text-sm leading-relaxed">General consultations, emergencies, specialized care and medical follow-up for animals.</p>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-md hover:-translate-y-0.5 transition-all">
+          <div class="w-12 h-12 rounded-xl bg-pink-50 flex items-center justify-center text-2xl mb-4">✂️</div>
+          <h3 class="font-extrabold text-gray-900 text-lg mb-1.5">Grooming</h3>
+          <p class="text-gray-500 text-sm leading-relaxed">Bath, cut, brushing and aesthetic care adapted to each breed.</p>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-md hover:-translate-y-0.5 transition-all">
+          <div class="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-2xl mb-4">🎓</div>
+          <h3 class="font-extrabold text-gray-900 text-lg mb-1.5">Training</h3>
+          <p class="text-gray-500 text-sm leading-relaxed">Obedience, socialization, behavior and professional dog training.</p>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-md hover:-translate-y-0.5 transition-all">
+          <div class="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center text-2xl mb-4">🏠</div>
+          <h3 class="font-extrabold text-gray-900 text-lg mb-1.5">Boarding</h3>
+          <p class="text-gray-500 text-sm leading-relaxed">Day or night care, outdoor space and personalized follow-up.</p>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-md hover:-translate-y-0.5 transition-all">
+          <div class="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center text-2xl mb-4">🏨</div>
+          <h3 class="font-extrabold text-gray-900 text-lg mb-1.5">Hotel</h3>
+          <p class="text-gray-500 text-sm leading-relaxed">Comfortable rooms with camera, meals included and dedicated staff.</p>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-md hover:-translate-y-0.5 transition-all">
+          <div class="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center text-2xl mb-4">🐕</div>
+          <h3 class="font-extrabold text-gray-900 text-lg mb-1.5">Dog Walking</h3>
+          <p class="text-gray-500 text-sm leading-relaxed">Individual or group walks, area coverage and flexible duration.</p>
+        </div>
+
+      </div>
+
+      <!-- ══ ACCESS RESTRICTION BANNER ══ -->
+      <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+
+        <!-- Pending status -->
+        <div *ngIf="requestStatus === 'PENDING'"
+          class="bg-amber-50 border-b border-amber-200 px-8 py-5 flex items-center gap-4">
+          <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <div>
+            <p class="font-bold text-amber-800 text-sm">Request under review</p>
+            <p class="text-amber-700 text-xs mt-0.5">Your application is pending administrator validation.</p>
+          </div>
+        </div>
+
+        <!-- Rejected status -->
+        <div *ngIf="requestStatus === 'REJECTED'"
+          class="bg-red-50 border-b border-red-200 px-8 py-5 flex items-center gap-4">
+          <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <div>
+            <p class="font-bold text-red-800 text-sm">Previous request rejected</p>
+            <p class="text-red-700 text-xs mt-0.5">You can submit a new request with more details.</p>
+          </div>
+        </div>
+
+        <!-- Main content -->
+        <div class="p-8 md:p-10 flex flex-col md:flex-row items-center gap-8">
+          <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center flex-shrink-0">
+            <svg class="w-8 h-8 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+            </svg>
+          </div>
+          <div class="flex-1 text-center md:text-left">
+            <h2 class="text-2xl font-black text-gray-900 mb-2">Restricted Access</h2>
+            <p class="text-gray-500 text-sm leading-relaxed max-w-md">
+              To create and publish services on PURRE PETS, you must be validated as a provider by an administrator. Apply now!
+            </p>
+          </div>
+          <button (click)="goToProviderRequest()"
+            [disabled]="requestStatus === 'PENDING'"
+            class="flex-shrink-0 bg-gradient-to-r from-teal-500 to-teal-600 text-white px-8 py-4 rounded-2xl font-bold text-base shadow-lg hover:shadow-teal-500/30 hover:-translate-y-1 active:translate-y-0 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-lg">
+            <span *ngIf="requestStatus !== 'PENDING' && requestStatus !== 'REJECTED'">Request Access</span>
+            <span *ngIf="requestStatus === 'PENDING'">Request sent ⏳</span>
+            <span *ngIf="requestStatus === 'REJECTED'">Resubmit Request</span>
+          </button>
+        </div>
+
+        <!-- Steps footer -->
+        <div class="border-t border-gray-100 px-8 py-5 flex flex-wrap items-center justify-center gap-6 md:gap-10 text-sm text-gray-400 bg-gray-50/50">
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-xs font-bold">1</span>
+            Fill the Form
+          </div>
+          <div class="w-8 h-px bg-gray-200"></div>
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-xs font-bold">2</span>
+            Admin Validation
+          </div>
+          <div class="w-8 h-px bg-gray-200"></div>
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-xs font-bold">3</span>
+            Publish Services
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- APPROVED — Normal service list                      -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <ng-container *ngIf="!approvalLoading && isApproved">
+
+      <!-- Header Section -->
+      <div class="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden flex flex-col-reverse lg:flex-row mb-10">
+        <div class="p-10 md:p-14 lg:w-1/2 flex flex-col justify-center">
+          <p class="text-xs font-extrabold text-[#368b75] uppercase tracking-[0.15em] mb-4">PROVIDER PORTAL</p>
+          <h1 class="text-4xl md:text-[2.75rem] font-black text-[#0f172a] leading-[1.1] mb-6">
+            My Services.
+          </h1>
+          <p class="text-[#64748b] text-[1.05rem] leading-relaxed mb-8 max-w-lg">
+            Manage the services you offer, add new ones and track your bookings with the same community visual style.
+          </p>
+          <div class="flex flex-wrap gap-4">
+            <!-- Bouton principal (style "Browse Products") -->
+            <button (click)="onCreate()"
+              class="inline-flex items-center justify-center gap-2.5 bg-[#368b75] text-white px-8 py-3.5 rounded-full font-black text-[15px] hover:bg-[#2c7562] transition-colors">
+              <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+              </svg>
+              <span>New Service</span>
+            </button>
+
+            <!-- Bouton Dashboard IA -->
+            <button (click)="goToDashboard()"
+              class="inline-flex items-center justify-center gap-2.5 bg-gradient-to-r from-violet-600 to-blue-500 text-white px-8 py-3.5 rounded-full font-black text-[15px] hover:from-violet-700 hover:to-blue-600 transition-all shadow-lg hover:shadow-violet-300 hover:-translate-y-0.5">
+              🤖
+              <span>Dashboard IA</span>
+            </button>
+          </div>
+
+        </div>
+        <div class="lg:w-1/2 relative min-h-[250px]">
+          <img src="https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&q=80&w=1000" alt="Manage Services" class="absolute inset-0 w-full h-full object-cover" />
+          <div class="absolute inset-0 bg-gradient-to-r from-white via-white/40 to-transparent lg:block hidden"></div>
+          <div class="absolute inset-0 bg-gradient-to-t from-white via-white/60 to-transparent lg:hidden block"></div>
+        </div>
+      </div>
+
+      <!-- Filters & Search -->
+      <div class="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col lg:flex-row gap-6 items-end">
+        <div class="flex-1 w-full space-y-2">
+          <label for="search" class="text-sm font-bold text-gray-400 uppercase tracking-widest px-1">Search</label>
+          <div class="relative group">
+            <span
+              class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl group-focus-within:text-brand-teal transition-colors">🔍</span>
+            <input id="search" type="text" [formControl]="searchControl" placeholder="Name, description or category..."
+              class="w-full pl-14 pr-6 py-4 bg-gray-50 border-2 border-transparent focus:border-brand-teal rounded-2xl outline-none transition-all text-gray-700 font-medium">
+          </div>
+        </div>
+
+        <div class="w-full lg:w-72 space-y-2">
+          <label for="status" class="text-sm font-bold text-gray-400 uppercase tracking-widest px-1">Status</label>
+          <select id="status" [formControl]="statusFilter"
+            class="w-full px-6 py-4 bg-gray-50 border-2 border-transparent focus:border-indigo-500 rounded-2xl outline-none transition-all text-gray-700 font-bold appearance-none cursor-pointer">
+            <option value="ALL">All statuses</option>
+            <option value="ACTIVE">🟢 Active</option>
+            <option value="INACTIVE">🔴 Inactive</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div *ngIf="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div *ngFor="let i of [1,2,3]"
+          class="rounded-3xl h-80 animate-pulse bg-white border-2 flex flex-col overflow-hidden">
+          <div class="w-full h-44 bg-gray-100"></div>
+          <div class="p-6 space-y-3">
+            <div class="w-3/4 h-5 bg-gray-100 rounded-xl"></div>
+            <div class="w-1/2 h-4 bg-gray-100 rounded-xl"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Services Grid -->
+      <div *ngIf="!loading">
+        <div *ngIf="filteredServices$ | async as services; else noServices">
+          <div *ngIf="services.length > 0; else noServices"
+            class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
+
+            <div *ngFor="let service of services"
+              class="group flex flex-col bg-white rounded-3xl ring-1 ring-gray-200 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+
+              <div class="w-full h-56 overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 relative flex-shrink-0">
+                <img *ngIf="service.imageUrl" [src]="service.imageUrl" [alt]="service.name"
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                <div *ngIf="!service.imageUrl" class="w-full h-full flex items-center justify-center text-6xl">
+                  {{ service.category?.name?.toUpperCase() === 'VETERINARY' ? '🩺'
+                  : service.category?.name?.toUpperCase() === 'GROOMING' ? '✂️'
+                  : service.category?.name?.toUpperCase() === 'TRAINING' ? '🎓'
+                  : service.category?.name?.toUpperCase() === 'BOARDING' ? '🏠'
+                  : service.category?.name?.toUpperCase() === 'HOTEL' ? '🏨'
+                  : '🐾' }}
+                </div>
+                <span class="absolute top-3 left-3 px-3 py-1 bg-white/90 backdrop-blur-sm text-indigo-700 rounded-xl text-xs font-black uppercase tracking-widest shadow-sm">
+                  {{ service.category?.name }}
+                </span>
+                <span class="absolute top-3 right-3 status-badge"
+                  [ngClass]="service.status === 'ACTIVE' ? 'status-badge-active' : 'status-badge-inactive'">
+                  {{ service.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE' }}
+                </span>
+              </div>
+
+              <div class="p-8 flex flex-col flex-grow">
+                <div class="flex-grow mb-4">
+                  <h3 class="text-2xl font-black text-gray-900 mb-2 group-hover:text-brand-teal transition-colors line-clamp-1">
+                    {{ service.name }}
+                  </h3>
+                  <p class="text-gray-500 text-base line-clamp-2 leading-relaxed">
+                    {{ service.description }}
+                  </p>
+                </div>
+
+                <div class="flex items-center gap-6 py-4 border-y border-gray-100 mb-5">
+                  <div class="flex flex-col">
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Price</span>
+                    <span class="text-xl font-black text-brand-teal">{{ formatPrice(service.price) }}</span>
+                  </div>
+                  <div class="w-px h-8 bg-gray-100"></div>
+                  <div class="flex flex-col">
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Duration</span>
+                    <span class="text-xl font-black text-gray-700">{{ service.duration }} <small class="text-sm font-bold text-gray-400">min</small></span>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                  <button (click)="onEdit(service)"
+                    class="flex items-center justify-center gap-2 py-3 bg-gray-50 text-gray-700 font-bold rounded-xl hover:bg-gray-100 transition-colors border border-gray-200">
+                    ✏️ Edit
+                  </button>
+                  <button (click)="goToBookings(service.id)"
+                    class="flex items-center justify-center gap-2 py-3 bg-orange-500 text-white font-bold rounded-xl hover:bg-orange-600 hover:shadow-lg hover:shadow-orange-200 transition-all shadow-md">
+                    📅 Bookings
+                  </button>
+                  <button (click)="onDelete(service)"
+                    class="col-span-2 flex items-center justify-center gap-2 py-3 text-red-500 font-bold hover:bg-red-50 transition-colors rounded-xl border border-transparent hover:border-red-100">
+                    🗑️ Delete this service
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <ng-template #noServices>
+        <div class="flex flex-col items-center justify-center py-24 bg-white/50 rounded-3xl border-2 border-dashed border-gray-200 shadow-inner">
+          <div class="text-7xl mb-8 opacity-40">🐾</div>
+          <h3 class="text-3xl font-black text-gray-900 mb-3">No services found</h3>
+          <p class="text-gray-500 text-center max-w-md mb-10 leading-relaxed font-medium">
+            You haven't created any services yet or none match your current search.
+          </p>
+          <button (click)="onCreate()"
+            class="bg-brand-teal text-white px-10 py-5 rounded-2xl font-bold text-xl shadow-xl hover:shadow-brand-teal/40 hover:-translate-y-1 active:translate-y-0 transition-all">
+            Create your first service
+          </button>
+        </div>
+      </ng-template>
+
+    </ng-container>
+
+  </div>
+</div>

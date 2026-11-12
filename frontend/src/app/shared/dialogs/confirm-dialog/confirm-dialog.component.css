@@ -1,0 +1,102 @@
+:host {
+  display: block;
+}
+
+.dialog-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: #0f172a;
+}
+
+.dialog-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+}
+
+.dialog-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ecf7f4;
+}
+
+.dialog-icon mat-icon {
+  font-size: 30px;
+  width: 30px;
+  height: 30px;
+}
+
+.dialog-icon--success {
+  color: var(--color-brand-teal);
+  background: rgba(58, 146, 130, 0.12);
+}
+
+.dialog-icon--error {
+  color: var(--color-brand-red);
+  background: rgba(214, 73, 86, 0.12);
+}
+
+.dialog-icon--warning {
+  color: var(--color-brand-orange);
+  background: rgba(248, 154, 63, 0.16);
+}
+
+.dialog-icon--info {
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.12);
+}
+
+.dialog-title {
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 1.1;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.dialog-content {
+  padding: 0;
+  margin: 0;
+}
+
+.dialog-message {
+  margin: 0;
+  color: #475569;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  white-space: pre-line;
+}
+
+.dialog-actions {
+  padding: 0;
+  margin: 4px 0 0;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.dialog-btn {
+  min-width: 110px;
+  border-radius: 9999px;
+  font-weight: 800;
+}
+
+.dialog-btn-primary {
+  background: var(--color-brand-teal);
+  color: #fff;
+}
+
+.dialog-btn-primary:hover {
+  background: #327d70;
+}
+
+.dialog-btn-secondary {
+  border-color: #cbd5e1;
+  color: #334155;
+}

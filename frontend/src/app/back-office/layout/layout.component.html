@@ -1,0 +1,37 @@
+<div class="backoffice-shell flex h-screen overflow-hidden">
+  <app-sidebar [isOpen]="sidebarOpen"></app-sidebar>
+  <button
+    *ngIf="sidebarOpen && isMobile"
+    (click)="closeSidebar()"
+    class="fixed inset-0 bg-slate-900/30 z-10 lg:hidden"
+    aria-label="Close sidebar"
+  ></button>
+
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header class="shell-header z-10">
+      <div class="shell-header-inner">
+        <div class="header-left min-w-0">
+          <button (click)="toggleSidebar()" class="hamburger-btn" aria-label="Toggle sidebar">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+
+          <div class="header-copy min-w-0">
+            <p class="header-eyebrow">Back Office</p>
+            <h1 class="header-title truncate">{{ currentSection }}</h1>
+          </div>
+        </div>
+
+        <div class="header-actions ml-3">
+          <span class="date-pill hidden md:inline">{{ today | date:'EEE, MMM d' }}</span>
+          <div class="avatar-badge">AD</div>
+        </div>
+      </div>
+    </header>
+
+    <main class="shell-main flex-1 overflow-x-hidden overflow-y-auto">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>

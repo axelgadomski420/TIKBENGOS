@@ -1,0 +1,72 @@
+<div
+  *ngIf="dialogState$ | async as dialog"
+  class="dialog-backdrop"
+  role="presentation"
+  (click)="onBackdropClick($event)"
+>
+  <section
+    class="dialog-panel dialog-panel--wide"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="'User details: ' + fullName(dialog.user)"
+  >
+    <header class="dialog-header">
+      <div>
+        <p class="dialog-eyebrow">User Details</p>
+        <h3>{{ fullName(dialog.user) }}</h3>
+      </div>
+
+      <div class="dialog-header-meta">
+        <span class="role-pill" [ngClass]="isAdminRole(dialog.user.role) ? 'role-pill--admin' : 'role-pill--user'">
+          {{ dialog.user.role }}
+        </span>
+        <button
+          type="button"
+          class="close-button"
+          (click)="close()"
+          aria-label="Close user details dialog"
+        >
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+    </header>
+
+    <div class="details-grid">
+      <article class="detail-card">
+        <p class="detail-label">First Name</p>
+        <p class="detail-value">{{ dialog.user.firstName }}</p>
+      </article>
+
+      <article class="detail-card">
+        <p class="detail-label">Last Name</p>
+        <p class="detail-value">{{ dialog.user.lastName }}</p>
+      </article>
+
+      <article class="detail-card detail-card--full">
+        <p class="detail-label">Email</p>
+        <p class="detail-value">{{ dialog.user.email }}</p>
+      </article>
+
+      <article class="detail-card">
+        <p class="detail-label">Role</p>
+        <p class="detail-value">
+          <span
+            class="role-pill"
+            [ngClass]="isAdminRole(dialog.user.role) ? 'role-pill--admin' : 'role-pill--user'"
+          >
+            {{ dialog.user.role }}
+          </span>
+        </p>
+      </article>
+
+      <article class="detail-card" *ngIf="dialog.user.createdAt">
+        <p class="detail-label">Joined</p>
+        <p class="detail-value">{{ formatJoinedDate(dialog.user.createdAt) }}</p>
+      </article>
+    </div>
+
+    <footer class="dialog-actions">
+      <button type="button" class="btn btn--ghost" (click)="close()">Close</button>
+    </footer>
+  </section>
+</div>

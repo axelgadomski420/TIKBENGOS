@@ -1,0 +1,141 @@
+<div class="container">
+  <!-- Navigation Buttons -->
+  <div class="navigation-buttons">
+    <!-- Bouton retour selon provenance -->
+    <button class="btn-back" (click)="goBack()">
+      ← {{ cameFromWizard ? 'Back to My Matches' : 'Back to Pets' }}
+    </button>
+    
+    <!-- ✅ Bouton supplémentaire pour retour à la liste générale -->
+    <button *ngIf="cameFromWizard" class="btn-back-secondary" (click)="goBackToAllPets()">
+      📋 Back to All Pets
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Loading pet details...</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error" class="error">
+    {{ error }}
+  </div>
+
+  <!-- Pet Details -->
+  <div *ngIf="!loading && !error && pet">
+    <div class="pet-card">
+      <!-- Photo -->
+      <div class="photo-container">
+        <img *ngIf="getFirstPhoto(pet.photos)" [src]="'http://localhost:8087/elif' + getFirstPhoto(pet.photos)" 
+             [alt]="pet.name" class="pet-photo">
+        <div *ngIf="!getFirstPhoto(pet.photos)" class="photo-placeholder">
+          <span>🐾</span>
+          <p>Photo of {{ pet.name }}</p>
+        </div>
+      </div>
+
+      <!-- Pet Info -->
+      <div class="pet-info">
+        <div class="header">
+          <h1>{{ pet.name }}</h1>
+          <div class="badges">
+            <span class="badge badge-primary">{{ getPetTypeLabel(pet.type!) }}</span>
+            <span class="badge badge-secondary">{{ getPetSizeLabel(pet.size!) }}</span>
+            <span *ngIf="!pet.available" class="badge badge-success">✅ Adopted</span>
+          </div>
+        </div>
+
+        <!-- Message pour animal adopté -->
+        <div *ngIf="!pet.available" class="alert alert-success mt-3">
+          <i class="fas fa-heart"></i> 
+          <strong>This pet has found a loving home!</strong> 
+          Congratulations to the new family. Check out other pets waiting for adoption.
+        </div>
+
+        <div class="info-grid">
+          <!-- General Info -->
+          <div class="info-section">
+            <h3>📋 General Information</h3>
+            <table class="info-table">
+              <tr>
+                <th>Breed:</th>
+                <td>{{ pet.breed || 'Not specified' }}</td>
+              </tr>
+              <tr>
+                <th>Age:</th>
+                <td>{{ getAgeText(pet.age) }}</td>
+              </tr>
+              <tr>
+                <th>Gender:</th>
+                <td>{{ pet.gender === 'MALE' ? '♂ Male' : '♀ Female' }}</td>
+              </tr>
+              <tr>
+                <th>Color:</th>
+                <td>{{ pet.color || 'Not specified' }}</td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Health Info -->
+          <div class="info-section">
+            <h3>❤️ Health Information</h3>
+            <table class="info-table">
+              <tr>
+                <th>Health Status:</th>
+                <td>{{ pet.healthStatus || 'Good' }}</td>
+              </tr>
+              <tr>
+                <th>Spayed/Neutered:</th>
+                <td>{{ pet.spayedNeutered ? '✅ Yes' : '❌ No' }}</td>
+              </tr>
+              <tr *ngIf="pet.specialNeeds">
+                <th>Special Needs:</th>
+                <td><span class="special-badge">{{ pet.specialNeeds }}</span></td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="description">
+          <h3>📝 Description</h3>
+          <p>{{ pet.description || 'No description available.' }}</p>
+        </div>
+
+        <!-- Shelter Info -->
+        <div class="shelter-info" *ngIf="shelter">
+          <h3>🏠 Shelter</h3>
+          <p><strong>{{ shelter.name }}</strong></p>
+          <p>📍 {{ shelter.address }}</p>
+          <p>📞 {{ shelter.phone || 'Not specified' }} | ✉️ {{ shelter.email }}</p>
+          <a [routerLink]="['/app/adoption/shelters', shelter.id]" class="btn-link">
+            View all animals at this shelter →
+          </a>
+        </div>
+
+        <!-- Adopt Button -->
+        <div class="adopt-section">
+          <div *ngIf="pet.available">
+            <button *ngIf="isLoggedIn" class="btn btn-adopt" (click)="adopt()">
+              🐾 Request Adoption
+            </button>
+            <button *ngIf="!isLoggedIn" class="btn btn-disabled" (click)="adopt()">
+              🔒 Log in to request adoption
+            </button>
+          </div>
+          <div *ngIf="!pet.available" class="adopted-message">
+            <button class="btn btn-adopted" disabled>
+              ✅ Already Adopted
+            </button>
+            <p class="text-muted mt-2">
+              This pet has already found a home. 
+              <a routerLink="/app/adoption/pets">Browse other pets</a> looking for adoption.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

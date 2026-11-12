@@ -1,0 +1,187 @@
+<div class="spr-wrapper">
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="spr-loading">
+    <div class="spr-spinner"></div>
+    <p>Chargement de votre statut...</p>
+  </div>
+
+  <!-- Contenu principal -->
+  <div *ngIf="!loading">
+
+    <!-- ═══════ APPROVED ═══════ -->
+    <div *ngIf="isApproved" class="spr-card spr-approved">
+      <div class="spr-icon-wrap spr-icon-approved">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      <h2>Accès autorisé ✨</h2>
+      <p>Votre demande a été approuvée par l'administrateur. Vous pouvez désormais créer et publier des services.</p>
+      <a routerLink="/backoffice/services/pick-category" class="spr-btn spr-btn-primary">
+        ＋ Créer un service
+      </a>
+    </div>
+
+    <!-- ═══════ PENDING ═══════ -->
+    <div *ngIf="isPending" class="spr-card spr-pending">
+      <div class="spr-icon-wrap spr-icon-pending">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      <h2>En attente de validation</h2>
+      <p>Votre demande a bien été soumise et est en cours d'examen par notre équipe. Vous serez notifié dès qu'une décision sera prise.</p>
+      <div class="spr-meta" *ngIf="request?.message">
+        <span class="spr-meta-label">Votre message :</span>
+        <em>"{{ request?.message }}"</em>
+      </div>
+    </div>
+
+    <!-- ═══════ REJECTED ═══════ -->
+    <div *ngIf="isRejected" class="spr-card spr-rejected">
+      <div class="spr-icon-wrap spr-icon-rejected">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      <h2>Demande refusée</h2>
+      <p>Votre demande a été refusée. Vous pouvez soumettre une nouvelle demande avec plus de détails.</p>
+
+      <!-- Refaire une demande -->
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="spr-form spr-form-resubmit">
+        
+        <div class="spr-field">
+          <label>Nom complet</label>
+          <input type="text" formControlName="fullName" readonly class="spr-input-readonly" />
+        </div>
+
+        <div class="spr-field">
+          <label>Email</label>
+          <input type="email" formControlName="email" readonly class="spr-input-readonly" />
+        </div>
+
+        <div class="spr-field">
+          <label for="phone-retry">Téléphone <span class="required">*</span></label>
+          <input id="phone-retry" type="text" formControlName="phone" placeholder="+216 12 345 678" />
+          <span class="spr-hint error" *ngIf="form.get('phone')?.touched && form.get('phone')?.errors?.['required']">
+            Le téléphone est requis.
+          </span>
+          <span class="spr-hint error" *ngIf="form.get('phone')?.touched && form.get('phone')?.errors?.['pattern']">
+            Format invalide.
+          </span>
+        </div>
+
+        <div class="spr-field">
+          <label for="cv-retry">CV (PDF) <span class="required">*</span></label>
+          <input id="cv-retry" type="file" accept=".pdf" (change)="onFileSelected($event)" />
+        </div>
+
+        <div class="spr-field">
+          <label for="msg-retry">Description de la demande <span class="required">*</span></label>
+          <textarea id="msg-retry" formControlName="message" rows="4"
+            placeholder="Expliquez pourquoi vous souhaitez devenir prestataire de services..."></textarea>
+          <span class="spr-hint error" *ngIf="form.get('message')?.touched && form.get('message')?.errors?.['required']">
+            Le message est requis.
+          </span>
+          <span class="spr-hint error" *ngIf="form.get('message')?.touched && form.get('message')?.errors?.['minlength']">
+            Minimum 10 caractères.
+          </span>
+        </div>
+        <div *ngIf="errorMsg" class="spr-alert spr-alert-error">{{ errorMsg }}</div>
+        <button type="submit" class="spr-btn spr-btn-primary" [disabled]="submitting || form.invalid || !selectedCv">
+          <span *ngIf="!submitting">Renvoyer la demande</span>
+          <span *ngIf="submitting">Envoi en cours...</span>
+        </button>
+      </form>
+    </div>
+
+    <!-- ═══════ NONE — Formulaire initial ═══════ -->
+    <div *ngIf="hasNoRequest" class="spr-card spr-none">
+      <div class="spr-hero">
+        <div class="spr-icon-wrap spr-icon-none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+          </svg>
+        </div>
+        <h2>Devenez Prestataire de Services</h2>
+        <p>Pour publier des services sur la plateforme PURRE PETS, vous devez d'abord obtenir l'approbation de l'administrateur. Remplissez le formulaire ci-dessous.</p>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="spr-form">
+        <div class="spr-steps">
+          <div class="spr-step active"><span>1</span> Informations</div>
+          <div class="spr-step-line"></div>
+          <div class="spr-step"><span>2</span> Validation</div>
+          <div class="spr-step-line"></div>
+          <div class="spr-step"><span>3</span> Publication</div>
+        </div>
+
+        <div class="spr-field">
+          <label>Nom complet</label>
+          <input type="text" formControlName="fullName" readonly class="spr-input-readonly" />
+        </div>
+
+        <div class="spr-field">
+          <label>Email</label>
+          <input type="email" formControlName="email" readonly class="spr-input-readonly" />
+        </div>
+
+        <div class="spr-field">
+          <label for="spr-phone">
+            Téléphone <span class="required">*</span>
+          </label>
+          <input id="spr-phone" type="text" formControlName="phone" placeholder="+216 12 345 678" />
+          <div class="spr-field-footer">
+            <span class="spr-hint error" *ngIf="form.get('phone')?.touched && form.get('phone')?.errors?.['required']">
+              Le téléphone est requis.
+            </span>
+            <span class="spr-hint error" *ngIf="form.get('phone')?.touched && form.get('phone')?.errors?.['pattern']">
+              Format invalide.
+            </span>
+          </div>
+        </div>
+
+        <div class="spr-field">
+          <label for="spr-cv">
+            CV (Format PDF) <span class="required">*</span>
+          </label>
+          <input id="spr-cv" type="file" accept=".pdf" (change)="onFileSelected($event)" />
+        </div>
+
+        <div class="spr-field">
+          <label for="spr-message">
+            Description <span class="required">*</span>
+          </label>
+          <textarea id="spr-message" formControlName="message" rows="5"
+            placeholder="Décrivez votre expérience, vos services envisagés, votre motivation...&#10;&#10;Ex : Je suis vétérinaire depuis 5 ans et je souhaite proposer des consultations en ligne..."></textarea>
+          <div class="spr-field-footer">
+            <span class="spr-hint error" *ngIf="form.get('message')?.touched && form.get('message')?.errors?.['required']">
+              Ce champ est requis.
+            </span>
+            <span class="spr-hint error" *ngIf="form.get('message')?.touched && form.get('message')?.errors?.['minlength']">
+              Minimum 10 caractères.
+            </span>
+            <span class="spr-char-count">
+              {{ form.get('message')?.value?.length || 0 }} / 500
+            </span>
+          </div>
+        </div>
+
+        <div *ngIf="errorMsg" class="spr-alert spr-alert-error">{{ errorMsg }}</div>
+        <div *ngIf="successMsg" class="spr-alert spr-alert-success">{{ successMsg }}</div>
+
+        <button type="submit" class="spr-btn spr-btn-primary spr-btn-full"
+          [disabled]="submitting || form.invalid || !selectedCv">
+          <svg *ngIf="!submitting" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+          </svg>
+          <span *ngIf="!submitting">Envoyer ma demande</span>
+          <span *ngIf="submitting">Envoi en cours...</span>
+        </button>
+      </form>
+    </div>
+
+  </div>
+</div>

@@ -1,0 +1,422 @@
+<section class="community-page min-h-screen bg-slate-50 px-4 py-10 md:px-8">
+  <div class="mx-auto max-w-5xl">
+    <div *ngIf="loading" class="space-y-4">
+      <div class="rounded-[1.8rem] border border-white bg-white/90 p-6 shadow-lg animate-pulse">
+        <div class="h-4 w-28 rounded bg-slate-200"></div>
+        <div class="mt-4 h-8 w-3/4 rounded bg-slate-200"></div>
+        <div class="mt-3 h-4 w-full rounded bg-slate-100"></div>
+        <div class="mt-2 h-4 w-4/5 rounded bg-slate-100"></div>
+      </div>
+      <div class="rounded-[1.5rem] border border-white bg-white/90 p-6 shadow-lg animate-pulse">
+        <div class="h-5 w-32 rounded bg-slate-200"></div>
+        <div class="mt-4 h-20 rounded bg-slate-100"></div>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && error" class="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-red-700">
+      {{ error }}
+    </div>
+
+    <div *ngIf="!loading && !error && post as p" class="space-y-5">
+      <header class="post-detail-card rounded-[1.9rem] border border-white bg-white/92 p-6 shadow-[0_22px_44px_rgba(15,23,42,0.08)]">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <a [routerLink]="['/app/community/c', p.communitySlug]" class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100" aria-label="Back to community">
+            <i class="fas fa-arrow-left text-[11px]"></i>Back to community
+          </a>
+          <button type="button" (click)="scrollToComments()" class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100" aria-label="Jump to comments">
+            <i class="fas fa-message text-[11px]"></i>Jump to comments
+          </button>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+          <a [routerLink]="['/app/community/c', p.communitySlug]" class="inline-flex items-center gap-2 rounded-full bg-brand-teal/10 px-3 py-1.5 text-brand-teal hover:bg-brand-teal/15">
+            <ng-container *ngIf="community?.iconUrl; else postDetailCommunityIconFallback">
+              <img
+                [src]="community?.iconUrl"
+                [alt]="(community?.name || p.communitySlug) + ' icon'"
+                loading="lazy"
+                decoding="async"
+                class="h-5 w-5 rounded-full object-cover ring-1 ring-brand-teal/25"
+              >
+            </ng-container>
+            <ng-template #postDetailCommunityIconFallback>
+              <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/70 text-[10px] font-bold uppercase text-brand-teal ring-1 ring-brand-teal/25">
+                {{ (community?.name || p.communitySlug).charAt(0).toUpperCase() }}
+              </span>
+            </ng-template>
+            <span>c/{{ p.communitySlug }}</span>
+          </a>
+          <span *ngIf="p.pinned" class="rounded-full bg-brand-orange/10 px-3 py-1.5 text-brand-orange">
+            <i class="fas fa-thumbtack mr-1"></i>Pinned
+          </span>
+          <span class="rounded-full bg-slate-100 px-3 py-1.5">{{ p.type === 'QUESTION' ? 'Question' : 'Discussion' }}</span>
+          <app-flair-badge *ngIf="p.flairName" [name]="p.flairName || ''" [color]="p.flair?.color || '#3A9282'" [textColor]="p.flair?.textColor || '#FFFFFF'"></app-flair-badge>
+        </div>
+
+        <h1 class="post-title mt-4 text-3xl font-black leading-tight text-slate-950 md:text-4xl">{{ p.title }}</h1>
+
+        <div class="post-byline mt-3 text-sm text-slate-600">
+          <span class="font-semibold text-slate-800">u/{{ postAuthorLabel }}</span>
+          <span class="mx-2 text-slate-400">•</span>
+          <span>{{ p.createdAt | date:'MMM d, y · h:mm a' }}</span>
+          <ng-container *ngIf="p.updatedAt">
+            <span class="mx-2 text-slate-400">•</span>
+            <span>edited {{ p.updatedAt | date:'MMM d, y · h:mm a' }}</span>
+          </ng-container>
+          <ng-container *ngIf="latestActivityAt">
+            <span class="mx-2 text-slate-400">•</span>
+            <span>active {{ latestActivityAt | date:'MMM d, y · h:mm a' }}</span>
+          </ng-container>
+        </div>
+
+        <div *ngIf="canEditPost || canDeletePost || canPinPost" class="mt-5 flex flex-wrap gap-2">
+          <button *ngIf="canEditPost && !editingPost" type="button" (click)="beginPostEdit()" class="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+            <i class="fas fa-pen text-brand-teal"></i>Edit post
+          </button>
+          <button *ngIf="canDeletePost" type="button" (click)="deletePost()" [disabled]="deletingPost" class="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60">
+            <i class="fas" [ngClass]="deletingPost ? 'fa-spinner fa-spin' : 'fa-trash'"></i>{{ deletingPost ? 'Deleting...' : 'Delete post' }}
+          </button>
+          <button *ngIf="canPinPost" type="button" (click)="togglePinPost()" [disabled]="pinningPost" class="inline-flex items-center gap-2 rounded-full border border-brand-orange/20 bg-brand-orange/10 px-4 py-2 text-sm font-semibold text-brand-orange hover:bg-brand-orange/15 disabled:cursor-not-allowed disabled:opacity-60">
+            <i class="fas" [ngClass]="pinningPost ? 'fa-spinner fa-spin' : (p.pinned ? 'fa-thumbtack' : 'fa-thumbtack')"></i>{{ pinningPost ? 'Updating...' : (p.pinned ? 'Unpin post' : 'Pin post') }}
+          </button>
+        </div>
+
+        <div *ngIf="postActionError" class="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {{ postActionError }}
+        </div>
+
+        <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <div class="flex flex-wrap items-center gap-3 text-sm text-slate-500">
+            <span class="inline-flex items-center gap-1.5"><i class="fas fa-eye text-brand-teal"></i>{{ p.viewCount || 0 }} views</span>
+            <span class="inline-flex items-center gap-1.5"><i class="fas fa-arrow-up text-brand-orange"></i>{{ p.voteScore || 0 }} score</span>
+            <span class="inline-flex items-center gap-1.5"><i class="fas fa-message text-brand-teal"></i>{{ totalCommentCount }} comments</span>
+          </div>
+        </div>
+
+        <div *ngIf="p.type === 'QUESTION'" class="mt-4 rounded-2xl border px-4 py-3 text-sm leading-6"
+             [ngClass]="hasAcceptedAnswer ? 'border-brand-teal/20 bg-brand-teal/5 text-slate-700' : 'border-slate-200 bg-slate-50 text-slate-600'">
+          <i class="fas mr-2" [ngClass]="hasAcceptedAnswer ? 'fa-circle-check text-brand-teal' : 'fa-circle-question text-brand-orange'"></i>
+          {{ hasAcceptedAnswer ? 'This question already has an accepted answer.' : 'This thread is looking for the most helpful answer.' }}
+        </div>
+
+        <div class="mt-6 border-t border-slate-100 pt-5">
+          <div class="flex gap-4 md:gap-5">
+          <app-vote-buttons [score]="p.voteScore" [userVote]="p.userVote || null" (voted)="onPostVote($event)"></app-vote-buttons>
+
+          <div class="min-w-0 flex-1">
+            <ng-container *ngIf="!editingPost; else postEditForm">
+              <div class="post-body-copy whitespace-pre-line text-[15px] leading-8 text-slate-700" [innerHTML]="p.content | mentionHighlight"></div>
+
+              <img
+                *ngIf="p.imageUrl"
+                [src]="p.imageUrl"
+                alt="Post image"
+                class="mt-5 w-full max-h-[28rem] rounded-[1.4rem] border border-slate-200 object-cover post-image-clickable"
+                (click)="openImageModal(p.imageUrl)">
+            </ng-container>
+
+            <ng-template #postEditForm>
+              <form (ngSubmit)="savePostEdits()" [formGroup]="editPostForm" class="rounded-[1.4rem] border border-slate-200 bg-slate-50 p-4 md:p-5">
+                <div class="flex items-center justify-between gap-3">
+                  <h2 class="text-lg font-bold text-slate-950">Edit post</h2>
+                  <span class="text-xs text-slate-400">Only the author can change the post body.</span>
+                </div>
+
+                <div class="mt-4 space-y-4">
+                  <div>
+                    <label class="mb-1 block text-sm font-semibold text-slate-700">Title</label>
+                    <input formControlName="title" maxlength="300" class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/20" [class.border-red-400]="titleInvalid" placeholder="Enter post title">
+                    <div class="mt-2 flex items-center justify-between">
+                      <div *ngIf="titleInvalid" class="text-xs text-red-600">
+                        <div *ngFor="let error of titleErrors">{{ error }}</div>
+                      </div>
+                      <span class="text-xs text-slate-400">{{ editPostTitleLength }}/300</span>
+                    </div>
+                  </div>
+
+                  <div class="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label class="mb-1 block text-sm font-semibold text-slate-700">Type</label>
+                      <select formControlName="type" class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/20">
+                        <option value="DISCUSSION">Discussion</option>
+                        <option value="QUESTION">Question</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label class="mb-1 block text-sm font-semibold text-slate-700">Flair</label>
+                      <select formControlName="flairId" class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/20">
+                        <option [ngValue]="null">No flair</option>
+                        <option *ngFor="let flair of flairs" [ngValue]="flair.id">{{ flair.name }}</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="mb-1 block text-sm font-semibold text-slate-700">Content</label>
+                    <textarea formControlName="content" rows="8" maxlength="5000" class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm leading-7 text-slate-800 focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/20 resize-none" [class.border-red-400]="contentInvalid" placeholder="Enter post content"></textarea>
+                    <div class="mt-2 flex items-center justify-between">
+                      <div *ngIf="contentInvalid" class="text-xs text-red-600">
+                        <div *ngFor="let error of contentErrors">{{ error }}</div>
+                      </div>
+                      <span class="text-xs text-slate-400">{{ editPostContentLength }}/5000</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="mb-1 block text-sm font-semibold text-slate-700">Image</label>
+                    <div class="flex flex-wrap items-center gap-2">
+                      <input [id]="editPostImageInputId" type="file" accept="image/*" (change)="onPostImagePicked($event)" class="hidden">
+                      <label [for]="editPostImageInputId" class="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-50">
+                        <i class="fas fa-paperclip text-brand-teal"></i>Attach image
+                      </label>
+                      <button *ngIf="editPostImageUrl" type="button" (click)="clearPostImage()" class="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100">
+                        <i class="fas fa-xmark"></i>Remove image
+                      </button>
+                    </div>
+
+                    <input formControlName="imageUrl" placeholder="Paste an image URL or data URL" class="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/20">
+                    <img *ngIf="editPostImageUrl" [src]="editPostImageUrl" alt="Post image preview" class="mt-4 w-full max-h-[24rem] rounded-[1.3rem] border border-slate-200 object-cover">
+                  </div>
+                </div>
+
+                <div class="mt-5 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                  <p class="text-sm text-slate-500">Saving updates the thread without changing votes or comments.</p>
+                  <div class="flex items-center gap-2">
+                    <button type="button" (click)="cancelPostEdit()" class="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                      Cancel
+                    </button>
+                    <button type="submit" [disabled]="savingPost || editPostForm.invalid" class="inline-flex items-center justify-center rounded-full bg-brand-teal px-5 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                      <i class="fas fa-save mr-2"></i>{{ savingPost ? 'Saving...' : 'Save changes' }}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </ng-template>
+          </div>
+        </div>
+        </div>
+      </header>
+
+      <section class="post-detail-card thread-summary-card rounded-[1.9rem] border border-white bg-white/94 p-6 shadow-[0_22px_44px_rgba(15,23,42,0.08)]" aria-label="AI thread summary">
+        <div class="flex flex-col gap-3 border-b border-slate-100 pb-4">
+          <div>
+            <span class="ai-summary-kicker">
+              <span class="ai-summary-kicker-icon" aria-hidden="true">
+                <span class="material-icons-round" aria-hidden="true">{{ summaryPrimaryIcon }}</span>
+              </span>
+              AI assistant
+            </span>
+            <h2 class="mt-2 text-2xl font-black text-slate-950">Thread summary</h2>
+            <p class="thread-summary-subtitle">Quick recap of the thread so readers catch up faster.</p>
+          </div>
+        </div>
+
+        <div class="thread-summary-action mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <p class="thread-summary-action-copy">Quick recap of the post, comments, and replies so readers catch up faster with relevant considerations.</p>
+          <button
+            type="button"
+            (click)="onThreadSummaryAction()"
+            [disabled]="loadingThreadSummary"
+            class="thread-summary-action-btn"
+          >
+            <span class="material-icons-round thread-summary-action-btn-icon" aria-hidden="true">{{ summaryPanelOpen ? 'refresh' : summaryPrimaryIcon }}</span>
+            {{ loadingThreadSummary ? 'Generating...' : (summaryPanelOpen ? 'Regenerate summary' : 'Generate summary') }}
+          </button>
+        </div>
+
+        <div class="thread-summary-expand" [class.thread-summary-expand-open]="summaryPanelOpen">
+          <div class="thread-summary-expand-inner">
+            <div *ngIf="loadingThreadSummary" class="space-y-3" aria-live="polite">
+              <div class="h-4 w-40 rounded bg-slate-200 animate-pulse"></div>
+              <div class="h-4 w-full rounded bg-slate-100 animate-pulse"></div>
+              <div class="h-4 w-[92%] rounded bg-slate-100 animate-pulse"></div>
+              <div class="h-4 w-[76%] rounded bg-slate-100 animate-pulse"></div>
+            </div>
+
+            <div *ngIf="!loadingThreadSummary && summaryError" class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {{ summaryError }}
+            </div>
+
+            <div *ngIf="!loadingThreadSummary && !summaryError && threadSummary" class="space-y-3">
+              <div class="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                <span class="thread-summary-stat thread-summary-stat-primary">{{ threadSummary.commentCount }} comments scanned</span>
+                <span class="thread-summary-stat" *ngIf="threadSummary.truncated">Partial input</span>
+              </div>
+              <div class="thread-summary-layout" *ngIf="parsedThreadSummary as sections">
+                <div class="thread-summary-frame rounded-2xl border border-slate-200 bg-slate-50">
+                  <article class="thread-summary-row">
+                    <p class="thread-summary-title">TL;DR</p>
+                    <div class="thread-summary-line">
+                      <span class="material-icons-round thread-summary-line-icon" aria-hidden="true">{{ sections.tldr.icon }}</span>
+                      <p class="thread-summary-copy">{{ sections.tldr.text }}</p>
+                    </div>
+                  </article>
+
+                  <article class="thread-summary-row" *ngIf="sections.keyPoints.length > 0">
+                    <p class="thread-summary-title">Key points</p>
+                    <ul class="thread-summary-list">
+                      <li *ngFor="let point of sections.keyPoints">
+                        <span class="material-icons-round thread-summary-line-icon" aria-hidden="true">{{ point.icon }}</span>
+                        <span>{{ point.text }}</span>
+                      </li>
+                    </ul>
+                  </article>
+
+                  <article class="thread-summary-row" *ngIf="sections.considerations.length > 0">
+                    <p class="thread-summary-title">Considerations</p>
+                    <ul class="thread-summary-list thread-summary-list-considerations">
+                      <li *ngFor="let point of sections.considerations">
+                        <span class="material-icons-round thread-summary-line-icon" aria-hidden="true">{{ point.icon }}</span>
+                        <span>{{ point.text }}</span>
+                      </li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="comments" class="post-detail-card rounded-[1.9rem] border border-white bg-white/94 p-6 shadow-[0_22px_44px_rgba(15,23,42,0.08)]" aria-label="Post comments">
+        <div class="flex flex-col gap-3 border-b border-slate-100 pb-5 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.16em] text-brand-teal">Discussion</p>
+            <h2 class="mt-2 text-2xl font-black text-slate-950">Comments</h2>
+            <p class="mt-2 text-sm leading-6 text-slate-500">Threaded replies keep the conversation easy to follow.</p>
+          </div>
+          <span class="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600">{{ totalCommentCount }} total</span>
+        </div>
+
+        <div *ngIf="commentError" class="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {{ commentError }}
+        </div>
+
+        <div *ngIf="!isLoggedIn" class="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+          <p class="font-semibold text-slate-900">Sign in to respond</p>
+          <p class="mt-1">You need an account to vote or join the discussion.</p>
+          <a routerLink="/auth/login" class="mt-4 inline-flex items-center gap-2 rounded-full bg-brand-teal px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700">
+            <i class="fas fa-right-to-bracket"></i>Log in
+          </a>
+        </div>
+
+        <div *ngIf="isLoggedIn && !showCommentComposer" class="comment-composer-collapsed mt-5 rounded-[1.2rem] border border-slate-200 bg-slate-50 px-4 py-3">
+          <button type="button" (click)="openCommentComposer()" class="comment-trigger w-full text-left" aria-label="Open comment composer">
+            <span class="block rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-500 hover:border-brand-teal/40">Add a comment...</span>
+          </button>
+        </div>
+
+        <form *ngIf="isLoggedIn && showCommentComposer" (ngSubmit)="submitComment()" [formGroup]="newCommentForm" class="comment-composer-expanded mt-5 rounded-[1.4rem] border border-slate-200 bg-slate-50 p-4">
+          <div class="flex items-center justify-between gap-3">
+            <h3 class="text-base font-bold text-slate-950">Add a comment</h3>
+            <span class="text-xs text-slate-400">{{ newCommentContentLength }}/2000</span>
+          </div>
+
+          <div class="relative mt-4">
+            <div class="community-mention-editor">
+              <div
+                #commentOverlay
+                class="community-mention-editor-overlay w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+                [innerHTML]="(newCommentContent || '') | mentionHighlight"></div>
+
+              <textarea
+                id="new-comment-content"
+                formControlName="content"
+                rows="4"
+                maxlength="2000"
+                aria-label="Add a comment"
+                placeholder="Share something useful, specific, and easy to act on."
+                class="community-mention-editor-input w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-teal/20 focus:border-brand-teal resize-none"
+                [class.border-red-400]="newCommentContentInvalid"
+                (input)="onCommentInput($event)"
+                (keydown)="onCommentKeydown($event)"
+                (scroll)="syncCommentOverlay($event, commentOverlay)"
+                (blur)="onCommentMentionBlur()"></textarea>
+            </div>
+
+            <app-mention-picker
+              class="absolute left-0 right-0 z-30 mt-2"
+              [open]="commentMentionPickerOpen"
+              [suggestions]="commentMentionSuggestions"
+              [activeIndex]="commentMentionActiveIndex"
+              [label]="'Mention someone'"
+              (selectMention)="selectCommentMention($event)">
+            </app-mention-picker>
+          </div>
+          <div class="mt-2 flex items-center justify-between">
+            <div *ngIf="newCommentContentInvalid" class="text-xs text-red-600">
+              <div *ngFor="let error of newCommentContentErrors">{{ error }}</div>
+            </div>
+            <p class="text-xs text-slate-500">Type &#64; to mention someone.</p>
+          </div>
+
+          <div class="mt-3 flex flex-wrap items-center gap-2">
+            <input [id]="commentImageInputId" type="file" accept="image/*" aria-label="Attach image to comment" (change)="onCommentImagePicked($event)" class="hidden">
+            <label [for]="commentImageInputId" class="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-50">
+              <i class="fas fa-paperclip text-brand-teal"></i>Attach image
+            </label>
+            <button type="button" (click)="openGifPicker()" class="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+              <i class="fas fa-icons text-brand-teal"></i>GIF
+            </button>
+            <button *ngIf="newCommentImageUrl" type="button" (click)="clearCommentImage()" class="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100">
+              <i class="fas fa-xmark"></i>Remove image
+            </button>
+          </div>
+
+          <img *ngIf="newCommentImageUrl" [src]="newCommentImageUrl" alt="Comment image preview" class="mt-4 w-full max-h-60 rounded-2xl border border-slate-200 object-cover">
+
+          <div class="mt-4 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <p class="text-sm text-slate-500">Keep replies concise and specific.</p>
+            <div class="flex items-center gap-2">
+              <button type="button" (click)="closeCommentComposer()" class="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                Cancel
+              </button>
+              <button
+                type="submit"
+                [disabled]="newCommentForm.invalid || submittingComment"
+                class="inline-flex items-center justify-center rounded-full bg-brand-teal px-5 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fas fa-paper-plane mr-2"></i>{{ submittingComment ? 'Posting...' : 'Post comment' }}
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <div class="mt-6 space-y-3" *ngIf="comments.length > 0" aria-live="polite">
+          <app-comment-tree
+            *ngFor="let c of comments"
+            [comment]="c"
+            [postId]="p.id"
+            [postOwnerId]="p.userId"
+            [postType]="p.type"
+            [canModerateCommunity]="canModerateCommunity"
+            [userId]="userId"
+            [acceptedAnswerSelected]="hasAcceptedAnswer"
+            (accept)="onAcceptAnswer($event)"
+            (imagePreview)="openImageModal($event)">
+          </app-comment-tree>
+        </div>
+
+        <div *ngIf="comments.length === 0" class="mt-6 rounded-[1.4rem] border border-dashed border-slate-200 bg-slate-50 px-5 py-8 text-center">
+          <p class="text-lg font-semibold text-slate-900">No comments yet.</p>
+          <p class="mt-2 text-sm text-slate-500">Start the discussion with a focused reply that moves the thread forward.</p>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>
+
+<div
+  *ngIf="selectedImageUrl"
+  class="image-modal-backdrop"
+  (click)="closeImageModal()"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Image preview modal">
+  <div class="image-modal-content" (click)="$event.stopPropagation()">
+    <button type="button" class="image-modal-close" (click)="closeImageModal()" aria-label="Close image preview">
+      <i class="fas fa-times"></i>
+    </button>
+    <img [src]="selectedImageUrl" alt="Expanded post image" class="image-modal-img">
+  </div>
+</div>

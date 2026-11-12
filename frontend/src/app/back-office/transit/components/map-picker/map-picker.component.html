@@ -1,0 +1,22 @@
+<div class="map-picker-wrapper">
+  <div class="map-instruction" *ngIf="!readonly">
+    <span class="material-icons-round">touch_app</span>
+    Click on the map to pin the exact location
+  </div>
+
+  <div class="map-container" [style.height]="height">
+    <div #mapContainer class="map-inner"></div>
+
+    <!-- Overlay gradient bottom for premium feel -->
+    <div class="map-gradient-overlay" *ngIf="readonly"></div>
+  </div>
+
+  <div class="map-coords-display" *ngIf="!readonly && selectedLat !== null">
+    <span class="material-icons-round">check_circle</span>
+    <span>
+      Lat: {{ selectedLat | number: '1.4-4' }},
+      Lng: {{ selectedLng | number: '1.4-4' }}
+    </span>
+    <span class="coords-confirmed">Location confirmed</span>
+  </div>
+</div>

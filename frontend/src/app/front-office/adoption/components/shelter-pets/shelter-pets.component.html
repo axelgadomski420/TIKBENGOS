@@ -1,0 +1,366 @@
+<div class="pets-container">
+
+  <!-- ── HEADER ── -->
+  <div class="page-header">
+    <div class="overlay"></div>
+    <div class="container">
+      <div class="col-lg-8">
+        <h1>🐾 My Pets</h1>
+        <p class="lead">Manage your shelter's animals</p>
+      </div>
+      <div class="header-buttons">
+        <button class="btn btn-outline-light" (click)="goToAtRisk()" *ngIf="atRiskMap.size > 0">
+          <i class="fas fa-exclamation-triangle me-1"></i>
+          At-Risk Report
+          <span class="at-risk-count">{{ atRiskMap.size }}</span>
+        </button>
+        
+        <button class="btn btn-outline-light" (click)="goToRequests()">
+          <i class="fas fa-list me-1"></i> All Requests
+        </button>
+        <button class="btn btn-light" (click)="addPet()">
+          <i class="fas fa-plus me-1"></i> Add Pet
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container py-4">
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="text-center py-5">
+      <div class="spinner-grow" role="status"></div>
+      <p class="mt-3" style="color:var(--text-muted);font-size:.85rem">Loading your pets...</p>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="error" class="alert alert-danger mb-3">
+      <i class="fas fa-exclamation-circle me-2"></i>{{ error }}
+    </div>
+
+    <!-- Empty -->
+    <div *ngIf="!loading && pets.length === 0" class="empty-state">
+      <div class="empty-state-icon">🐾</div>
+      <h3>No Pets Yet</h3>
+      <p>Add your first animal to start receiving adoption requests.</p>
+      <button class="btn-primary mt-2" (click)="addPet()">
+        <i class="fas fa-plus me-2"></i> Add Your First Pet
+      </button>
+    </div>
+
+    <!-- ══ SECTION 1 : AVAILABLE ══ -->
+    <div *ngIf="!loading && availablePets.length > 0" class="pets-section">
+
+      <div class="section-header available-header">
+        <div class="section-title">
+          <i class="fas fa-check-circle"></i>
+          <h2>Available Pets</h2>
+          <span class="badge-count">{{ availablePets.length }}</span>
+        </div>
+        <span class="section-desc">Animals ready for adoption</span>
+      </div>
+
+      <div class="pets-grid">
+        <div *ngFor="let pet of availablePets"
+             class="pet-card available"
+             [class.card-at-risk]="hasRisk(pet.id)">
+          <div class="card-status"></div>
+
+          <!-- Bandeau at-risk (cliquable) -->
+          <button *ngIf="hasRisk(pet.id)"
+                  class="atrisk-ribbon"
+                  [ngClass]="'ribbon-' + getAtRisk(pet.id)!.riskLevel.toLowerCase()"
+                  (click)="openRiskModal(pet.id, $event)">
+            <i class="fas fa-robot"></i>
+            AI Alert — {{ getRiskLabel(getAtRisk(pet.id)!.riskLevel) }}
+            <span class="ribbon-score">{{ getAtRisk(pet.id)!.riskScore }}/100</span>
+            <i class="fas fa-info-circle ms-1"></i>
+          </button>
+
+          <!-- Image -->
+          <div class="pet-image">
+            <img *ngIf="getFirstPhoto(pet.photos)"
+                 [src]="'http://localhost:8087/elif' + getFirstPhoto(pet.photos)"
+                 [alt]="pet.name" class="pet-img">
+            <div *ngIf="!getFirstPhoto(pet.photos)" class="image-placeholder">
+              <span class="pet-icon">{{ getPetIcon(pet.name) }}</span>
+            </div>
+            <div class="status-badge status-available">
+              <i class="fas fa-check-circle"></i> Available
+            </div>
+            <div class="requests-count-badge" *ngIf="requestsCount[pet.id] > 0">
+              <i class="fas fa-envelope"></i> {{ requestsCount[pet.id] }}
+            </div>
+            <!-- Badge jours en shelter -->
+            <div class="days-in-shelter" *ngIf="hasRisk(pet.id)">
+              {{ getAtRisk(pet.id)!.daysInShelter }}d
+            </div>
+          </div>
+
+          <!-- Info -->
+          <div class="pet-info">
+            <div class="pet-header">
+              <h3 class="pet-name">{{ pet.name }}</h3>
+              <div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap">
+                <!-- Badge IA cliquable -->
+                <button *ngIf="hasRisk(pet.id)"
+                        class="risk-badge-btn"
+                        [ngClass]="getRiskClass(getAtRisk(pet.id)!.riskLevel)"
+                        (click)="openRiskModal(pet.id, $event)"
+                        title="View AI analysis">
+                  {{ getRiskLabel(getAtRisk(pet.id)!.riskLevel) }}
+                  <i class="fas fa-chevron-right" style="font-size:.6rem"></i>
+                </button>
+                <div class="requests-badge" *ngIf="requestsCount[pet.id] > 0">
+                  <i class="fas fa-envelope"></i>
+                  {{ requestsCount[pet.id] }} request{{ requestsCount[pet.id] > 1 ? 's' : '' }}
+                </div>
+                <div class="requests-badge zero" *ngIf="!requestsCount[pet.id]">
+                  <i class="fas fa-inbox"></i> No requests
+                </div>
+              </div>
+            </div>
+
+            <p class="pet-breed">{{ pet.breed || 'Breed not specified' }}</p>
+
+            <div class="pet-details-grid">
+              <div class="detail-item"><i class="fas fa-paw"></i><span>{{ getPetTypeLabel(pet.type) }}</span></div>
+              <div class="detail-item"><i class="fas fa-expand-arrows-alt"></i><span>{{ getPetSizeLabel(pet.size) }}</span></div>
+              <div class="detail-item"><i class="fas fa-birthday-cake"></i><span>{{ pet.age }} mo.</span></div>
+              <div class="detail-item">
+                <i class="fas" [ngClass]="pet.gender === 'MALE' ? 'fa-mars' : 'fa-venus'"></i>
+                <span>{{ pet.gender === 'MALE' ? 'Male' : 'Female' }}</span>
+              </div>
+            </div>
+
+            <div class="pet-description" *ngIf="pet.description">
+              <i class="fas fa-quote-left"></i>
+              <p>{{ pet.description | slice:0:90 }}{{ (pet.description?.length || 0) > 90 ? '...' : '' }}</p>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="card-actions">
+            <button class="btn-action btn-edit" (click)="editPet(pet.id)">
+              <i class="fas fa-edit"></i> Edit
+            </button>
+            <button class="btn-action btn-requests" (click)="viewRequests(pet.id)">
+              <i class="fas fa-envelope"></i> Requests
+              <span *ngIf="requestsCount[pet.id] > 0" class="badge-count">{{ requestsCount[pet.id] }}</span>
+            </button>
+            <button class="btn-action btn-delete" (click)="deletePet(pet.id)" title="Delete">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SECTION 2 : ADOPTED ══ -->
+    <div *ngIf="!loading && adoptedPets.length > 0" class="pets-section">
+      <div class="section-header adopted-header">
+        <div class="section-title">
+          <i class="fas fa-heart"></i>
+          <h2>Adopted Pets</h2>
+          <span class="badge-count adopted">{{ adoptedPets.length }}</span>
+        </div>
+        <span class="section-desc">Animals that have found a loving home</span>
+      </div>
+      <div class="pets-grid">
+        <div *ngFor="let pet of adoptedPets" class="pet-card adopted">
+          <div class="card-status"></div>
+          <div class="pet-image">
+            <img *ngIf="getFirstPhoto(pet.photos)"
+                 [src]="'http://localhost:8087/elif' + getFirstPhoto(pet.photos)"
+                 [alt]="pet.name" class="pet-img">
+            <div *ngIf="!getFirstPhoto(pet.photos)" class="image-placeholder">
+              <span class="pet-icon">{{ getPetIcon(pet.name) }}</span>
+            </div>
+            <div class="status-badge status-adopted"><i class="fas fa-heart"></i> Adopted</div>
+          </div>
+          <div class="pet-info">
+            <div class="pet-header">
+              <h3 class="pet-name">{{ pet.name }}</h3>
+              <div class="adopted-badge"><i class="fas fa-home"></i> Adopted</div>
+            </div>
+            <p class="pet-breed">{{ pet.breed || 'Breed not specified' }}</p>
+            <div class="pet-details-grid">
+              <div class="detail-item"><i class="fas fa-paw"></i><span>{{ getPetTypeLabel(pet.type) }}</span></div>
+              <div class="detail-item"><i class="fas fa-expand-arrows-alt"></i><span>{{ getPetSizeLabel(pet.size) }}</span></div>
+              <div class="detail-item"><i class="fas fa-birthday-cake"></i><span>{{ pet.age }} mo.</span></div>
+              <div class="detail-item">
+                <i class="fas" [ngClass]="pet.gender === 'MALE' ? 'fa-mars' : 'fa-venus'"></i>
+                <span>{{ pet.gender === 'MALE' ? 'Male' : 'Female' }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="card-actions">
+            <button class="btn-action btn-edit" (click)="editPet(pet.id)"><i class="fas fa-edit"></i> Edit</button>
+            <button class="btn-action btn-requests-disabled" disabled><i class="fas fa-lock"></i> Requests closed</button>
+            <button class="btn-action btn-delete" (click)="deletePet(pet.id)" title="Delete"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ✅ MODALE ANALYSE IA COMPLÈTE (shelter) -->
+<div *ngIf="showRiskModal" class="modal-bd" (click)="closeRiskModal()"></div>
+<div *ngIf="showRiskModal && selectedRiskPet" class="ai-modal" (click)="$event.stopPropagation()">
+
+  <div class="ai-modal-header" [style.border-color]="selectedRiskPet.riskColor">
+    <div class="ai-modal-title">
+      <div class="ai-robot-icon">🤖</div>
+      <div>
+        <h3>AI Analysis — {{ selectedRiskPet.petName }}</h3>
+        <p>Detailed risk assessment and personalized recommendations</p>
+      </div>
+    </div>
+    <button class="ai-close" (click)="closeRiskModal()">✕</button>
+  </div>
+
+  <div class="ai-modal-body">
+
+    <!-- Niveau + score -->
+    <div class="ai-level-row">
+      <div class="ai-level-badge"
+           [style.background]="selectedRiskPet.riskColor + '18'"
+           [style.color]="selectedRiskPet.riskColor"
+           [style.border-color]="selectedRiskPet.riskColor + '44'">
+        {{ getRiskLabel(selectedRiskPet.riskLevel) }}
+      </div>
+      <div class="ai-score-bar-wrap">
+        <div class="ai-score-track">
+          <div class="ai-score-fill"
+               [style.width]="selectedRiskPet.riskScore + '%'"
+               [style.background]="selectedRiskPet.riskColor"></div>
+        </div>
+        <span class="ai-score-val" [style.color]="selectedRiskPet.riskColor">
+          {{ selectedRiskPet.riskScore }}/100
+        </span>
+      </div>
+    </div>
+
+    <!-- Stats rapides -->
+    <div class="ai-stats">
+      <div class="ai-stat">
+        <div class="ai-stat-n" [style.color]="selectedRiskPet.riskColor">{{ selectedRiskPet.daysInShelter }}</div>
+        <div class="ai-stat-l">Days in shelter</div>
+      </div>
+      <div class="ai-stat">
+        <div class="ai-stat-n"
+             [style.color]="selectedRiskPet.requestCount === 0 ? '#e53e3e' : '#38a169'">
+          {{ selectedRiskPet.requestCount }}
+        </div>
+        <div class="ai-stat-l">Total requests</div>
+      </div>
+      <div class="ai-stat" *ngIf="selectedRiskPet.lastRequestDate">
+        <div class="ai-stat-n" style="font-size:1rem">
+          {{ selectedRiskPet.lastRequestDate | date:'dd/MM' }}
+        </div>
+        <div class="ai-stat-l">Last request</div>
+      </div>
+    </div>
+
+    <!-- FACTEURS DE RISQUE -->
+    <div class="ai-section">
+      <div class="ai-section-title">
+        <i class="fas fa-exclamation-triangle" style="color:#ed8936"></i>
+        Risk Factors Detected
+      </div>
+      <div class="ai-factors">
+        <div *ngFor="let factor of selectedRiskPet.riskFactors" class="ai-factor">
+          <span>{{ factor }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECOMMANDATIONS IA -->
+    <div class="ai-section">
+      <div class="ai-section-title">
+        <i class="fas fa-lightbulb" style="color:#d69e2e"></i>
+        AI Recommendations
+      </div>
+      <div class="ai-recs">
+        <div *ngFor="let rec of selectedRiskPet.recommendations; let i = index"
+             class="ai-rec">
+          <div class="ai-rec-num">{{ i + 1 }}</div>
+          <span>{{ rec }}</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="ai-modal-footer">
+    <button class="btn-ai-action" (click)="editPet(selectedRiskPet.petId); closeRiskModal()">
+      <i class="fas fa-edit"></i> Edit Pet Profile
+    </button>
+    <button class="btn-ai-requests" (click)="viewRequests(selectedRiskPet.petId); closeRiskModal()">
+      <i class="fas fa-list"></i> View Requests
+    </button>
+    <button class="btn-ai-close" (click)="closeRiskModal()">Close</button>
+  </div>
+
+</div>
+
+<!-- ✅ MODALE GÉNÉRATION DESCRIPTION IA -->
+<div *ngIf="showDescriptionModal" class="modal-bd" (click)="closeDescriptionModal()"></div>
+<div *ngIf="showDescriptionModal" class="ai-modal" (click)="$event.stopPropagation()" style="max-width:500px">
+
+  <div class="ai-modal-header" style="border-color:#3a9282">
+    <div class="ai-modal-title">
+      <div class="ai-robot-icon">✨</div>
+      <div>
+        <h3>AI Description Generator</h3>
+        <p>Generate a professional adoption description</p>
+      </div>
+    </div>
+    <button class="ai-close" (click)="closeDescriptionModal()">✕</button>
+  </div>
+
+  <div class="ai-modal-body">
+    <div class="form-group" style="margin-bottom:1rem">
+      <label>🐾 Type of animal</label>
+      <input type="text" class="form-control" [(ngModel)]="descriptionInput.type" placeholder="e.g., Dog, Cat, Rabbit">
+    </div>
+    <div class="form-group" style="margin-bottom:1rem">
+      <label>Breed (optional)</label>
+      <input type="text" class="form-control" [(ngModel)]="descriptionInput.breed" placeholder="e.g., Labrador, Siamese">
+    </div>
+    <div class="form-group" style="margin-bottom:1rem">
+      <label>🎂 Age (in years)</label>
+      <input type="number" class="form-control" [(ngModel)]="descriptionInput.age" placeholder="e.g., 3">
+    </div>
+    <div class="form-group" style="margin-bottom:1rem">
+      <label>❤️ Personality</label>
+      <textarea rows="2" class="form-control" [(ngModel)]="descriptionInput.personality" 
+                placeholder="e.g., Energetic, gentle with children, sociable with other dogs"></textarea>
+    </div>
+    <div class="form-group" style="margin-bottom:1rem">
+      <label>🏥 Special needs (optional)</label>
+      <input type="text" class="form-control" [(ngModel)]="descriptionInput.specialNeeds" placeholder="e.g., requires daily medication">
+    </div>
+
+    <button class="btn-ai-action" (click)="generateDescription()" [disabled]="generatingDesc" style="width:100%;margin-top:1rem">
+      <i class="fas" [ngClass]="generatingDesc ? 'fa-spinner fa-spin' : 'fa-magic'"></i>
+      {{ generatingDesc ? 'Generating...' : '✨ Generate Description' }}
+    </button>
+
+    <div *ngIf="generatedDescription" style="margin-top:1.5rem">
+      <label style="font-weight:600">📝 Generated Description</label>
+      <textarea rows="6" class="form-control" readonly [(ngModel)]="generatedDescription" style="background:#f7f9fb;border-radius:8px"></textarea>
+      <button class="btn-ai-action" (click)="useGeneratedDescription()" style="width:100%;margin-top:0.5rem;background:#38a169">
+        <i class="fas fa-check"></i> Use this description
+      </button>
+    </div>
+  </div>
+
+  <div class="ai-modal-footer">
+    <button class="btn-ai-close" (click)="closeDescriptionModal()">Close</button>
+  </div>
+
+</div>

@@ -1,0 +1,259 @@
+<div class="feedback-page">
+  <button type="button" class="back-btn" (click)="goBack()" aria-label="Go back">
+    <mat-icon>arrow_back</mat-icon>
+  </button>
+
+  <header class="hero" [ngStyle]="heroStyle()">
+    <div class="hero-glass">
+      <mat-icon class="hero-icon">pets</mat-icon>
+      <h1 class="hero-title">
+        How was your trip
+        <span *ngIf="plan">to {{ plan.destinationTitle }}?</span>
+        <span *ngIf="!plan && !loadingPlan">to your destination?</span>
+      </h1>
+
+      <p class="hero-sub" *ngIf="plan">
+        <mat-icon class="hero-sub-icon">event</mat-icon>
+        {{ formatDate(plan.travelDate) }}
+        <span *ngIf="plan.returnDate"> - {{ formatDate(plan.returnDate) }}</span>
+      </p>
+
+      <p class="hero-sub" *ngIf="loadingPlan">
+        <mat-icon class="hero-sub-icon">hourglass_empty</mat-icon>
+        Loading trip details...
+      </p>
+    </div>
+  </header>
+
+  <main class="feedback-main">
+    <section class="step-section">
+      <h2 class="step-title">What would you like to share?</h2>
+
+      <div class="type-grid">
+        <button
+          type="button"
+          class="type-card"
+          *ngFor="let type of feedbackTypes"
+          [class.selected]="selectedType === type"
+          [style.background]="typeConfig[type].gradient"
+          [style.borderColor]="selectedType === type ? typeConfig[type].color : 'transparent'"
+          (click)="selectType(type)"
+        >
+          <span class="type-card-emoji">{{ typeConfig[type].emoji }}</span>
+          <mat-icon class="type-card-icon" [style.color]="typeConfig[type].color">
+            {{ typeConfig[type].icon }}
+          </mat-icon>
+          <span class="type-card-label" [style.color]="typeConfig[type].color">
+            {{ typeConfig[type].label }}
+          </span>
+          <span class="type-card-desc">{{ typeConfig[type].description }}</span>
+
+          <span class="selected-checkmark" *ngIf="selectedType === type">
+            <mat-icon>check</mat-icon>
+          </span>
+        </button>
+      </div>
+    </section>
+
+    <section
+      class="feedback-form-container"
+      [class.form-visible]="formVisible && selectedType"
+      *ngIf="selectedType"
+    >
+      <div class="form-section-header">
+        <span
+          class="form-type-badge"
+          [style.background]="typeConfig[selectedType].bgColor"
+          [style.color]="typeConfig[selectedType].color"
+        >
+          <mat-icon>{{ typeConfig[selectedType].icon }}</mat-icon>
+          {{ typeConfig[selectedType].label }}
+        </span>
+        <h2 class="form-title">Share the details</h2>
+      </div>
+
+      <div class="field-group">
+        <label class="form-field-label" for="fb-title">
+          Title
+          <span class="field-optional">(optional)</span>
+        </label>
+        <input
+          id="fb-title"
+          type="text"
+          class="form-input"
+          placeholder="Give your feedback a title..."
+          [(ngModel)]="formTitle"
+          maxlength="120"
+        />
+      </div>
+
+      <div class="field-group" *ngIf="selectedType === 'REVIEW'">
+        <label class="form-field-label">
+          Your Rating
+          <span class="field-required">*</span>
+        </label>
+
+        <div class="star-rating" (mouseleave)="clearHoverRating()">
+          <button
+            type="button"
+            class="star-btn"
+            *ngFor="let star of [1, 2, 3, 4, 5]"
+            [class.active]="star <= effectiveRating()"
+            (mouseenter)="setHoverRating(star)"
+            (click)="setRating(star)"
+            [attr.aria-label]="'Rate ' + star + ' out of 5'"
+          >
+            <mat-icon>{{ star <= effectiveRating() ? 'star' : 'star_border' }}</mat-icon>
+          </button>
+        </div>
+
+        <p class="star-count-label" *ngIf="formRating > 0">{{ formRating }}/5 stars selected</p>
+        <p class="field-error" *ngIf="formRating === 0">Please select a star rating to continue.</p>
+      </div>
+
+      <div class="field-group" *ngIf="selectedType === 'REVIEW'">
+        <label class="form-field-label" for="fb-review-msg">
+          Your Experience
+          <span class="field-optional">(optional)</span>
+        </label>
+        <textarea
+          id="fb-review-msg"
+          class="form-input"
+          rows="4"
+          placeholder="Tell us about your trip..."
+          [(ngModel)]="formMessage"
+          (ngModelChange)="onMessageChange($event)"
+          (blur)="markMessageTouched()"
+        ></textarea>
+      </div>
+
+      <div class="field-group" *ngIf="selectedType === 'SUGGESTION'">
+        <label class="form-field-label" for="fb-suggestion-msg">
+          Your Suggestion
+          <span class="field-required">*</span>
+        </label>
+        <textarea
+          id="fb-suggestion-msg"
+          class="form-input"
+          rows="4"
+          placeholder="Share your ideas to help us improve..."
+          [(ngModel)]="formMessage"
+          (ngModelChange)="onMessageChange($event)"
+          (blur)="markMessageTouched()"
+        ></textarea>
+        <span
+          class="field-error"
+          *ngIf="selectedType === 'SUGGESTION'
+            && form.get('message')?.touched
+            && form.get('message')?.errors?.['required']"
+        >
+          Please share your suggestion.
+        </span>
+
+        <div class="mic-row" *ngIf="selectedType === 'SUGGESTION'">
+          <app-speech-mic-button
+            (textRecognized)="onSpeechResult('message', $event)"
+            (stateChanged)="$event === 'processing' && 
+              onMicStart('message')"
+          ></app-speech-mic-button>
+        </div>
+      </div>
+
+      <ng-container *ngIf="selectedType === 'INCIDENT' || selectedType === 'COMPLAINT'">
+        <div class="field-group">
+          <label class="form-field-label" for="fb-incident-msg">
+            Describe the {{ selectedType === 'INCIDENT' ? 'Incident' : 'Complaint' }}
+            <span class="field-required">*</span>
+          </label>
+          <textarea
+            id="fb-incident-msg"
+            class="form-input"
+            [class.error]="!formMessage.trim()"
+            rows="5"
+            placeholder="Please describe what happened in detail..."
+            [(ngModel)]="formMessage"
+            (ngModelChange)="onMessageChange($event)"
+            (blur)="markMessageTouched()"
+          ></textarea>
+          <p class="field-error" *ngIf="!formMessage.trim()">Please describe what happened.</p>
+
+          <div class="mic-row" *ngIf="selectedType === 'INCIDENT'">
+            <app-speech-mic-button
+              (textRecognized)="onSpeechResult('message', $event)"
+              (stateChanged)="$event === 'processing' && 
+                onMicStart('message')"
+            ></app-speech-mic-button>
+          </div>
+
+          <div class="mic-row" *ngIf="selectedType === 'COMPLAINT'">
+            <app-speech-mic-button
+              (textRecognized)="onSpeechResult('message', $event)"
+              (stateChanged)="$event === 'processing' && 
+                onMicStart('message')"
+            ></app-speech-mic-button>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="form-field-label" for="fb-location">
+            Where did it happen?
+            <span class="field-optional">(optional)</span>
+          </label>
+
+          <div class="input-icon-wrap">
+            <mat-icon class="input-prefix-icon">location_on</mat-icon>
+            <input
+              id="fb-location"
+              type="text"
+              class="form-input field-input-with-icon"
+              placeholder="e.g. Airport Terminal 2, Flight AA123..."
+              [(ngModel)]="formIncidentLocation"
+            />
+          </div>
+        </div>
+      </ng-container>
+
+      <button
+        type="button"
+        class="btn-submit-feedback"
+        [disabled]="!isFormValid() || submitting"
+        (click)="submit()"
+      >
+        <mat-icon *ngIf="!submitting">send</mat-icon>
+        <span class="spinner" *ngIf="submitting"></span>
+        {{ submitting ? 'Submitting...' : 'Submit ' + typeConfig[selectedType].label }}
+      </button>
+    </section>
+
+    <section class="existing-section" *ngIf="!loadingFeedbacks && existingFeedbacks.length > 0">
+      <h2 class="existing-title">
+        <mat-icon>history</mat-icon>
+        Your Previous Feedback
+      </h2>
+
+      <div class="existing-list">
+        <div
+          class="existing-card"
+          *ngFor="let fb of existingFeedbacks; trackBy: trackByFeedback"
+          [style.borderLeftColor]="typeConfig[fb.feedbackType].color"
+        >
+          <div class="existing-top">
+            <span
+              class="existing-type-badge"
+              [style.background]="typeConfig[fb.feedbackType].bgColor"
+              [style.color]="typeConfig[fb.feedbackType].color"
+            >
+              <mat-icon>{{ typeConfig[fb.feedbackType].icon }}</mat-icon>
+              {{ feedbackTypeLabel(fb.feedbackType) }}
+            </span>
+            <span class="existing-status">{{ feedbackStatusLabel(fb.processingStatus) }}</span>
+            <span class="existing-date">{{ formatDate(fb.createdAt) }}</span>
+          </div>
+
+          <p class="existing-fb-title" *ngIf="fb.title">{{ fb.title }}</p>
+          <p class="existing-msg" *ngIf="fb.message">{{ fb.message }}</p>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>

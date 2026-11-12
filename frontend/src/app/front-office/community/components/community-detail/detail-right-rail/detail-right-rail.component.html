@@ -1,0 +1,85 @@
+<aside class="detail-right-rail space-y-4" *ngIf="host.community as c">
+  <div class="detail-rail-card p-4">
+    <h3 class="text-xs font-extrabold uppercase tracking-[0.16em] text-slate-600">Posting Tips</h3>
+    <ul class="mt-4 space-y-3 text-xs leading-6 text-slate-600">
+      <li class="flex gap-3">
+        <span class="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-orange/12 text-brand-orange">
+          <i class="fas fa-lightbulb text-[11px]"></i>
+        </span>
+        <span>Lead with the exact problem, goal, or context people need before answering.</span>
+      </li>
+      <li class="flex gap-3">
+        <span class="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-orange/12 text-brand-orange">
+          <i class="fas fa-tags text-[11px]"></i>
+        </span>
+        <span>Use flairs to set expectations quickly and make browsing feel organized.</span>
+      </li>
+      <li class="flex gap-3">
+        <span class="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-orange/12 text-brand-orange">
+          <i class="fas fa-image text-[11px]"></i>
+        </span>
+        <span>Include media only when it adds real context or makes the answer easier.</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="detail-rail-card p-4">
+    <div class="flex items-center justify-between">
+      <h3 class="text-xs font-extrabold uppercase tracking-[0.16em] text-slate-600">Workspace Access</h3>
+      <i class="fas fa-shield-heart text-brand-teal text-xs"></i>
+    </div>
+    <p class="mt-4 text-sm leading-6 text-slate-600">{{ host.moderationSummary }}</p>
+    <div class="detail-meta-stack mt-4">
+      <div class="detail-meta-row">
+        <span>Creators</span>
+        <strong>{{ host.creatorCount }}</strong>
+      </div>
+      <div class="detail-meta-row">
+        <span>Moderators</span>
+        <strong>{{ host.moderatorCount }}</strong>
+      </div>
+      <div class="detail-meta-row">
+        <span>Members</span>
+        <strong>{{ host.memberCountExcludingStaff }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-rail-card p-4">
+    <div class="flex items-center justify-between">
+      <h3 class="text-xs font-extrabold uppercase tracking-[0.16em] text-slate-600">Member Preview</h3>
+      <span class="text-[11px] text-slate-400">{{ c.memberCount }}</span>
+    </div>
+
+    <div class="mt-3" *ngIf="host.isMember && !host.membersError && host.members.length > 0">
+      <input
+        [(ngModel)]="host.memberPreviewSearch"
+        placeholder="Search members"
+        class="w-full rounded-2xl border border-slate-300 px-3 py-2.5 bg-white text-sm focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 outline-none"
+      >
+    </div>
+
+    <div class="mt-4 space-y-2" *ngIf="host.isMember && !host.membersError && host.members.length > 0">
+      <div *ngFor="let m of host.filteredMemberPreview | slice:0:6; trackBy: host.trackByMemberId" class="detail-member-preview-row">
+        <span class="detail-member-avatar">{{ host.memberInitial(m) }}</span>
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-sm font-semibold text-slate-800">{{ host.memberDisplayName(m) }}</p>
+        </div>
+        <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold" [ngClass]="m.role === 'CREATOR' ? 'bg-brand-orange/20 text-brand-orange' : (m.role === 'MODERATOR' ? 'bg-brand-teal/20 text-brand-teal' : 'bg-slate-100 text-slate-600')">{{ host.roleLabel(m.role) }}</span>
+      </div>
+    </div>
+
+    <p *ngIf="!host.isLoggedIn" class="mt-4 text-xs text-slate-500">Log in to view member names.</p>
+    <p *ngIf="host.isLoggedIn && !host.isMember" class="mt-4 text-xs text-slate-500">Join this community to view member names.</p>
+    <p *ngIf="host.isMember && host.membersError" class="mt-4 text-xs text-red-600">{{ host.membersError }}</p>
+    <p *ngIf="host.isMember && !host.membersError && host.members.length === 0" class="mt-4 text-xs text-slate-500">No members loaded yet.</p>
+  </div>
+
+  <div class="detail-rail-card p-4">
+    <h3 class="text-xs font-extrabold uppercase tracking-[0.16em] text-slate-600">Access Notes</h3>
+    <div class="mt-4 space-y-3 text-sm text-slate-600">
+      <p class="rounded-2xl border border-slate-200 bg-white px-4 py-3">Members can browse the directory. Moderators and creators can change community settings and manage flairs.</p>
+      <p class="rounded-2xl border border-slate-200 bg-white px-4 py-3">Thread creation follows membership rules, so users need to join before they can publish here.</p>
+    </div>
+  </div>
+</aside>

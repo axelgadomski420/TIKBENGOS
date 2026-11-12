@@ -1,0 +1,330 @@
+<div class="min-h-screen bg-[#f8fafc] text-[#0f172a] font-sans p-6 lg:p-10">
+  <div class="max-w-[1400px] mx-auto space-y-6">
+
+    <!-- TOP SECTION: Control Center -->
+    <div class="bg-white rounded-xl border border-gray-200 p-8 w-full flex flex-col xl:flex-row gap-8 xl:gap-16">
+      
+      <!-- Left: Text & Actions -->
+      <div class="flex-1 flex flex-col justify-center">
+        <p class="text-[11px] font-bold tracking-[0.2em] text-gray-500 uppercase mb-2">Back Office</p>
+        <h1 class="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight mb-3">Service control center</h1>
+        <p class="text-sm text-gray-500 leading-relaxed mb-6 max-w-lg">
+          Moderate provider requests, repair structure, and publish content from a workspace that stays readable even when the data gets busy.
+        </p>
+
+        <!-- Status tags (imitation of "0 total", "0 visible" tags) -->
+        <div class="flex flex-wrap gap-2 mb-6">
+          <div class="px-3 py-1.5 bg-slate-100 text-slate-700 text-xs font-bold rounded-full border border-slate-200 flex items-center gap-1.5 cursor-pointer hover:bg-slate-200 transition-colors" (click)="setFilter('ALL')">
+            <svg class="w-3.5 h-3.5 text-teal-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+            {{ stats.total }} total
+          </div>
+          <div class="px-3 py-1.5 bg-slate-100 text-slate-700 text-xs font-bold rounded-full border border-slate-200 flex items-center gap-1.5 cursor-pointer hover:bg-slate-200 transition-colors" (click)="setFilter('PENDING')">
+            <svg class="w-3.5 h-3.5 text-amber-500" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="8"></circle></svg>
+            {{ stats.pending }} pending
+          </div>
+          <div class="px-3 py-1.5 bg-slate-100 text-slate-700 text-xs font-bold rounded-full border border-slate-200 flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4l3 3"></path></svg>
+            {{ selectedRequest ? '1 selection' : 'No selection' }}
+          </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex flex-wrap gap-3">
+          <button (click)="setFilter('PENDING')" class="bg-[#368b75] text-white text-sm font-bold px-5 py-2.5 rounded-full hover:bg-teal-700 transition-colors flex items-center gap-2">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path></svg>
+            Review Pending
+          </button>
+          <button (click)="loadRequests()" class="bg-white text-slate-700 text-sm font-bold border border-gray-200 px-5 py-2.5 rounded-full hover:bg-gray-50 transition-colors flex items-center gap-2">
+            <svg class="w-4 h-4" [class.animate-spin]="loading" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            Refresh Directory
+          </button>
+        </div>
+      </div>
+
+      <!-- Right: Grid Cards -->
+      <div class="w-full xl:w-[500px] grid grid-cols-2 gap-4 flex-shrink-0">
+        
+        <!-- Card 1 -->
+        <div class="border border-gray-200 rounded-xl p-5 bg-white">
+          <p class="text-[10px] font-black tracking-widest text-slate-500 uppercase mb-2">Total Requests</p>
+          <div class="text-[28px] font-black text-slate-900 mb-2">{{ stats.total }}</div>
+          <p class="text-[11px] text-gray-500 leading-tight">Total applications currently visible to admins.</p>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="border border-gray-200 rounded-xl p-5 bg-white">
+          <p class="text-[10px] font-black tracking-widest text-slate-500 uppercase mb-2">Pending Spaces</p>
+          <div class="text-[28px] font-black text-slate-900 mb-2">{{ stats.pending }}</div>
+          <p class="text-[11px] text-gray-500 leading-tight">Provider applications that usually need tighter moderation.</p>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="border border-gray-200 rounded-xl p-5 bg-white">
+          <p class="text-[10px] font-black tracking-widest text-slate-500 uppercase mb-2">Approved Orgs</p>
+          <div class="text-[28px] font-black text-slate-900 mb-2">{{ stats.approved }}</div>
+          <p class="text-[11px] text-gray-500 leading-tight">Active providers optimized for discovery and growth.</p>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="border border-gray-200 rounded-xl p-5 bg-white">
+          <p class="text-[10px] font-black tracking-widest text-slate-500 uppercase mb-2">Selected Status</p>
+          <div class="text-[28px] font-black text-slate-900 mb-2 flex items-baseline gap-1">
+            <span *ngIf="selectedRequest">{{ selectedRequest.status === 'PENDING' ? '1' : (selectedRequest.status === 'APPROVED' ? '2' : '3') }}</span>
+            <span *ngIf="!selectedRequest">0</span>
+            <span class="text-lg text-slate-400">/3</span>
+          </div>
+          <p class="text-[11px] text-gray-500 leading-tight">Choose a request to review readiness.</p>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- BOTTOM SECTION: Split view -->
+    <div class="flex flex-col lg:flex-row gap-6 h-[700px]">
+      
+      <!-- Left Pane: Directory -->
+      <div class="w-full lg:w-[400px] flex-shrink-0 bg-white border border-gray-200 rounded-xl overflow-hidden flex flex-col">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between p-5 pb-3">
+          <div>
+            <p class="text-[10px] font-black tracking-[0.15em] text-gray-400 uppercase">Directory</p>
+            <h2 class="text-xl font-black text-slate-900">Requests</h2>
+          </div>
+          <button (click)="loadRequests()" class="bg-gray-50 border border-gray-200 rounded-full px-3 py-1.5 text-xs font-bold text-slate-700 flex items-center gap-1.5 hover:bg-gray-100 transition-colors">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            Refresh
+          </button>
+        </div>
+
+        <!-- Search -->
+        <div class="px-5 pb-4 border-b border-gray-100">
+          <div class="relative">
+            <svg class="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><path d="M21 21l-4.35-4.35"></path></svg>
+            <input type="text" [(ngModel)]="searchQuery" placeholder="Search by name or email..." class="w-full pl-11 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-slate-700 outline-none focus:border-slate-400 transition-colors">
+          </div>
+        </div>
+
+        <!-- List -->
+        <div class="flex-1 overflow-y-auto bg-[#fafafa]">
+          
+          <div *ngIf="getFilteredRequests().length === 0" class="flex flex-col items-center justify-center p-12 text-center">
+            <div class="w-16 h-16 bg-orange-50 text-orange-400 rounded-full flex items-center justify-center border border-orange-100 mb-4">
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><path d="M21 21l-4.35-4.35"></path></svg>
+            </div>
+            <p class="text-sm font-medium text-gray-500">No matching requests</p>
+          </div>
+
+          <div *ngFor="let req of getFilteredRequests()" 
+            (click)="selectRequest(req)"
+            class="p-4 border-b border-gray-100 cursor-pointer bg-white transition-all select-none"
+            [ngClass]="selectedRequest?.id === req.id ? 'bg-[#f8fafc] border-l-4 border-l-[#368b75]' : 'hover:bg-gray-50 border-l-4 border-l-transparent'">
+            
+            <div class="flex items-start justify-between">
+              <div>
+                <h3 class="text-sm font-bold text-slate-900 mb-0.5">{{ req.fullName }}</h3>
+                <p class="text-xs text-gray-500">{{ req.email }}</p>
+              </div>
+              <div class="w-2 h-2 rounded-full" 
+                [ngClass]="req.status === 'PENDING' ? 'bg-amber-400' : (req.status === 'APPROVED' ? 'bg-green-500' : 'bg-red-500')">
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Right Pane: Workspace -->
+      <div class="flex-1 bg-white border border-gray-200 rounded-xl flex flex-col relative overflow-hidden">
+        
+        <!-- Empty State -->
+        <div *ngIf="!selectedRequest" class="flex-1 flex flex-col items-center justify-center p-10 text-center">
+          <div class="w-14 h-14 bg-emerald-50 rounded-full flex items-center justify-center mb-6">
+            <svg class="w-6 h-6 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2L2 7l10 5 10-5-10-5z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+          </div>
+          <h2 class="text-2xl font-black text-slate-900 mb-3">Choose a request to open the workspace</h2>
+          <p class="text-sm text-gray-500 max-w-md">The right side becomes a full moderation cockpit once you select a request from the directory.</p>
+        </div>
+
+        <!-- Selected State -->
+        <div *ngIf="selectedRequest" class="flex flex-col h-full bg-[#f8fafc]">
+          
+          <!-- Workspace Header -->
+          <div class="bg-white border-b border-gray-200 p-8 flex items-end justify-between">
+            <div class="flex gap-5 items-center">
+              <div class="w-16 h-16 rounded-lg flex items-center justify-center font-black text-2xl text-white shadow-sm"
+                [ngClass]="selectedRequest.status === 'PENDING' ? 'bg-amber-500' : (selectedRequest.status === 'APPROVED' ? 'bg-green-600' : 'bg-red-500')">
+                {{ getInitials(selectedRequest.fullName) }}
+              </div>
+              <div>
+                <h2 class="text-3xl font-black text-slate-900 mb-1">{{ selectedRequest.fullName }}</h2>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider"
+                    [ngClass]="selectedRequest.status === 'PENDING' ? 'bg-amber-100 text-amber-700' : (selectedRequest.status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')">
+                    {{ selectedRequest.status }}
+                  </span>
+                  <span class="text-xs text-slate-400 font-medium">Applied {{ selectedRequest.createdAt | date:'short' }}</span>
+                </div>
+              </div>
+            </div>
+            
+            <button (click)="selectedRequest = null" class="w-8 h-8 rounded-full border border-gray-200 bg-white flex items-center justify-center text-gray-400 hover:text-slate-700 hover:bg-gray-50 transition-colors">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+
+          <!-- Content Space -->
+          <div class="flex-1 overflow-y-auto p-8 space-y-6">
+            
+            <div class="bg-white border border-gray-200 rounded-xl p-6">
+              <p class="text-[10px] font-black tracking-widest text-slate-400 uppercase mb-4">Contact Details</p>
+              <div class="grid grid-cols-2 gap-y-4 gap-x-8">
+                <div>
+                  <p class="text-xs font-medium text-slate-400 mb-0.5">Email Address</p>
+                  <p class="text-sm font-bold text-slate-900">{{ selectedRequest.email }}</p>
+                </div>
+                <div>
+                  <p class="text-xs font-medium text-slate-400 mb-0.5">Phone Number</p>
+                  <p class="text-sm font-bold text-slate-900">{{ selectedRequest.phone }}</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white border border-gray-200 rounded-xl p-6">
+              <p class="text-[10px] font-black tracking-widest text-slate-400 uppercase mb-4">Professional Bio / Description</p>
+              <p class="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{{ selectedRequest.description || 'No description provided.' }}</p>
+            </div>
+
+            <!-- CV Download -->
+            <div class="bg-white border border-gray-200 rounded-xl p-6 flex items-center justify-between">
+              <div>
+                <p class="text-sm font-bold text-slate-900 mb-1">Attached Qualifications</p>
+                <p class="text-xs text-gray-500">Review the provider's CV carefully before approving.</p>
+              </div>
+              <button [disabled]="!selectedRequest.cvUrl" (click)="downloadCv(selectedRequest.cvUrl)"
+                class="px-5 py-2.5 rounded-full text-xs font-bold flex items-center gap-2 border disabled:opacity-50 disabled:bg-gray-50"
+                [ngClass]="selectedRequest.cvUrl ? 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50' : 'border-gray-200 text-gray-400 cursor-not-allowed'">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                {{ selectedRequest.cvUrl ? 'Download Document' : 'No Document' }}
+              </button>
+            </div>
+
+            <!-- ═══════════════ AI ANALYSIS PANEL ═══════════════ -->
+            <div *ngIf="selectedRequest.cvSummary || selectedRequest.coherenceScore != null || (selectedRequest.missions && selectedRequest.missions.length > 0)"
+              class="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-6 space-y-6 border border-slate-700">
+
+              <!-- Header -->
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-[#368b75]/20 flex items-center justify-center flex-shrink-0">
+                  <svg class="w-5 h-5 text-[#4ecca3]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                  </svg>
+                </div>
+                <div>
+                  <p class="text-[10px] font-black tracking-widest text-slate-400 uppercase">Powered by Groq AI</p>
+                  <h3 class="text-base font-black text-white">Intelligent CV Analysis</h3>
+                </div>
+              </div>
+
+              <!-- Section 1 : Résumé -->
+              <div *ngIf="selectedRequest.cvSummary" class="bg-slate-800/60 rounded-lg p-4 border border-slate-700">
+                <p class="text-[10px] font-black tracking-widest text-[#4ecca3] uppercase mb-2">Profile Summary</p>
+                <p class="text-sm text-slate-300 leading-relaxed">{{ selectedRequest.cvSummary }}</p>
+              </div>
+
+              <!-- Section 2 : Score de cohérence -->
+              <div *ngIf="selectedRequest.coherenceScore != null" class="bg-slate-800/60 rounded-lg p-4 border border-slate-700">
+                <div class="flex items-center justify-between mb-3">
+                  <p class="text-[10px] font-black tracking-widest text-[#4ecca3] uppercase">Coherence Score</p>
+                  <span class="text-2xl font-black"
+                    [ngClass]="getCoherenceColor(selectedRequest.coherenceScore)">
+                    {{ (selectedRequest.coherenceScore * 100) | number:'1.0-0' }}%
+                  </span>
+                </div>
+                <!-- Gauge bar -->
+                <div class="h-2 bg-slate-700 rounded-full overflow-hidden">
+                  <div class="h-full rounded-full transition-all duration-700"
+                    [style.width.%]="selectedRequest.coherenceScore * 100"
+                    [ngClass]="selectedRequest.coherenceScore >= 0.75 ? 'bg-green-400' : (selectedRequest.coherenceScore >= 0.5 ? 'bg-amber-400' : 'bg-red-400')">
+                  </div>
+                </div>
+                <p class="text-xs text-slate-500 mt-2">
+                  {{ getCoherenceLabel(selectedRequest.coherenceScore) }}
+                </p>
+              </div>
+
+              <!-- Section 3 : Missions recommandées -->
+              <div *ngIf="selectedRequest.missions && selectedRequest.missions.length > 0"
+                class="bg-slate-800/60 rounded-lg p-4 border border-slate-700">
+                <p class="text-[10px] font-black tracking-widest text-[#4ecca3] uppercase mb-3">
+                  Recommended Missions ({{ selectedRequest.missions.length }})
+                </p>
+                <div class="space-y-2">
+                  <div *ngFor="let mission of selectedRequest.missions; let i = index"
+                    class="flex items-center justify-between bg-slate-900/50 rounded-lg px-4 py-2.5 border border-slate-700">
+                    <div class="flex items-center gap-3">
+                      <!-- Rank badge -->
+                      <span class="w-6 h-6 rounded-full text-[10px] font-black flex items-center justify-center flex-shrink-0"
+                        [ngClass]="i === 0 ? 'bg-amber-400 text-amber-900' : (i === 1 ? 'bg-slate-400 text-slate-900' : 'bg-amber-800 text-amber-200')">
+                        {{ i + 1 }}
+                      </span>
+                      <div>
+                        <p class="text-sm font-bold text-white">{{ mission.serviceName }}</p>
+                        <p class="text-xs text-slate-400">{{ mission.category }}</p>
+                      </div>
+                    </div>
+                    <!-- Score badge -->
+                    <div class="flex items-center gap-2">
+                      <div class="h-1.5 w-16 bg-slate-700 rounded-full overflow-hidden">
+                        <div class="h-full rounded-full"
+                          [style.width.%]="mission.matchScore"
+                          [ngClass]="mission.matchScore >= 80 ? 'bg-green-400' : (mission.matchScore >= 65 ? 'bg-amber-400' : 'bg-sky-400')">
+                        </div>
+                      </div>
+                      <span class="text-xs font-black"
+                        [ngClass]="mission.matchScore >= 80 ? 'text-green-400' : (mission.matchScore >= 65 ? 'text-amber-400' : 'text-sky-400')">
+                        {{ mission.matchScore }}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- No missions fallback -->
+              <div *ngIf="!selectedRequest.missions || selectedRequest.missions.length === 0"
+                class="bg-slate-800/60 rounded-lg p-4 border border-slate-700 text-center">
+                <p class="text-xs text-slate-500">No missions matched this profile (score > 50).</p>
+              </div>
+
+            </div>
+            <!-- Pas encore d'analyse (CV non soumis) -->
+            <div *ngIf="!selectedRequest.cvSummary && selectedRequest.coherenceScore == null"
+              class="bg-slate-50 border border-dashed border-slate-300 rounded-xl p-5 text-center">
+              <p class="text-xs text-slate-400">⚙️ CV analysis not yet available — submit a PDF to trigger it.</p>
+            </div>
+
+          </div> <!-- Close Content Space -->
+
+          <div class="bg-white border-t border-gray-200 p-6 flex justify-end gap-3" *ngIf="selectedRequest.status === 'PENDING'">
+            <button (click)="rejectRequest(selectedRequest.id!)" class="px-6 py-2.5 rounded-full border border-red-200 text-red-600 font-bold text-sm hover:bg-red-50 transition-colors">
+              Reject Request
+            </button>
+            <button (click)="approveRequest(selectedRequest.id!)" class="px-6 py-2.5 rounded-full bg-[#368b75] text-white font-bold text-sm hover:bg-[#2d7663] transition-colors">
+              Approve Workspace
+            </button>
+          </div>
+          
+          <div *ngIf="selectedRequest.status !== 'PENDING'" class="bg-white border-t border-gray-200 p-4 text-center">
+            <p class="text-sm font-bold" [ngClass]="selectedRequest.status === 'APPROVED' ? 'text-green-600' : 'text-red-600'">
+              This request was {{ selectedRequest.status | lowercase }}.
+            </p>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>

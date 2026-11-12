@@ -1,0 +1,370 @@
+<section class="evl-shell" aria-label="Events catalogue">
+  <app-event-toast-container></app-event-toast-container>
+
+  <!-- HERO -->
+  <header class="evl-hero">
+    <div class="evl-hero__inner">
+      <div class="evl-hero__left">
+        <p class="evl-eyebrow">
+          <i class="fas fa-calendar-star" aria-hidden="true"></i>
+          Events catalogue
+        </p>
+        <h1 class="evl-title">Discover &amp; join upcoming events.</h1>
+        <p class="evl-subtitle">
+          Browse classes, competitions, and community experiences — with smart filters, live capacity, and an AI assistant ready to help.
+        </p>
+        <div class="evl-hero__actions">
+          <a class="evl-btn evl-btn--white evl-btn--icon" routerLink="/app/events/calendar">
+            <i class="fas fa-calendar-days" aria-hidden="true"></i>
+            Calendar view
+          </a>
+          <a class="evl-btn evl-btn--outline-white" routerLink="/app/events/recommendations">
+           
+            Recommendations
+          </a>
+        </div>
+      </div>
+      <div class="evl-hero__stats"></div>
+    </div>
+  </header>
+
+  <!-- UN SEUL ASSISTANT IA - Affiché automatiquement -->
+  <div class="evl-ai-container">
+    <app-ai-event-assistant
+      [events]="events"
+      [categories]="categories"
+      [categoryFilter]="categoryFilter"
+      (eventSelected)="onAiEventSelected($event)">
+    </app-ai-event-assistant>
+  </div>
+
+  <!-- TOOLBAR -->
+  <section class="evl-toolbar" aria-label="Event filters">
+    <div class="evl-toolbar__top">
+      <div>
+        <p class="evl-toolbar__eyebrow">Browse</p>
+        <h2>Find the right event</h2>
+      </div>
+      <div class="evl-toolbar__summary">
+        <span>{{ totalElements }} result{{ totalElements === 1 ? '' : 's' }}</span>
+        <span>{{ activeCategoryName }}</span>
+      </div>
+    </div>
+
+    <div class="evl-toolbar__grid">
+      <label class="evl-search" for="event-search">
+        <span class="evl-search__icon" aria-hidden="true">
+          <i class="fas fa-magnifying-glass"></i>
+        </span>
+        <span class="sr-only">Search events</span>
+        <input
+          id="event-search"
+          type="text"
+          class="evl-search__input"
+          [(ngModel)]="keyword"
+          (input)="onSearch()"
+          placeholder="Search by title or location…"
+          autocomplete="off" />
+        <button
+          class="evl-search__clear"
+          *ngIf="keyword"
+          type="button"
+          (click)="clearSearch()"
+          aria-label="Clear search">
+          Clear
+        </button>
+      </label>
+
+     
+
+      <div class="evl-view-toggle" role="group" aria-label="View mode">
+        <button
+          class="evl-view-toggle__btn"
+          type="button"
+          [class.evl-view-toggle__btn--active]="viewMode === 'grid'"
+          (click)="viewMode = 'grid'"
+          aria-pressed="viewMode === 'grid'">
+          <i class="fas fa-grip" aria-hidden="true"></i> Grid
+        </button>
+        <button
+          class="evl-view-toggle__btn"
+          type="button"
+          [class.evl-view-toggle__btn--active]="viewMode === 'list'"
+          (click)="viewMode = 'list'"
+          aria-pressed="viewMode === 'list'">
+          <i class="fas fa-list" aria-hidden="true"></i> List
+        </button>
+      </div>
+
+      <button
+        class="evl-btn evl-btn--ghost"
+        *ngIf="hasActiveFilters"
+        type="button"
+        (click)="resetFilters()">
+        <i class="fas fa-xmark" aria-hidden="true"></i>
+        Reset filters
+      </button>
+    </div>
+
+    <div class="evl-category-pills" role="group" aria-label="Filter by category">
+      <button
+        class="evl-pill"
+        type="button"
+        [class.evl-pill--active]="!categoryFilter"
+        (click)="categoryFilter = null; onFilter()">
+        All categories
+      </button>
+      <button
+        class="evl-pill"
+        type="button"
+        *ngFor="let cat of categories"
+        [class.evl-pill--active]="categoryFilter === cat.id"
+        (click)="categoryFilter = cat.id; onFilter()">
+        <span aria-hidden="true">{{ cat.icon || '📌' }}</span>
+        <span>{{ cat.name }}</span>
+        <span class="evl-pill__flag" *ngIf="cat.requiresApproval">Approval</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="evl-results" aria-label="Event results">
+    <div class="evl-results__head">
+      <div>
+        <p class="evl-results__eyebrow">Upcoming</p>
+        <h2>Available events</h2>
+      </div>
+    </div>
+
+    <div class="evl-loading" *ngIf="loading" role="status" aria-live="polite">
+      <div class="evl-spinner" aria-hidden="true"></div>
+      <span>Loading events…</span>
+    </div>
+
+    <div class="evl-empty" *ngIf="!loading && events.length === 0">
+      <div class="evl-empty__icon" aria-hidden="true">0</div>
+      <h3>No events match the current filters.</h3>
+      <p *ngIf="hasActiveFilters">Try broadening your search or resetting the active filters.</p>
+      <p *ngIf="!hasActiveFilters">There are no events available at the moment.</p>
+      <button
+        class="evl-btn evl-btn--primary"
+        *ngIf="hasActiveFilters"
+        type="button"
+        (click)="resetFilters()">
+        Reset filters
+      </button>
+    </div>
+
+    <div
+      class="evl-grid"
+      [class.evl-grid--list]="viewMode === 'list'"
+      *ngIf="!loading && events.length > 0"
+      role="list">
+
+      <article
+        class="evl-card"
+        *ngFor="let event of events; trackBy: trackById"
+        role="listitem"
+        tabindex="0"
+        (click)="openDetail(event.id, event)"
+        (keydown.enter)="openDetail(event.id, event)"
+        [class.evl-card--list]="viewMode === 'list'"
+        [class.evl-card--cancelled]="event.status === 'CANCELLED'"
+        [attr.aria-label]="event.title">
+
+        <!-- (le reste du contenu de la carte reste identique) -->
+        <div class="evl-card__media">
+          <img
+            *ngIf="event.coverImageUrl"
+            [src]="event.coverImageUrl"
+            [alt]="event.title"
+            class="evl-card__image"
+            loading="lazy" />
+          <div class="evl-card__placeholder" *ngIf="!event.coverImageUrl" aria-hidden="true">
+            {{ event.category?.icon || '📅' }}
+          </div>
+
+          <div class="evl-card__badges">
+            <span class="evl-status evl-status--{{ event.status.toLowerCase() }}">
+              {{ statusLabels[event.status] || event.status }}
+            </span>
+            <span class="evl-status evl-status--approval" *ngIf="isCompetition(event)">Approval</span>
+          </div>
+
+          <div class="evl-card__date-block" aria-hidden="true">
+            <span class="evl-card__date-month">{{ getShortDateParts(event.startDate).month }}</span>
+            <strong class="evl-card__date-day">{{ getShortDateParts(event.startDate).day }}</strong>
+          </div>
+
+          <div class="evl-card__day-pill" *ngIf="daysLeft(event.startDate) !== null" aria-hidden="true">
+            <span *ngIf="daysLeft(event.startDate) === 0">Today</span>
+            <span *ngIf="daysLeft(event.startDate) === 1">Tomorrow</span>
+            <span *ngIf="daysLeft(event.startDate)! > 1">In {{ daysLeft(event.startDate) }}d</span>
+          </div>
+
+          <div class="evl-card__user-state evl-card__user-state--confirmed" *ngIf="isConfirmed(event)">✓ Registered</div>
+          <div class="evl-card__user-state evl-card__user-state--pending" *ngIf="isPending(event)">⏳ Pending</div>
+          <div class="evl-card__user-state evl-card__user-state--waitlist" *ngIf="isOnWaitlist(event) && !hasNotifiedOffer(event)">
+            #{{ waitlistPosition(event) }} Waitlist
+          </div>
+          <div class="evl-card__user-state evl-card__user-state--offer" *ngIf="hasNotifiedOffer(event)">🎉 Spot available!</div>
+        </div>
+
+        <div class="evl-card__body">
+          <div class="evl-card__header">
+            <p class="evl-card__category" *ngIf="event.category">
+              {{ event.category.icon }} {{ event.category.name }}
+            </p>
+            <h3>{{ event.title }}</h3>
+            <p class="evl-card__description">{{ getExcerpt(event.description) }}</p>
+          </div>
+
+          <div class="evl-card__facts">
+            <div class="evl-card__fact">
+              <i class="fas fa-calendar" aria-hidden="true"></i>
+              <span>{{ formatDate(event.startDate) }} · {{ formatTime(event.startDate) }}</span>
+            </div>
+            <div class="evl-card__fact">
+              <i class="fas fa-location-dot" aria-hidden="true"></i>
+              <span>{{ event.location || 'Online event' }}</span>
+            </div>
+            <div class="evl-card__fact">
+              <i class="fas fa-user-tie" aria-hidden="true"></i>
+              <span>{{ event.organizerName || 'Organizer TBA' }}</span>
+            </div>
+          </div>
+
+          <div class="evl-capacity">
+            <div class="evl-capacity__header">
+              <span>{{ event.maxParticipants - event.remainingSlots }}/{{ event.maxParticipants }} registered</span>
+              <span>{{ fillPercentage(event) }}% full</span>
+            </div>
+            <div class="evl-capacity__track" role="progressbar"
+              [attr.aria-valuenow]="fillPercentage(event)"
+              aria-valuemin="0" aria-valuemax="100">
+              <div
+                class="evl-capacity__fill"
+                [style.width.%]="fillPercentage(event)"
+                [class.evl-capacity__fill--warn]="fillPercentage(event) >= 75 && fillPercentage(event) < 100"
+                [class.evl-capacity__fill--full]="fillPercentage(event) >= 100">
+              </div>
+            </div>
+          </div>
+
+          <div class="evl-rating" *ngIf="event.averageRating > 0">
+            <span class="evl-rating__stars" aria-hidden="true">
+              <span
+                *ngFor="let star of getStars(event.averageRating)"
+                class="evl-rating__star"
+                [class.evl-rating__star--on]="star">★</span>
+            </span>
+            <span>{{ event.averageRating | number:'1.1-1' }}</span>
+            <span class="evl-rating__count">({{ event.reviewCount }} reviews)</span>
+          </div>
+        </div>
+
+        <div class="evl-card__footer" (click)="$event.stopPropagation()">
+          <div class="evl-card__footer-main">
+            <a
+              routerLink="/auth/login"
+              class="evl-btn evl-btn--primary evl-btn--small"
+              *ngIf="!isLoggedIn && event.status === 'PLANNED' && event.remainingSlots > 0">
+              Log in to register
+            </a>
+
+            <button
+              class="evl-btn evl-btn--primary evl-btn--small"
+              type="button"
+              *ngIf="isJoinable(event)"
+              (click)="openDetail(event.id, event)">
+              <i class="fas fa-ticket" aria-hidden="true"></i>
+              {{ isCompetition(event) ? 'Enter competition' : 'Register' }}
+            </button>
+
+            <button
+              class="evl-btn evl-btn--secondary evl-btn--small"
+              type="button"
+              *ngIf="isWaitlistable(event)"
+              (click)="openDetail(event.id, event)">
+              <i class="fas fa-clock" aria-hidden="true"></i>
+              Join waitlist
+            </button>
+
+            <div class="evl-inline-state" *ngIf="isConfirmed(event)">
+              <span>✓ Registered</span>
+              <button class="evl-link-btn" type="button" (click)="cancelFromCard(event, $event)">Cancel</button>
+            </div>
+
+            <div class="evl-inline-state" *ngIf="isPending(event)">
+              <span>⏳ Awaiting approval</span>
+              <button class="evl-link-btn" type="button" (click)="cancelFromCard(event, $event)">Cancel</button>
+            </div>
+
+            <div class="evl-inline-state" *ngIf="isOnWaitlist(event) && !hasNotifiedOffer(event)">
+              <span>Waitlist #{{ waitlistPosition(event) }}</span>
+              <button class="evl-link-btn" type="button" (click)="cancelFromCard(event, $event)">Leave</button>
+            </div>
+
+            <div class="evl-inline-state" *ngIf="hasNotifiedOffer(event)">
+              <span>🎉 Spot available</span>
+              <button
+                class="evl-btn evl-btn--primary evl-btn--small"
+                type="button"
+                (click)="openDetail(event.id, event)">Confirm now</button>
+            </div>
+
+            <div
+              class="evl-inline-state"
+              *ngIf="event.status === 'FULL' && !isOnWaitlist(event) && !isConfirmed(event) && !isPending(event) && isLoggedIn && isUser">
+              <span>Event full</span>
+              <button
+                class="evl-btn evl-btn--secondary evl-btn--small"
+                type="button"
+                (click)="openDetail(event.id, event)">Waitlist</button>
+            </div>
+
+            <div class="evl-inline-state" *ngIf="isCancelled(event)">
+              <span>Cancelled</span>
+            </div>
+          </div>
+
+          <button
+            class="evl-btn evl-btn--ghost evl-btn--small"
+            type="button"
+            (click)="openDetail(event.id, event)">
+            View details
+            <i class="fas fa-arrow-right" aria-hidden="true"></i>
+          </button>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <nav class="evl-pagination" *ngIf="!loading && totalPages > 1" aria-label="Pagination">
+    <button
+      class="evl-page-btn"
+      type="button"
+      (click)="goToPage(currentPage - 1)"
+      [disabled]="currentPage === 0"
+      aria-label="Previous page">
+      <i class="fas fa-chevron-left"></i>
+    </button>
+    <button
+      *ngFor="let page of pageNumbers"
+      class="evl-page-btn"
+      type="button"
+      [class.evl-page-btn--active]="page === currentPage"
+      (click)="goToPage(page)"
+      [attr.aria-current]="page === currentPage ? 'page' : null">
+      {{ page + 1 }}
+    </button>
+    <button
+      class="evl-page-btn"
+      type="button"
+      (click)="goToPage(currentPage + 1)"
+      [disabled]="currentPage + 1 >= totalPages"
+      aria-label="Next page">
+      <i class="fas fa-chevron-right"></i>
+    </button>
+  </nav>
+</section>

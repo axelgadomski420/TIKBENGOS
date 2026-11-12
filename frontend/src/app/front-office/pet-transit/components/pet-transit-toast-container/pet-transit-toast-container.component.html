@@ -1,0 +1,9 @@
+<section class="toast-stack" aria-live="polite" aria-atomic="false">
+  <article class="toast-item" *ngFor="let toast of toasts$ | async" [ngClass]="toneClass(toast.type)">
+    <mat-icon class="material-icons-round">{{ icon(toast.type) }}</mat-icon>
+    <p>{{ toast.message }}</p>
+    <button type="button" (click)="dismiss(toast.id)" aria-label="Dismiss notification">
+      <mat-icon class="material-icons-round">close</mat-icon>
+    </button>
+  </article>
+</section>

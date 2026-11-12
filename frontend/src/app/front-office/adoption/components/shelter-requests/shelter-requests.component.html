@@ -1,0 +1,554 @@
+<div class="requests-container">
+
+  <!-- ── HEADER ── -->
+  <div class="page-header">
+    <div class="overlay"></div>
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-8 mx-auto text-center">
+          <h1 class="display-4 fw-bold">{{ pageTitle }}</h1>
+          <p class="lead">{{ pageSubtitle }}</p>
+          <div class="header-buttons mt-3">
+            <button class="btn btn-outline-light" (click)="goBackToPets()">
+              <i class="fas fa-arrow-left me-2"></i> Back to My Pets
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container py-4">
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="text-center py-5">
+      <div class="spinner-grow text-primary"></div>
+      <p class="mt-3 text-muted">Loading requests...</p>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="error" class="alert alert-danger">
+      <i class="fas fa-exclamation-circle me-2"></i>{{ error }}
+    </div>
+
+    <!-- ── TABS ── -->
+    <div *ngIf="!loading" class="tabs-bar">
+      <button class="tab-btn" [class.active]="activeTab === 'requests'" (click)="activeTab = 'requests'">
+        <i class="fas fa-list me-2"></i> Requests
+        <span class="tab-count">{{ filteredRequests.length }}</span>
+      </button>
+      <button class="tab-btn" [class.active]="activeTab === 'appointments'" (click)="activeTab = 'appointments'">
+        <i class="fas fa-calendar-alt me-2"></i> Appointments
+        <span class="tab-count" [class.orange]="pendingAppointments.length > 0">{{ appointments.length }}</span>
+      </button>
+    </div>
+
+    <!-- ============================================================
+         TAB 1 : DEMANDES
+         ============================================================ -->
+    <div *ngIf="!loading && activeTab === 'requests'">
+
+      <div *ngIf="filteredRequests.length === 0" class="empty-state">
+        <div class="empty-icon">📋</div>
+        <h3>No requests yet</h3>
+        <p>No adoption requests found for this selection.</p>
+      </div>
+
+      <!-- ── PENDING REQUESTS ── -->
+      <div *ngIf="pendingRequests.length > 0" class="section">
+        <div class="section-header">
+          <div class="section-title-row">
+            <i class="fas fa-clock" style="color:#f59e0b"></i>
+            <h2>Pending Requests</h2>
+            <span class="count-chip pending">{{ pendingRequests.length }}</span>
+          </div>
+          <p class="section-desc">Ranked by compatibility score — highest first</p>
+        </div>
+
+        <div class="requests-grid">
+          <div *ngFor="let request of pendingRequests; let i = index"
+               class="request-card" [ngClass]="getStatusClass(request.status)">
+
+            <div class="rank-badge" *ngIf="getScoreRequest(request.id) as scored">
+              <span class="rank-num">#{{ i + 1 }}</span>
+            </div>
+
+            <div class="card-status"></div>
+
+            <div class="pet-section">
+              <div class="pet-avatar">
+                <span class="pet-icon">{{ getPetIcon(request.petName) }}</span>
+              </div>
+              <div class="pet-info">
+                <h3 class="pet-name">{{ request.petName }}</h3>
+                <p class="pet-breed">{{ request.pet?.breed || 'Breed not specified' }}</p>
+                <div class="request-date">
+                  <i class="far fa-calendar-alt"></i>
+                  {{ request.dateRequested | date:'MMM d, yyyy' }}
+                </div>
+              </div>
+
+              <ng-container *ngIf="getScoreRequest(request.id) as scored">
+                <div class="score-widget"
+                     [style.background]="getScoreBgColor(scored.compatibilityScore)"
+                     [style.color]="getScoreTextColor(scored.compatibilityScore)">
+                  <div class="score-number">{{ scored.compatibilityScore }}</div>
+                  <div class="score-label">{{ scored.scoreLabel }}</div>
+                  <div class="score-bar-track">
+                    <div class="score-bar-fill"
+                         [style.width]="getScoreBarWidth(scored.compatibilityScore)"
+                         [style.background]="getScoreTextColor(scored.compatibilityScore)">
+                    </div>
+                  </div>
+                </div>
+              </ng-container>
+            </div>
+
+            <div class="adopter-section">
+              <div class="section-title"><i class="fas fa-user"></i> Adopter</div>
+              <div class="adopter-details">
+                <div class="detail-row">
+                  <span class="detail-label">Name</span>
+                  <span class="detail-value">{{ request.adopterName }}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Housing</span>
+                  <span class="detail-value">
+                    <i class="fas" [ngClass]="getHousingIcon(request.housingType)"></i>
+                    {{ request.housingType }}
+                  </span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Garden</span>
+                  <span class="detail-value">
+                    <i class="fas" [ngClass]="request.hasGarden ? 'fa-check-circle text-success' : 'fa-times-circle text-muted'"></i>
+                    {{ request.hasGarden ? 'Yes' : 'No' }}
+                  </span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Experience</span>
+                  <span class="detail-value">{{ request.experienceLevel }}</span>
+                </div>
+                <div class="detail-row" *ngIf="request.hasChildren !== undefined">
+                  <span class="detail-label">Children</span>
+                  <span class="detail-value">{{ request.hasChildren ? 'Yes' : 'No' }}</span>
+                </div>
+                <div class="detail-row" *ngIf="request.otherPets">
+                  <span class="detail-label">Other Pets</span>
+                  <span class="detail-value">{{ request.otherPets }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="reasons-section" *ngIf="getScoreRequest(request.id) as scored">
+              <div class="section-title"><i class="fas fa-chart-bar"></i> Compatibility Analysis</div>
+              <div class="reasons-list">
+                <div *ngFor="let reason of scored.scoreReasons" class="reason-item">{{ reason }}</div>
+              </div>
+            </div>
+
+            <div class="notes-section" *ngIf="request.notes">
+              <div class="section-title"><i class="fas fa-comment-dots"></i> Notes</div>
+              <p class="notes-text">{{ request.notes }}</p>
+            </div>
+
+            <div class="status-section">
+              <div class="status-badge" [ngClass]="getStatusClass(request.status)">
+                <i class="fas" [ngClass]="getStatusIcon(request.status)"></i>
+                {{ getStatusText(request.status) }}
+              </div>
+            </div>
+
+            <!-- ✅ Boutons alignés en bas — hors du contenu -->
+            <div class="actions-section">
+              <button class="btn-action btn-schedule"
+                      (click)="openScheduleModal(getScoreRequest(request.id) || request)">
+                <i class="fas fa-calendar-plus"></i> Schedule Visit
+              </button>
+              <button class="btn-action btn-approve" (click)="approveRequest(request.id)">
+                <i class="fas fa-check-circle"></i> Approve
+              </button>
+              <button class="btn-action btn-reject" (click)="showRejectModal(request.id)">
+                <i class="fas fa-times-circle"></i> Reject
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PROCESSED REQUESTS ── -->
+      <div *ngIf="processedRequests.length > 0" class="section">
+        <div class="section-header">
+          <div class="section-title-row">
+            <i class="fas fa-check-double" style="color:#38a169"></i>
+            <h2>Processed Requests</h2>
+            <span class="count-chip processed">{{ processedRequests.length }}</span>
+          </div>
+        </div>
+        <div class="requests-grid">
+          <div *ngFor="let request of processedRequests"
+               class="request-card processed-card" [ngClass]="getStatusClass(request.status)">
+            <div class="card-status"></div>
+            <div class="pet-section">
+              <div class="pet-avatar">
+                <span class="pet-icon">{{ getPetIcon(request.petName) }}</span>
+              </div>
+              <div class="pet-info">
+                <h3 class="pet-name">{{ request.petName }}</h3>
+                <div class="request-date"><i class="far fa-calendar-alt"></i> {{ request.dateRequested | date:'MMM d, yyyy' }}</div>
+              </div>
+            </div>
+            <div class="adopter-section">
+              <div class="detail-row"><span class="detail-label">Adopter</span><span class="detail-value">{{ request.adopterName }}</span></div>
+              <div class="detail-row"><span class="detail-label">Housing</span><span class="detail-value">{{ request.housingType }}</span></div>
+            </div>
+            <div class="status-section">
+              <div class="status-badge" [ngClass]="getStatusClass(request.status)">
+                <i class="fas" [ngClass]="getStatusIcon(request.status)"></i>
+                {{ getStatusText(request.status) }}
+              </div>
+            </div>
+            <div class="actions-section">
+              <div class="processed-message" *ngIf="request.status === 'APPROVED'"><i class="fas fa-check-circle"></i> Approved — Contract generated</div>
+              <div class="rejected-message"  *ngIf="request.status === 'REJECTED'"><i class="fas fa-info-circle"></i> {{ request.rejectionReason || 'No reason provided' }}</div>
+              <div class="cancelled-message" *ngIf="request.status === 'CANCELLED'"><i class="fas fa-ban"></i> Cancelled by adopter</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         TAB 2 : RENDEZ-VOUS
+         ============================================================ -->
+    <div *ngIf="!loading && activeTab === 'appointments'">
+
+      <div *ngIf="appointments.length === 0" class="empty-state">
+        <div class="empty-icon">📅</div>
+        <h3>No appointments yet</h3>
+        <p>Schedule visits by clicking "Schedule Visit" on a pending request.</p>
+      </div>
+
+      <div *ngIf="pendingAppointments.length > 0" class="section">
+        <div class="section-header">
+          <div class="section-title-row">
+            <i class="fas fa-calendar-check" style="color:rgb(58,146,130)"></i>
+            <h2>Upcoming Appointments</h2>
+            <span class="count-chip pending">{{ pendingAppointments.length }}</span>
+          </div>
+        </div>
+        <div class="appointments-grid">
+          <div *ngFor="let appt of pendingAppointments" class="appointment-card">
+            <div class="appt-header">
+              <div class="appt-date-block">
+                <div class="appt-day">{{ appt.appointmentDate | date:'d' }}</div>
+                <div class="appt-month">{{ appt.appointmentDate | date:'MMM' }}</div>
+                <div class="appt-time">{{ appt.appointmentDate | date:'HH:mm' }}</div>
+              </div>
+              <div class="appt-info">
+                <h3>{{ appt.pet?.name || 'Animal' }}</h3>
+                <p class="appt-adopter"><i class="fas fa-user"></i> {{ appt.adopter?.firstName }} {{ appt.adopter?.lastName }}</p>
+                <p class="appt-adopter" *ngIf="appt.adopter?.email"><i class="fas fa-envelope"></i> {{ appt.adopter.email }}</p>
+              </div>
+              <div class="appt-score" *ngIf="appt.compatibilityScore">
+                <div class="score-circle"
+                     [style.color]="getScoreTextColor(appt.compatibilityScore)"
+                     [style.border-color]="getScoreTextColor(appt.compatibilityScore)">
+                  {{ appt.compatibilityScore }}
+                </div>
+                <small>score</small>
+              </div>
+            </div>
+            <div class="appt-notes" *ngIf="appt.shelterNotes"><i class="fas fa-sticky-note"></i> {{ appt.shelterNotes }}</div>
+            <div class="appt-actions">
+              <button class="btn-respond" (click)="openRespondModal(appt)"><i class="fas fa-reply"></i> Respond After Visit</button>
+              <button class="btn-action btn-cancel-appt" (click)="cancelAppointment(appt.id)"><i class="fas fa-ban"></i> Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="completedAppointments.length > 0" class="section">
+        <div class="section-header">
+          <div class="section-title-row">
+            <i class="fas fa-check-double" style="color:#a0aec0"></i>
+            <h2>Past Appointments</h2>
+            <span class="count-chip processed">{{ completedAppointments.length }}</span>
+          </div>
+        </div>
+        <div class="appointments-grid">
+          <div *ngFor="let appt of completedAppointments" class="appointment-card past">
+            <div class="appt-header">
+              <div class="appt-date-block past">
+                <div class="appt-day">{{ appt.appointmentDate | date:'d' }}</div>
+                <div class="appt-month">{{ appt.appointmentDate | date:'MMM' }}</div>
+              </div>
+              <div class="appt-info">
+                <h3>{{ appt.pet?.name || 'Animal' }}</h3>
+                <p class="appt-adopter"><i class="fas fa-user"></i> {{ appt.adopter?.firstName }} {{ appt.adopter?.lastName }}</p>
+              </div>
+              <div class="appt-result" *ngIf="appt.consultationResult">
+                <span class="result-chip"
+                      [class.approved]="appt.consultationResult === 'APPROVED'"
+                      [class.rejected]="appt.consultationResult === 'REJECTED'">
+                  {{ appt.consultationResult === 'APPROVED' ? '✅ Approved' : '❌ Rejected' }}
+                </span>
+              </div>
+            </div>
+            <div class="appt-response" *ngIf="appt.responseMessage"><i class="fas fa-comment"></i> {{ appt.responseMessage }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============================================================
+       MODAL : CALENDRIER — PLANIFIER UN RENDEZ-VOUS
+       ============================================================ -->
+  <div *ngIf="showScheduleModal" class="cal-overlay" (click)="closeScheduleModal()"></div>
+
+  <div *ngIf="showScheduleModal" class="cal-modal" (click)="$event.stopPropagation()">
+
+    <div class="cal-modal-header">
+      <div class="cal-modal-title">
+        <div class="cal-modal-icon">📅</div>
+        <div>
+          <h3>Schedule On-Site Visit</h3>
+          <p *ngIf="schedulingRequest">
+            {{ schedulingRequest.adopterName }}
+            <span *ngIf="schedulingRequest.compatibilityScore" class="cal-score-pill"
+                  [style.background]="getScoreBgColor(schedulingRequest.compatibilityScore)"
+                  [style.color]="getScoreTextColor(schedulingRequest.compatibilityScore)">
+              ★ {{ schedulingRequest.compatibilityScore }}/100
+            </span>
+          </p>
+        </div>
+      </div>
+      <button class="cal-close" (click)="closeScheduleModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="cal-modal-body">
+
+      <div class="cal-left">
+        <div class="cal-nav">
+          <button class="cal-nav-btn" (click)="prevMonth()" [disabled]="!canGoPrev">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <span class="cal-month-label">{{ calendarMonthLabel }}</span>
+          <button class="cal-nav-btn" (click)="nextMonth()">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+
+        <div class="cal-weekdays">
+          <span>Mon</span><span>Tue</span><span>Wed</span>
+          <span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+        </div>
+
+        <div class="cal-grid">
+          <div *ngFor="let day of calendarDays"
+               class="cal-cell"
+               [class.empty]="!day.date"
+               [class.past]="day.isPast"
+               [class.today]="day.isToday"
+               [class.selected]="day.isSelected"
+               [class.has-appt]="day.appointments.length > 0"
+               (click)="selectDay(day)">
+            <span class="cal-day-num" *ngIf="day.date">{{ day.dayNum }}</span>
+            <div class="cal-dots" *ngIf="day.appointments.length > 0">
+              <span *ngFor="let a of day.appointments.slice(0, 3)" class="cal-dot"></span>
+            </div>
+            <span class="cal-overflow" *ngIf="day.appointments.length > 3">+{{ day.appointments.length - 3 }}</span>
+          </div>
+        </div>
+
+        <div class="cal-legend">
+          <div class="leg-item"><span class="leg-dot booked"></span> Has appointments</div>
+          <div class="leg-item"><span class="leg-dot today-dot"></span> Today</div>
+          <div class="leg-item"><span class="leg-dot past-dot"></span> Past / unavailable</div>
+        </div>
+      </div>
+
+      <div class="cal-right">
+
+        <div class="cal-day-summary" *ngIf="selectedDay; else noDay">
+          <div class="cal-day-summary-header">
+            <i class="fas fa-calendar-day"></i>
+            <span>{{ selectedDateLabel }}</span>
+          </div>
+
+          <div class="existing-appts" *ngIf="selectedDay.appointments.length > 0">
+            <div class="existing-label">
+              <i class="fas fa-clock"></i>
+              {{ selectedDay.appointments.length }} appointment(s) already scheduled
+            </div>
+            <div class="existing-list">
+              <div *ngFor="let a of selectedDay.appointments" class="existing-item">
+                <span class="existing-time">{{ a.appointmentDate | date:'HH:mm' }}</span>
+                <span class="existing-name">{{ a.adopter?.firstName }} {{ a.adopter?.lastName }}</span>
+                <span class="existing-pet">— {{ a.pet?.name }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="no-appts-msg" *ngIf="selectedDay.appointments.length === 0">
+            <i class="fas fa-check-circle"></i> No appointments this day — fully available
+          </div>
+
+          <div class="slots-label">Select a time slot</div>
+          <div class="slots-grid">
+            <button *ngFor="let slot of HOURS"
+                    class="slot-btn"
+                    [class.slot-booked]="isSlotBooked(slot)"
+                    [class.slot-selected]="selectedHour === slot"
+                    [disabled]="isSlotBooked(slot)"
+                    (click)="selectHour(slot)">
+              {{ slot }}
+              <span class="slot-booked-tag" *ngIf="isSlotBooked(slot)">Taken</span>
+            </button>
+          </div>
+        </div>
+
+        <ng-template #noDay>
+          <div class="no-day-selected">
+            <i class="fas fa-hand-point-left"></i>
+            <p>Select a day on the calendar to choose a time slot</p>
+          </div>
+        </ng-template>
+
+        <div class="cal-notes-group">
+          <label><i class="fas fa-sticky-note"></i> Notes for the adopter <span>(optional)</span></label>
+          <textarea class="cal-notes-input" rows="3" [(ngModel)]="shelterNotes"
+                    placeholder="What to bring, where to park, what to expect..."></textarea>
+        </div>
+
+        <div class="cal-confirm-bar" [class.ready]="selectedDay && appointmentTime">
+          <div class="cal-confirm-info">
+            <div class="confirm-line" *ngIf="selectedDay && appointmentTime">
+              <i class="fas fa-check-circle" style="color:#38a169"></i>
+              <strong>{{ selectedDateLabel }}</strong> at <strong>{{ appointmentTime }}</strong>
+            </div>
+            <div class="confirm-line placeholder" *ngIf="!selectedDay || !appointmentTime">
+              <i class="fas fa-info-circle"></i>
+              Choose a date and a time slot
+            </div>
+          </div>
+          <div class="cal-confirm-btns">
+            <button class="btn-cal-cancel" (click)="closeScheduleModal()" [disabled]="scheduling">Cancel</button>
+            <button class="btn-cal-confirm"
+                    [disabled]="!selectedDay || !appointmentTime || scheduling"
+                    (click)="confirmSchedule()">
+              <i class="fas" [ngClass]="scheduling ? 'fa-spinner fa-spin' : 'fa-calendar-check'"></i>
+              {{ scheduling ? 'Scheduling...' : 'Confirm Appointment' }}
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       MODAL : RÉPONDRE APRÈS CONSULTATION
+       ============================================================ -->
+  <div *ngIf="showRespondModal" class="modal-overlay" (click)="closeRespondModal()"></div>
+  <div *ngIf="showRespondModal" class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-inner">
+      <div class="modal-head teal">
+        <div>
+          <h3>📝 Post-Visit Response</h3>
+          <p *ngIf="respondingAppointment">
+            {{ respondingAppointment.pet?.name }} — {{ respondingAppointment.adopter?.firstName }} {{ respondingAppointment.adopter?.lastName }}
+          </p>
+        </div>
+        <button class="close-btn" (click)="closeRespondModal()">✕</button>
+      </div>
+      <div class="modal-body-box">
+        <div class="modal-form-group">
+          <label>Consultation Result *</label>
+          <div class="result-options">
+            <div class="result-option" [class.selected-approve]="consultationResult === 'APPROVED'" (click)="consultationResult = 'APPROVED'">
+              <i class="fas fa-check-circle"></i>
+              <strong>Approve Adoption</strong>
+              <small>The adopter is suitable — proceed with adoption</small>
+            </div>
+            <div class="result-option" [class.selected-reject]="consultationResult === 'REJECTED'" (click)="consultationResult = 'REJECTED'">
+              <i class="fas fa-times-circle"></i>
+              <strong>Reject Adoption</strong>
+              <small>The adopter is not suitable for this animal</small>
+            </div>
+          </div>
+        </div>
+        <div class="modal-form-group">
+          <label>Message to the adopter *</label>
+          <textarea class="modal-input" rows="4" [(ngModel)]="responseMessage"
+                    placeholder="Explain your decision and provide any relevant feedback..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer-box">
+        <button class="btn-modal-cancel" (click)="closeRespondModal()" [disabled]="responding">Cancel</button>
+        <button class="btn-modal-confirm"
+                [class.danger]="consultationResult === 'REJECTED'"
+                (click)="confirmRespond()" [disabled]="responding || !consultationResult">
+          <i class="fas" [ngClass]="responding ? 'fa-spinner fa-spin' : 'fa-paper-plane'"></i>
+          {{ responding ? 'Sending...' : 'Send Response' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       ✅ MODAL : REJETER UNE DEMANDE — redesigné (remplace Bootstrap modal)
+       ============================================================ -->
+  <div *ngIf="selectedRequestId !== null" class="reject-overlay" (click)="cancelReject()"></div>
+
+  <div *ngIf="selectedRequestId !== null" class="reject-modal" (click)="$event.stopPropagation()">
+
+    <!-- Header rouge -->
+    <div class="reject-modal-header">
+      <div class="reject-modal-title">
+        <i class="fas fa-times-circle reject-header-icon"></i>
+        <div>
+          <h3>Reject Adoption Request</h3>
+          <p>Provide a reason for the adopter</p>
+        </div>
+      </div>
+      <button class="reject-close-btn" (click)="cancelReject()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="reject-modal-body">
+      <div class="reject-form-group">
+        <label>
+          Reason for rejection
+          <span class="optional-tag">(optional)</span>
+        </label>
+        <textarea
+          class="reject-textarea"
+          rows="4"
+          [(ngModel)]="rejectionReason"
+          placeholder="Why are you rejecting this request?">
+        </textarea>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="reject-modal-footer">
+      <button class="btn-reject-cancel" (click)="cancelReject()">
+        Cancel
+      </button>
+      <button class="btn-reject-confirm" (click)="confirmReject()">
+        <i class="fas fa-times-circle"></i>
+        Confirm Rejection
+      </button>
+    </div>
+
+  </div>
+
+</div>

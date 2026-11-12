@@ -1,0 +1,56 @@
+<article class="destination-card" (click)="onCardClick()">
+  <div class="card-image">
+    <img
+      *ngIf="hasCoverImage()"
+      [src]="destination.coverImageUrl"
+      [alt]="destination.title"
+      loading="lazy"
+    />
+
+    <div *ngIf="!hasCoverImage()" class="placeholder-image">
+      <mat-icon class="material-icons-round">pets</mat-icon>
+    </div>
+
+    <div class="floating-badge type-badge" [style.background]="typeConfig.bgColor" [style.color]="typeConfig.color">
+      <mat-icon class="material-icons-round">{{ typeIconName() }}</mat-icon>
+      <span>{{ typeConfig.label }}</span>
+    </div>
+
+    <div class="floating-badge transport-badge">
+      <mat-icon class="material-icons-round">{{ transportIconName() }}</mat-icon>
+    </div>
+  </div>
+
+  <div class="card-content">
+    <h3>{{ destination.title }}</h3>
+
+    <p class="location-row">
+      <mat-icon class="material-icons-round">location_on</mat-icon>
+      <span>{{ destination.country }} - {{ safeRegion() }}</span>
+    </p>
+
+    <div class="rating-row" aria-label="Pet friendly rating">
+      <app-pet-friendly-stars [level]="destination.petFriendlyLevel" [compact]="true"></app-pet-friendly-stars>
+      <span>{{ destination.petFriendlyLevel }}/5</span>
+    </div>
+
+    <div class="card-footer">
+      <span class="transport-chip">
+        <mat-icon class="material-icons-round">{{ transportIconName() }}</mat-icon>
+        <span>{{ transportConfig.label }}</span>
+      </span>
+
+      <div class="action-buttons">
+        <button type="button" class="plan-button" (click)="$event.stopPropagation(); onPlanClick()">
+          <mat-icon class="material-icons-round">checklist</mat-icon>
+          <span>Plan</span>
+        </button>
+
+        <button type="button" class="explore-button" (click)="$event.stopPropagation(); onCardClick()">
+          <span>Explore</span>
+          <mat-icon class="material-icons-round">arrow_forward</mat-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+</article>

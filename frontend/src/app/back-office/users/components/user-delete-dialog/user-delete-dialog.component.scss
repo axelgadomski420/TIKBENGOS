@@ -1,0 +1,143 @@
+@use '../dialog-tokens' as dialogTokens;
+
+:host {
+  @include dialogTokens.host-shell;
+}
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: var(--dialog-overlay-color);
+  backdrop-filter: blur(5px);
+  pointer-events: auto;
+  animation: backdrop-in 180ms ease-out;
+}
+
+.dialog-panel {
+  width: min(31rem, 100%);
+  border-radius: var(--dialog-panel-radius);
+  border: 1px solid var(--dialog-panel-border);
+  background: linear-gradient(
+    150deg,
+    var(--dialog-panel-surface-start),
+    var(--dialog-panel-surface-end)
+  );
+  box-shadow: var(--dialog-panel-shadow);
+  padding: 1rem 1rem 0.95rem;
+  animation: panel-in 220ms ease-out;
+}
+
+.dialog-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.72rem;
+  border: 1px solid transparent;
+}
+
+.dialog-icon i {
+  font-size: 1rem;
+}
+
+.dialog-icon--danger {
+  background: rgba(239, 68, 68, 0.16);
+  color: #b91c1c;
+  border-color: rgba(185, 28, 28, 0.2);
+}
+
+.dialog-copy h3 {
+  margin: 0;
+  color: var(--dialog-copy-title);
+  font-size: 1.05rem;
+  line-height: 1.3;
+}
+
+.dialog-copy p {
+  margin: 0.38rem 0 0;
+  color: var(--dialog-copy-body);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.dialog-user-context {
+  margin-top: 0.8rem;
+  border-radius: 0.78rem;
+  border: 1px solid rgba(203, 213, 225, 0.8);
+  background: rgba(248, 250, 252, 0.9);
+  padding: 0.62rem 0.72rem;
+}
+
+.dialog-user-context__name {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.dialog-user-context__email {
+  margin: 0.18rem 0 0;
+  font-size: 0.78rem;
+  color: #475569;
+}
+
+.dialog-actions {
+  margin-top: 0.92rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.btn {
+  border-radius: var(--dialog-action-radius);
+  border: 1px solid transparent;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.52rem 0.72rem;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn--ghost {
+  border-color: #d6deea;
+  background: #fff;
+  color: #334155;
+}
+
+.btn--confirm {
+  color: #fff;
+}
+
+.btn--danger {
+  background: linear-gradient(145deg, #ef4444, #dc2626);
+  box-shadow: 0 12px 22px -16px rgba(220, 38, 38, 0.82);
+}
+
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

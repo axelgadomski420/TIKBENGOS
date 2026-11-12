@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title th:text="'Certificate | ' + ${eventTitle}">Certificate</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet"/>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #f0f0f0;
+            font-family: 'Crimson Text', 'Times New Roman', serif;
+            display: flex;
+            justify-content: center;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .page { max-width: 900px; width: 100%; }
+
+        /* ── Action buttons ── */
+        .actions {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            margin-bottom: 22px;
+        }
+        .btn {
+            padding: 9px 22px;
+            background: #1a1a2e;
+            color: #c9a84c;
+            border: 1px solid #c9a84c;
+            cursor: pointer;
+            letter-spacing: 0.12em;
+            font-size: 11px;
+            text-transform: uppercase;
+            font-family: 'Cinzel', serif;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: #2d2d4e; }
+
+        /* ── Outer frame ── */
+        .cert-frame {
+            position: relative;
+            background: #ffffff;
+            border: 4px solid #b8922a;
+            box-shadow: 0 0 0 1px #e8d28a, inset 0 0 0 1px #e8d28a;
+        }
+        .cert-frame::before {
+            content: '';
+            position: absolute;
+            inset: 12px;
+            border: 0.75px solid #c9a84c;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .cert-frame::after {
+            content: '';
+            position: absolute;
+            inset: 16px;
+            border: 0.5px solid rgba(201,168,76,0.25);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* ── Gold bars ── */
+        .cert-bar {
+            height: 5px;
+            background: linear-gradient(90deg,
+            #7a5219 0%, #c9a84c 25%, #f0d080 50%, #c9a84c 75%, #7a5219 100%);
+        }
+
+        /* ── Corner ornaments ── */
+        .corner {
+            position: absolute;
+            width: 72px; height: 72px;
+            z-index: 3;
+        }
+        .corner svg { width: 100%; height: 100%; }
+        .corner.tl { top: 22px;    left: 22px; }
+        .corner.tr { top: 22px;    right: 22px;  transform: scaleX(-1); }
+        .corner.bl { bottom: 22px; left: 22px;   transform: scaleY(-1); }
+        .corner.br { bottom: 22px; right: 22px;  transform: scale(-1); }
+
+        /* ── Watermark ── */
+        .watermark {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 140px;
+            font-family: 'Cinzel', serif;
+            font-weight: 700;
+            color: rgba(180,140,40,0.045);
+            letter-spacing: 0.4em;
+            white-space: nowrap;
+            pointer-events: none;
+            user-select: none;
+            z-index: 0;
+        }
+
+        /* ── Certificate body ── */
+        .cert-body {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            padding: 52px 72px 44px;
+        }
+
+        .brand {
+            font-family: 'Cinzel', serif;
+            font-size: 46px;
+            font-weight: 700;
+            letter-spacing: 0.38em;
+            color: #0d0d0d;
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+        .brand-tagline {
+            font-size: 11px;
+            letter-spacing: 0.4em;
+            color: #9a7628;
+            text-transform: uppercase;
+            font-family: 'Cinzel', serif;
+            margin-bottom: 22px;
+        }
+
+        /* ── Ornamental divider ── */
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 480px;
+            margin: 0 auto 22px;
+        }
+        .divider-line {
+            flex: 1; height: 0.75px;
+            background: linear-gradient(90deg,
+            transparent, #c9a84c 40%, #c9a84c 60%, transparent);
+        }
+        .d-orn  { display: flex; align-items: center; gap: 5px; }
+        .d-dot    { width:5px; height:5px; background:#c9a84c; transform:rotate(45deg); flex-shrink:0; }
+        .d-dot-sm { width:3px; height:3px; background:#c9a84c; transform:rotate(45deg); flex-shrink:0; opacity:.6; }
+
+        .cert-title {
+            font-family: 'Cinzel', serif;
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 0.22em;
+            color: #1a1208;
+            text-transform: uppercase;
+            margin-bottom: 30px;
+        }
+
+        .presented {
+            font-size: 15px;
+            color: #555555;
+            letter-spacing: 0.08em;
+            font-style: italic;
+            margin-bottom: 6px;
+        }
+
+        .recipient-name {
+            font-family: 'Cinzel', serif;
+            font-size: 38px;
+            font-weight: 400;
+            color: #0d0d0d;
+            margin: 10px 0 6px;
+            letter-spacing: 0.06em;
+        }
+        .name-underline {
+            width: 260px; height: 1px;
+            background: linear-gradient(90deg,
+            transparent, #9a7628 30%, #9a7628 70%, transparent);
+            margin: 0 auto 30px;
+        }
+
+        .cert-desc {
+            font-size: 16px;
+            color: #3a3a3a;
+            line-height: 1.8;
+            max-width: 520px;
+            margin: 0 auto 6px;
+        }
+        .event-name {
+            font-family: 'Cinzel', serif;
+            font-size: 20px;
+            font-weight: 600;
+            color: #0d0d0d;
+            letter-spacing: 0.05em;
+            margin: 10px 0 32px;
+        }
+
+        /* ── Stats grid ── */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            max-width: 540px;
+            margin: 0 auto 36px;
+            border: 0.75px solid #c9a84c;
+        }
+        .stat {
+            padding: 14px 6px;
+            border-right: 0.75px solid #c9a84c;
+            text-align: center;
+        }
+        .stat:last-child { border-right: none; }
+        .stat-label {
+            display: block;
+            font-size: 9px;
+            letter-spacing: 0.22em;
+            color: #9a7628;
+            text-transform: uppercase;
+            font-family: 'Cinzel', serif;
+            margin-bottom: 7px;
+        }
+        .stat-value {
+            font-family: 'Cinzel', serif;
+            font-size: 16px;
+            font-weight: 600;
+            color: #0d0d0d;
+        }
+        .stat-value.ok { color: #2a7a2a; }
+
+        /* ── Footer ── */
+        .cert-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding-top: 22px;
+            border-top: 0.75px solid rgba(201,168,76,0.35);
+        }
+        .sig { text-align: center; }
+        .sig-line {
+            width: 160px; height: 1px;
+            background: #0d0d0d;
+            margin: 0 auto 7px;
+        }
+        .sig-label {
+            font-size: 9px;
+            letter-spacing: 0.18em;
+            color: #9a7628;
+            text-transform: uppercase;
+            font-family: 'Cinzel', serif;
+        }
+        .seal svg { width: 80px; height: 80px; }
+        .meta { text-align: right; }
+        .meta-label {
+            font-size: 9px;
+            letter-spacing: 0.18em;
+            color: #9a7628;
+            text-transform: uppercase;
+            font-family: 'Cinzel', serif;
+            margin-bottom: 4px;
+        }
+        .meta-date {
+            font-family: 'Cinzel', serif;
+            font-size: 13px;
+            color: #1a1208;
+            margin-bottom: 6px;
+        }
+        .cert-id {
+            font-family: 'Courier New', monospace;
+            font-size: 9px;
+            color: #9a7628;
+            letter-spacing: 0.05em;
+        }
+
+        @media print {
+            body { padding: 0; background: #ffffff; }
+            .actions { display: none; }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+
+    <div class="actions">
+        <button class="btn" onclick="window.close()">&#x2715; Close</button>
+        <button class="btn" onclick="window.print()">&#x2399; Print Certificate</button>
+    </div>
+
+    <div class="cert-frame">
+        <div class="cert-bar"></div>
+
+        <!-- Corner ornaments -->
+        <div class="corner tl">
+            <svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 68 L4 4 L68 4" stroke="#b8922a" stroke-width="1.5"/>
+                <path d="M11 61 L11 11 L61 11" stroke="#c9a84c" stroke-width="0.5" opacity="0.45"/>
+                <circle cx="4" cy="4" r="3.5" fill="#c9a84c"/>
+                <circle cx="11" cy="11" r="2" fill="#c9a84c" opacity="0.45"/>
+                <path d="M4 22 Q4 11 11 11" stroke="#c9a84c" stroke-width="1"/>
+                <path d="M22 4 Q11 4 11 11" stroke="#c9a84c" stroke-width="1"/>
+                <line x1="4"  y1="38" x2="20" y2="38" stroke="#c9a84c" stroke-width="0.5" opacity="0.4"/>
+                <line x1="38" y1="4"  x2="38" y2="20" stroke="#c9a84c" stroke-width="0.5" opacity="0.4"/>
+                <circle cx="4"  cy="38" r="1.5" fill="#c9a84c" opacity="0.55"/>
+                <circle cx="38" cy="4"  r="1.5" fill="#c9a84c" opacity="0.55"/>
+            </svg>
+        </div>
+        <div class="corner tr">
+            <svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 68 L4 4 L68 4" stroke="#b8922a" stroke-width="1.5"/>
+                <path d="M11 61 L11 11 L61 11" stroke="#c9a84c" stroke-width="0.5" opacity="0.45"/>
+                <circle cx="4" cy="4" r="3.5" fill="#c9a84c"/>
+                <circle cx="11" cy="11" r="2" fill="#c9a84c" opacity="0.45"/>
+                <path d="M4 22 Q4 11 11 11" stroke="#c9a84c" stroke-width="1"/>
+                <path d="M22 4 Q11 4 11 11" stroke="#c9a84c" stroke-width="1"/>
+                <line x1="4"  y1="38" x2="20" y2="38" stroke="#c9a84c" stroke-width="0.5" opacity="0.4"/>
+                <line x1="38" y1="4"  x2="38" y2="20" stroke="#c9a84c" stroke-width="0.5" opacity="0.4"/>
+                <circle cx="4"  cy="38" r="1.5" fill="#c9a84c" opacity="0.55"/>
+                <circle cx="38" cy="4"  r="1.5" fill="#c9a84c" opacity="0.55"/>
+            </svg>
+        </div>
+        <div class="corner bl">
+            <svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 68 L4 4 L68 4" stroke="#b8922a" stroke-width="1.5"/>
+                <path d="M11 61 L11 11 L61 11" stroke="#c9a84c" stroke-width="0.5" opacity="0.45"/>
+                <circle cx="4" cy="4" r="3.5" fill="#c9a84c"/>
+                <circle cx="11" cy="11" r="2" fill="#c9a84c" opacity="0.45"/>
+                <path d="M4 22 Q4 11 11 11" stroke="#c9a84c" stroke-width="1"/>
+                <path d="M22 4 Q11 4 11 11" stroke="#c9a84c" stroke-width="1"/>
+                <line x1="4"  y1="38" x2="20" y2="38" stroke="#c9a84c" stroke-width="0.5" opacity="0.4"/>
+                <line x1="38" y1="4"  x2="38" y2="20" stroke="#c9a84c" stroke-width="0.5" opacity="0.4"/>
+                <circle cx="4"  cy="38" r="1.5" fill="#c9a84c" opacity="0.55"/>
+                <circle cx="38" cy="4"  r="1.5" fill="#c9a84c" opacity="0.55"/>
+            </svg>
+        </div>
+        <div class="corner br">
+            <svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 68 L4 4 L68 4" stroke="#b8922a" stroke-width="1.5"/>
+                <path d="M11 61 L11 11 L61 11" stroke="#c9a84c" stroke-width="0.5" opacity="0.45"/>
+                <circle cx="4" cy="4" r="3.5" fill="#c9a84c"/>
+                <circle cx="11" cy="11" r="2" fill="#c9a84c" opacity="0.45"/>
+                <path d="M4 22 Q4 11 11 11" stroke="#c9a84c" stroke-width="1"/>
+                <path d="M22 4 Q11 4 11 11" stroke="#c9a84c" stroke-width="1"/>
+                <line x1="4"  y1="38" x2="20" y2="38" stroke="#c9a84c" stroke-width="0.5" opacity="0.4"/>
+                <line x1="38" y1="4"  x2="38" y2="20" stroke="#c9a84c" stroke-width="0.5" opacity="0.4"/>
+                <circle cx="4"  cy="38" r="1.5" fill="#c9a84c" opacity="0.55"/>
+                <circle cx="38" cy="4"  r="1.5" fill="#c9a84c" opacity="0.55"/>
+            </svg>
+        </div>
+
+        <div class="watermark">ELIF</div>
+
+        <div class="cert-body">
+            <div class="brand">ELIF</div>
+            <div class="brand-tagline">Virtual Events &amp; Learning Platform</div>
+
+            <div class="divider">
+                <div class="divider-line"></div>
+                <div class="d-orn">
+                    <div class="d-dot-sm"></div><div class="d-dot"></div><div class="d-dot-sm"></div>
+                </div>
+                <div class="divider-line"></div>
+            </div>
+
+            <div class="cert-title">Certificate of Participation</div>
+
+            <p class="presented">This is to certify that</p>
+            <div class="recipient-name" th:text="${userName}">John Doe</div>
+            <div class="name-underline"></div>
+
+            <p class="cert-desc">
+                has successfully fulfilled all attendance requirements<br/>
+                and participated in the virtual event:
+            </p>
+            <div class="event-name" th:text="${eventTitle}">Event Title</div>
+
+            <div class="divider" style="margin-bottom:28px;">
+                <div class="divider-line"></div>
+                <div class="d-orn">
+                    <div class="d-dot-sm"></div><div class="d-dot"></div><div class="d-dot-sm"></div>
+                </div>
+                <div class="divider-line"></div>
+            </div>
+
+            <div class="stats">
+                <div class="stat">
+                    <span class="stat-label">Event Date</span>
+                    <div class="stat-value" th:text="${eventDate}">January 1, 2026</div>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Duration</span>
+                    <div class="stat-value"><span th:text="${minutes}">0</span> min</div>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Attendance</span>
+                    <div class="stat-value" th:text="${attendance}">0.0%</div>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Status</span>
+                    <div class="stat-value ok">&#10003; Verified</div>
+                </div>
+            </div>
+
+            <div class="cert-footer">
+                <div class="sig">
+                    <div class="sig-line"></div>
+                    <div class="sig-label">Authorized Signature</div>
+                </div>
+
+                <div class="seal">
+                    <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="40" cy="40" r="37" fill="none" stroke="#c9a84c" stroke-width="1.5"/>
+                        <circle cx="40" cy="40" r="32" fill="none" stroke="#c9a84c" stroke-width="0.5"/>
+                        <circle cx="40" cy="40" r="27" fill="none" stroke="#c9a84c" stroke-width="0.5" stroke-dasharray="2 3"/>
+                        <path d="M40 8 L42.8 17.2 L52.4 17.2 L44.8 22.8 L47.6 32
+                       L40 26.4 L32.4 32 L35.2 22.8 L27.6 17.2 L37.2 17.2 Z" fill="#c9a84c"/>
+                        <text x="40" y="47" text-anchor="middle"
+                              font-family="'Cinzel',serif" font-size="6.5"
+                              fill="#7a5a18" letter-spacing="1.5">CERTIFIED</text>
+                        <text x="40" y="57" text-anchor="middle"
+                              font-family="'Cinzel',serif" font-size="7" font-weight="600"
+                              fill="#7a5a18" letter-spacing="1">ELIF</text>
+                        <path d="M24 64 Q40 70 56 64" stroke="#c9a84c" stroke-width="0.75" fill="none"/>
+                    </svg>
+                </div>
+
+                <div class="meta">
+                    <div class="meta-label">Date of Issue</div>
+                    <div class="meta-date" th:text="${issuedDate}">January 1, 2026</div>
+                    <div class="cert-id" th:text="'ID: ' + ${certId}">ID: ELIF-CERT-0-0-2026</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="cert-bar"></div>
+    </div>
+</div>
+</body>
+</html>

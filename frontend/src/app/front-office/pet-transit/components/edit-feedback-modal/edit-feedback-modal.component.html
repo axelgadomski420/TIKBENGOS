@@ -1,0 +1,108 @@
+<div class="feedback-modal-backdrop" (click)="onBackdropClick($event)">
+  <section class="feedback-modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <header class="modal-header">
+      <h2>
+        <mat-icon>edit</mat-icon>
+        <span>Edit Feedback</span>
+      </h2>
+
+      <button type="button" class="icon-close" (click)="closeModal()" [disabled]="isSaving" aria-label="Close">
+        <mat-icon>close</mat-icon>
+      </button>
+    </header>
+
+    <div class="modal-body" *ngIf="feedback as current">
+      <div
+        class="type-badge-readonly"
+        [style.background]="typeConfig[current.feedbackType].bgColor"
+        [style.color]="typeConfig[current.feedbackType].color"
+      >
+        <mat-icon>{{ typeConfig[current.feedbackType].icon }}</mat-icon>
+        {{ typeConfig[current.feedbackType].label }}
+      </div>
+
+      <div class="field-group">
+        <label for="edit-feedback-title">Title</label>
+        <input
+          id="edit-feedback-title"
+          type="text"
+          class="form-input"
+          maxlength="120"
+          [disabled]="isSaving"
+          [(ngModel)]="title"
+          placeholder="Give your feedback a title..."
+        />
+      </div>
+
+      <div class="field-group" *ngIf="isReview()">
+        <label>
+          Rating
+          <span class="required">*</span>
+        </label>
+
+        <div class="star-rating" (mouseleave)="clearHoverRating()">
+          <button
+            type="button"
+            class="star-btn"
+            *ngFor="let star of [1, 2, 3, 4, 5]"
+            [class.active]="star <= effectiveRating()"
+            [disabled]="isSaving"
+            (mouseenter)="setHoverRating(star)"
+            (click)="setRating(star)"
+            [attr.aria-label]="'Rate ' + star + ' out of 5'"
+          >
+            <mat-icon>{{ star <= effectiveRating() ? 'star' : 'star_border' }}</mat-icon>
+          </button>
+        </div>
+
+        <p class="field-error" *ngIf="triedSubmit && rating === 0">Rating is required for reviews.</p>
+      </div>
+
+      <div class="field-group">
+        <label for="edit-feedback-message">
+          Message
+          <span class="required" *ngIf="isIncidentOrComplaint()">*</span>
+        </label>
+        <textarea
+          id="edit-feedback-message"
+          rows="5"
+          class="form-input"
+          [class.error]="triedSubmit && isIncidentOrComplaint() && !message.trim()"
+          [disabled]="isSaving"
+          [(ngModel)]="message"
+          placeholder="Update your feedback message..."
+        ></textarea>
+        <p class="field-error" *ngIf="triedSubmit && isIncidentOrComplaint() && !message.trim()">
+          Message is required for incident and complaint feedback.
+        </p>
+      </div>
+
+      <div class="field-group" *ngIf="isIncidentOrComplaint()">
+        <label for="edit-feedback-location">Incident Location</label>
+        <div class="input-shell">
+          <mat-icon>location_on</mat-icon>
+          <input
+            id="edit-feedback-location"
+            type="text"
+            class="form-input with-icon"
+            [disabled]="isSaving"
+            [(ngModel)]="incidentLocation"
+            placeholder="e.g. Airport Terminal 2, Flight AA123..."
+          />
+        </div>
+      </div>
+    </div>
+
+    <footer class="modal-footer">
+      <button type="button" class="btn btn-cancel" (click)="closeModal()" [disabled]="isSaving">
+        Cancel
+      </button>
+
+      <button type="button" class="btn btn-save" (click)="submit()" [disabled]="!canSave()">
+        <span class="spinner" *ngIf="isSaving"></span>
+        <mat-icon *ngIf="!isSaving">save</mat-icon>
+        Save Changes
+      </button>
+    </footer>
+  </section>
+</div>

@@ -1,0 +1,345 @@
+<div class="pd-shell">
+  <header class="pd-topbar">
+    <div class="pd-topbar__left">
+      <button class="pd-back-btn" routerLink="/admin/events">
+        <mat-icon>arrow_back</mat-icon>
+        Events
+      </button>
+      <span class="pd-topbar__sep">/</span>
+      <span class="pd-topbar__page">Popularity Analytics</span>
+    </div>
+    <div class="pd-topbar__right">
+      <span class="pd-period-label" *ngIf="dashboard">{{ dashboard.period.label }}</span>
+      <button class="pd-refresh-btn" (click)="loadDashboard()" [disabled]="loading">
+        <mat-icon [class.spinning]="loading">refresh</mat-icon>
+        Refresh
+      </button>
+    </div>
+  </header>
+
+  <div class="pd-hero">
+    <div class="pd-hero__text">
+      <p class="pd-hero__eyebrow">Analytics · Popularity</p>
+      <h1 class="pd-hero__title">Event <span class="pd-hero__accent">Momentum</span> Dashboard</h1>
+      <p class="pd-hero__sub">
+        Real-time event ranking from views, clicks, registrations, and deeper engagement signals.
+      </p>
+    </div>
+
+    <div class="pd-kpi-strip" *ngIf="dashboard && !loading">
+      <div class="pd-kpi">
+        <div class="pd-kpi__icon"><mat-icon>visibility</mat-icon></div>
+        <div class="pd-kpi__val">{{ dashboard.totalViewsToday | number }}</div>
+        <div class="pd-kpi__lbl">Views today</div>
+      </div>
+      <div class="pd-kpi pd-kpi--orange">
+        <div class="pd-kpi__icon"><mat-icon>ads_click</mat-icon></div>
+        <div class="pd-kpi__val">{{ dashboard.totalClicksToday | number }}</div>
+        <div class="pd-kpi__lbl">Clicks today</div>
+      </div>
+      <div class="pd-kpi pd-kpi--green">
+        <div class="pd-kpi__icon"><mat-icon>auto_graph</mat-icon></div>
+        <div class="pd-kpi__val">{{ dashboard.totalEngagementToday | number }}</div>
+        <div class="pd-kpi__lbl">Engagement today</div>
+      </div>
+      <div class="pd-kpi pd-kpi--amber">
+        <div class="pd-kpi__icon"><mat-icon>tune</mat-icon></div>
+        <div class="pd-kpi__val">{{ dashboard.averageConversionRate }}%</div>
+        <div class="pd-kpi__lbl">Avg conversion</div>
+      </div>
+    </div>
+
+    <div class="pd-kpi-strip" *ngIf="loading">
+      <div class="pd-kpi pd-skel" *ngFor="let i of [1,2,3,4]"></div>
+    </div>
+  </div>
+
+  <div class="pd-full-loading" *ngIf="loading && !dashboard">
+    <div class="pd-spinner"></div>
+    <span>Loading analytics…</span>
+  </div>
+
+  <div class="pd-content" *ngIf="dashboard">
+    <div class="pd-row pd-row--two">
+      <div class="pd-card">
+        <div class="pd-card__header">
+          <div class="pd-card__title">
+            <mat-icon>travel_explore</mat-icon>
+            Interactions by type
+          </div>
+          <span class="pd-card__sub">Last 7 days</span>
+        </div>
+        <div class="pd-card__body">
+          <div class="pd-breakdown">
+            <div class="pd-breakdown-row" *ngFor="let item of breakdownItems">
+              <div class="pd-breakdown-row__left">
+                <span class="pd-breakdown-row__icon">{{ item.icon }}</span>
+                <span class="pd-breakdown-row__label">{{ item.label }}</span>
+                <span class="pd-breakdown-row__weight">×{{ item.weight }}</span>
+              </div>
+              <div class="pd-breakdown-row__bar-wrap">
+                <div class="pd-breakdown-row__bar">
+                  <div class="pd-breakdown-row__fill"
+                    [style.width.%]="getBarWidth(item.count)"
+                    [style.background]="item.color">
+                  </div>
+                </div>
+                <span class="pd-breakdown-row__count">{{ item.count | number }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pd-card">
+        <div class="pd-card__header">
+          <div class="pd-card__title">
+            <mat-icon>bolt</mat-icon>
+            Live ranking
+          </div>
+          <span class="pd-card__sub">Auto-refreshing</span>
+        </div>
+        <div class="pd-card__body">
+          <div class="pd-breakdown">
+            <div class="pd-breakdown-row" *ngFor="let item of dashboard.liveRanking | slice:0:5">
+              <div class="pd-breakdown-row__left">
+                <span class="pd-breakdown-row__icon">#{{ item.rank }}</span>
+                <span class="pd-breakdown-row__label">{{ item.title }}</span>
+                <span class="pd-breakdown-row__weight">{{ item.views }} views</span>
+              </div>
+              <div class="pd-breakdown-row__bar-wrap">
+                <div class="pd-breakdown-row__bar">
+                  <div class="pd-breakdown-row__fill"
+                    [style.width.%]="getScoreBarWidth(item.popularityScore)"
+                    [style.background]="'#1d9e75'">
+                  </div>
+                </div>
+                <span class="pd-breakdown-row__count">{{ item.popularityScore }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pd-card pd-card--wide">
+      <div class="pd-card__header">
+        <div class="pd-card__title">
+          <mat-icon>star</mat-icon>
+          Top popular events
+        </div>
+        <div class="pd-card__actions">
+          <span class="pd-card__sub">{{ selectedDays }}-day window</span>
+          <div class="pd-period-tabs">
+            <button class="pd-period-tab" [class.pd-period-tab--active]="selectedDays === 7" (click)="changePeriod(7)">7d</button>
+            <button class="pd-period-tab" [class.pd-period-tab--active]="selectedDays === 30" (click)="changePeriod(30)">30d</button>
+            <button class="pd-period-tab" [class.pd-period-tab--active]="selectedDays === 90" (click)="changePeriod(90)">90d</button>
+          </div>
+        </div>
+      </div>
+      <div class="pd-card__body pd-card__body--no-pad">
+        <div class="pd-top-loading" *ngIf="loadingTop">
+          <div class="pd-spinner pd-spinner--sm"></div>
+        </div>
+        <table class="pd-table" *ngIf="!loadingTop && topEvents.length > 0">
+          <thead>
+            <tr>
+              <th class="pd-table__rank">#</th>
+              <th>Event</th>
+              <th>Category</th>
+              <th class="pd-table__num">Score</th>
+              <th class="pd-table__num">Clicks</th>
+              <th class="pd-table__num">Unique views</th>
+              <th class="pd-table__num">Conversion</th>
+              <th class="pd-table__num">Availability</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let event of topEvents; let i = index" class="pd-table__row" (click)="openEventDetail(event.eventId)">
+              <td class="pd-table__rank">
+                <span class="pd-rank" [class]="getRankClass(i)">{{ i + 1 }}</span>
+              </td>
+              <td>
+                <div class="pd-event-cell">
+                  <div class="pd-event-cell__name">{{ event.title }}</div>
+                  <div class="pd-event-cell__location">
+                    <mat-icon>place</mat-icon>
+                    {{ (event.location || '') | slice:0:30 }}
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="pd-cat-pill">{{ event.categoryIcon }} {{ event.categoryName }}</span>
+              </td>
+              <td class="pd-table__num">
+                <div class="pd-score-cell">
+                  <span class="pd-score-val">{{ event.popularityScore | number }}</span>
+                  <div class="pd-score-bar">
+                    <div class="pd-score-bar__fill" [style.width.%]="getScoreBarWidth(event.popularityScore)"></div>
+                  </div>
+                </div>
+              </td>
+              <td class="pd-table__num">{{ event.clicks | number }}</td>
+              <td class="pd-table__num">{{ event.uniqueViews | number }}</td>
+              <td class="pd-table__num">
+                <span class="pd-conv"
+                  [class.pd-conv--high]="event.conversionRate >= 10"
+                  [class.pd-conv--mid]="event.conversionRate >= 5 && event.conversionRate < 10"
+                  [class.pd-conv--low]="event.conversionRate < 5">
+                  {{ event.conversionRate }}%
+                </span>
+              </td>
+              <td class="pd-table__num">
+                <span class="pd-slots"
+                  [class.pd-slots--full]="event.remainingSlots === 0"
+                  [class.pd-slots--low]="event.remainingSlots > 0 && event.remainingSlots <= 5">
+                  {{ event.remainingSlots === 0 ? 'Full' : event.remainingSlots + ' left' }}
+                </span>
+              </td>
+              <td>
+                <button class="action-button action-button--outline" (click)="$event.stopPropagation(); openEventDetail(event.eventId)">
+                  <mat-icon>description</mat-icon> Details
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="pd-table-empty" *ngIf="!loadingTop && topEvents.length === 0">No data for this period</div>
+      </div>
+    </div>
+
+    <div class="pd-card pd-card--wide pd-card--warn" *ngIf="dashboard.neglectedEvents.length > 0">
+      <div class="pd-card__header">
+        <div class="pd-card__title pd-card__title--warn">
+          <mat-icon>warning</mat-icon>
+          Neglected events
+        </div>
+        <span class="pd-card__sub">Planned events with weak visibility</span>
+      </div>
+      <div class="pd-card__body pd-card__body--no-pad">
+        <table class="pd-table">
+          <thead>
+            <tr>
+              <th>Event</th>
+              <th>Category</th>
+              <th class="pd-table__num">Views</th>
+              <th class="pd-table__num">Unique views</th>
+              <th class="pd-table__num">Conversion</th>
+              <th class="pd-table__num">Seats left</th>
+              <th>Date</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let event of dashboard.neglectedEvents" class="pd-table__row pd-table__row--warn" (click)="openEventDetail(event.eventId)">
+              <td>
+                <div class="pd-event-cell">
+                  <div class="pd-event-cell__name">{{ event.title }}</div>
+                  <div class="pd-event-cell__location">{{ (event.location || '') | slice:0:28 }}</div>
+                </div>
+              </td>
+              <td><span class="pd-cat-pill">{{ event.categoryIcon }} {{ event.categoryName }}</span></td>
+              <td class="pd-table__num">{{ event.views }}</td>
+              <td class="pd-table__num">{{ event.uniqueViews }}</td>
+              <td class="pd-table__num">{{ event.conversionRate }}%</td>
+              <td class="pd-table__num">{{ event.remainingSlots }}</td>
+              <td><span class="pd-date-chip">{{ event.startDate | date:'dd MMM yyyy' }}</span></td>
+              <td>
+                <button class="action-button action-button--outline" (click)="$event.stopPropagation(); openEventDetail(event.eventId)">
+                  <mat-icon>description</mat-icon> Details
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="pd-modal-overlay" *ngIf="selectedDetail" (click)="closeDetail()">
+      <div class="pd-modal" (click)="$event.stopPropagation()">
+        <div class="pd-modal__header">
+          <div>
+            <div class="pd-modal__eyebrow">Event analytics</div>
+            <h3 class="pd-modal__title">{{ selectedDetail.title }}</h3>
+          </div>
+          <button class="pd-modal__close" (click)="closeDetail()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+        <div class="pd-modal__body" *ngIf="!loadingDetail">
+          <div class="pd-detail-hero">
+            <div class="pd-detail-score">
+              <div class="pd-detail-score__val">{{ selectedDetail.popularityScore | number }}</div>
+              <div class="pd-detail-score__lbl">Popularity score</div>
+            </div>
+            <div class="pd-trend-badge pd-trend-badge--{{ selectedDetail.trend.toLowerCase() }}">
+              <span>{{ selectedDetail.trend }}</span>
+            </div>
+            <div class="pd-detail-conv">
+              <div class="pd-detail-conv__val">{{ selectedDetail.liveRank ? ('#' + selectedDetail.liveRank) : '—' }}</div>
+              <div class="pd-detail-conv__lbl">Live rank</div>
+            </div>
+          </div>
+
+          <div class="pd-detail-breakdown">
+            <div class="pd-detail-breakdown__title">Interaction breakdown</div>
+            <div class="pd-detail-bars">
+              <div class="pd-detail-bar-row">
+                <span class="pd-detail-bar-row__icon"><mat-icon>visibility</mat-icon></span>
+                <span class="pd-detail-bar-row__label">Views</span>
+                <div class="pd-detail-bar-row__track">
+                  <div class="pd-detail-bar-row__fill" style="background:#6366f1" [style.width.%]="getDetailBarWidth(selectedDetail.totalViews, selectedDetail)"></div>
+                </div>
+                <span class="pd-detail-bar-row__count">{{ selectedDetail.totalViews | number }}</span>
+                <span class="pd-detail-bar-row__unique">({{ selectedDetail.uniqueViews }} unique)</span>
+              </div>
+
+              <div class="pd-detail-bar-row">
+                <span class="pd-detail-bar-row__icon"><mat-icon>ads_click</mat-icon></span>
+                <span class="pd-detail-bar-row__label">Total clicks</span>
+                <div class="pd-detail-bar-row__track">
+                  <div class="pd-detail-bar-row__fill" style="background:#0ea5e9" [style.width.%]="getDetailBarWidth(selectedDetail.totalClicks, selectedDetail)"></div>
+                </div>
+                <span class="pd-detail-bar-row__count">{{ selectedDetail.totalClicks | number }}</span>
+              </div>
+
+              <div class="pd-detail-bar-row">
+                <span class="pd-detail-bar-row__icon"><mat-icon>auto_graph</mat-icon></span>
+                <span class="pd-detail-bar-row__label">Engagement</span>
+                <div class="pd-detail-bar-row__track">
+                  <div class="pd-detail-bar-row__fill" style="background:#1d9e75" [style.width.%]="getDetailBarWidth(selectedDetail.engagement, selectedDetail)"></div>
+                </div>
+                <span class="pd-detail-bar-row__count">{{ selectedDetail.engagement | number }}</span>
+              </div>
+
+              <div class="pd-detail-bar-row">
+                <span class="pd-detail-bar-row__icon"><mat-icon>schedule</mat-icon></span>
+                <span class="pd-detail-bar-row__label">Waitlist joins</span>
+                <div class="pd-detail-bar-row__track">
+                  <div class="pd-detail-bar-row__fill" style="background:#f59e0b" [style.width.%]="getDetailBarWidth(selectedDetail.waitlistJoins, selectedDetail)"></div>
+                </div>
+                <span class="pd-detail-bar-row__count">{{ selectedDetail.waitlistJoins | number }}</span>
+              </div>
+
+              <div class="pd-detail-bar-row">
+                <span class="pd-detail-bar-row__icon"><mat-icon>check_circle</mat-icon></span>
+                <span class="pd-detail-bar-row__label">Registrations</span>
+                <div class="pd-detail-bar-row__track">
+                  <div class="pd-detail-bar-row__fill" style="background:#065f46" [style.width.%]="getDetailBarWidth(selectedDetail.registrations, selectedDetail)"></div>
+                </div>
+                <span class="pd-detail-bar-row__count">{{ selectedDetail.registrations | number }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="pd-modal__loading" *ngIf="loadingDetail">
+          <div class="pd-spinner"></div>
+        </div>
+        <div class="pd-modal__footer">
+          <button class="pd-btn-ghost" (click)="closeDetail()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

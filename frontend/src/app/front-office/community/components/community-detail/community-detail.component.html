@@ -1,0 +1,701 @@
+<section class="community-page community-detail-page min-h-screen px-4 py-10 md:px-8">
+  <div class="mx-auto max-w-6xl" *ngIf="loading">
+    <div class="mb-6 overflow-hidden rounded-[2rem] border border-white shadow-xl animate-pulse">
+      <div class="h-[250px] md:h-[280px] bg-slate-200"></div>
+    </div>
+    <div class="rounded-[1.7rem] border border-white bg-white/90 p-5 shadow-lg animate-pulse">
+      <div class="h-5 w-40 rounded bg-slate-200"></div>
+      <div class="mt-4 flex gap-2">
+        <div class="h-10 w-20 rounded-full bg-slate-200"></div>
+        <div class="h-10 w-20 rounded-full bg-slate-200"></div>
+        <div class="h-10 w-20 rounded-full bg-slate-200"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mx-auto max-w-6xl" *ngIf="community as c">
+    <header class="detail-hero">
+      <div class="detail-hero-banner">
+        <ng-container *ngIf="c.bannerUrl; else detailColorBanner">
+          <img [src]="c.bannerUrl" alt="Community banner" class="absolute inset-0 h-full w-full object-cover">
+        </ng-container>
+        <ng-template #detailColorBanner>
+          <div class="absolute inset-0" [style.backgroundColor]="bannerFallbackColor(c)"></div>
+        </ng-template>
+        <div class="detail-hero-overlay"></div>
+      </div>
+
+      <div class="detail-hero-body">
+        <div class="detail-hero-grid">
+          <div class="min-w-0">
+            <p class="detail-hero-kicker">Community workspace</p>
+            <div class="flex flex-wrap gap-2">
+              <span class="detail-hero-chip">
+                <i class="fas" [ngClass]="c.type === 'PUBLIC' ? 'fa-earth-africa' : 'fa-lock'"></i>
+                {{ c.type === 'PUBLIC' ? 'Public community' : 'Private community' }}
+              </span>
+              <span class="detail-hero-chip" *ngIf="c.userRole">
+                <i class="fas fa-user-check"></i>
+                {{ roleLabel(c.userRole) }}
+              </span>
+              <span class="detail-hero-chip">
+                <i class="fas fa-calendar"></i>
+                Created {{ c.createdAt ? (c.createdAt | date:'MMM d, y') : 'Unknown' }}
+              </span>
+            </div>
+
+            <div class="mt-5 flex items-center gap-4">
+              <ng-container *ngIf="c.iconUrl; else detailIconFallback">
+                <img [src]="c.iconUrl" alt="Community icon" class="detail-community-icon">
+              </ng-container>
+              <ng-template #detailIconFallback>
+                <div class="detail-community-icon detail-community-icon-fallback">{{ (c.name || 'C').charAt(0) | uppercase }}</div>
+              </ng-template>
+
+              <div class="min-w-0">
+                <h1 class="mt-2 truncate text-3xl font-black md:text-4xl">{{ c.name || 'Community' }}</h1>
+                <p class="mt-1 text-sm">c/{{ c.slug || 'community' }}</p>
+              </div>
+            </div>
+
+	            <p class="mt-5 max-w-3xl text-sm leading-7 md:text-base">{{ c.description || 'No description provided yet.' }}</p>
+
+
+
+	            <div class="detail-stat-grid mt-6">
+              <div class="detail-stat-card">
+                <span class="detail-stat-label">Members</span>
+                <strong class="detail-stat-value">{{ c.memberCount }}</strong>
+              </div>
+              <div class="detail-stat-card">
+                <span class="detail-stat-label">Posts</span>
+                <strong class="detail-stat-value">{{ posts.length }}</strong>
+              </div>
+              <div class="detail-stat-card">
+                <span class="detail-stat-label">Visibility</span>
+                <strong class="detail-stat-value">{{ typeLabel(c.type) }}</strong>
+              </div>
+            </div>
+          </div>
+
+	          <div class="detail-hero-actions">
+	            <div class="detail-action-support-card">
+	              <p class="detail-action-support-title">Before you post</p>
+	              <p class="detail-action-support-copy">{{ postingGuidance }}</p>
+	            </div>
+	            <button type="button" *ngIf="canOpenSettings" (click)="openManagementDialog(communitySettingsDialog)" class="detail-hero-action detail-hero-action-secondary">
+	              <i class="fas fa-gear"></i>
+	              {{ settingsButtonLabel }}
+            </button>
+            <button type="button" *ngIf="isLoggedIn && !c.userRole" (click)="join()" [disabled]="joining" class="detail-hero-action detail-hero-action-primary">
+              <i class="fas fa-user-plus mr-2"></i>{{ joining ? 'Joining...' : 'Join community' }}
+            </button>
+            <button type="button" *ngIf="canCreatePost" [routerLink]="['/app/community/c', c.slug, 'post', 'new']" [queryParams]="{ communityId: c.id }" class="detail-hero-action detail-hero-action-primary">
+              <i class="fas fa-pen mr-2"></i>Create post
+            </button>
+            <button type="button" *ngIf="canLeaveCommunity" (click)="leave()" [disabled]="leaving" class="detail-hero-action detail-hero-action-danger">
+              <i class="fas fa-door-open mr-2"></i>{{ leaving ? 'Leaving...' : 'Leave community' }}
+            </button>
+            <a *ngIf="!isLoggedIn" routerLink="/auth/login" class="detail-hero-action detail-hero-action-secondary">
+              <i class="fas fa-right-to-bracket mr-2"></i>Log in to join
+            </a>
+            <p *ngIf="isLoggedIn && !isMember" class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600">
+              Join this community to create threads and unlock the member directory.
+            </p>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div *ngIf="actionError" class="detail-inline-alert mt-5">
+      {{ actionError }}
+    </div>
+
+    <!-- Community-Scoped Search Bar -->
+    <div
+      class="community-search-dock community-detail-search-dock mt-6"
+      [style.--search-progress]="searchDockProgress"
+      [class.community-search-dock-scrolled]="searchDockProgress > 0.08">
+      <div class="community-search-panel">
+        <div class="community-search-input-wrap">
+          <i class="fas fa-magnifying-glass community-search-icon"></i>
+          <input
+            [(ngModel)]="searchQuery"
+            (ngModelChange)="onSearchQueryChange($event)"
+            name="communityDetailSearch"
+            type="text"
+            class="community-search-input"
+            placeholder="Search within this community..."
+            aria-label="Search within this community"
+            (keydown.enter)="runSearch()">
+          <button *ngIf="searchQuery" type="button" class="community-search-clear" (click)="clearSearch()" aria-label="Clear search">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <button type="button" class="community-search-submit community-search-submit-ai" (click)="runSearch()" [disabled]="searching || aiSearchRunning">
+          <span class="material-icons-round thread-summary-action-btn-icon" aria-hidden="true">{{ aiSearchRunning ? 'refresh' : 'auto_awesome' }}</span>
+          {{ aiSearchRunning ? 'Searching...' : 'Ask AI' }}
+        </button>
+      </div>
+
+      <section *ngIf="searchQuery.trim().length" class="detail-posts-surface mt-4">
+        <div class="detail-toolbar-meta md:flex-row md:items-center md:justify-between">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.16em] text-brand-teal">Search</p>
+            <h2 class="mt-1 text-xl font-black text-slate-950">Results for "{{ searchQuery.trim() }}"</h2>
+            <p class="mt-1 text-sm leading-6 text-slate-500">Typing runs keyword search. Use Ask AI for agent answers.</p>
+          </div>
+          <div class="detail-sort-window-list">
+            <button
+              type="button"
+              (click)="onSearchModeChange('ALL')"
+              class="detail-sort-window-button"
+              [ngClass]="searchMode === 'ALL' ? 'detail-sort-window-button-active' : 'detail-sort-window-button-idle'">
+              All
+            </button>
+            <button
+              type="button"
+              (click)="onSearchModeChange('POSTS')"
+              class="detail-sort-window-button"
+              [ngClass]="searchMode === 'POSTS' ? 'detail-sort-window-button-active' : 'detail-sort-window-button-idle'">
+              Posts
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="searching" class="mt-4 space-y-3">
+          <div *ngFor="let _ of [1,2,3]" class="rounded-3xl border border-slate-200 bg-white p-5 animate-pulse">
+            <div class="h-4 w-32 rounded bg-slate-200 mb-3"></div>
+            <div class="h-6 w-2/3 rounded bg-slate-200 mb-3"></div>
+            <div class="h-4 w-full rounded bg-slate-100 mb-2"></div>
+            <div class="h-4 w-1/2 rounded bg-slate-100"></div>
+          </div>
+        </div>
+
+        <div *ngIf="!searching && (aiSearchResult || aiSearchError)" class="community-ai-answer-card mt-4">
+          <div class="community-ai-answer-head">
+            <div class="community-ai-answer-title-wrap">
+              <span class="community-ai-answer-kicker">AI Powered</span>
+              <h3 class="community-ai-answer-title">Natural-language answer</h3>
+            </div>
+          </div>
+          <p *ngIf="aiSearchResult?.answer" class="community-ai-answer-copy">{{ aiSearchResult?.answer }}</p>
+          <p *ngIf="aiSearchError" class="community-ai-answer-warning">{{ aiSearchError }}</p>
+          
+          <div *ngIf="aiSearchResult?.followUps?.length" class="community-ai-followups">
+            <button
+              *ngFor="let followUp of aiSearchResult?.followUps"
+              type="button"
+              class="community-ai-followup-chip"
+              (click)="onSearchQueryChange(followUp); runSearch()">
+              {{ followUp }}
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="!searching && searchError" class="search-error mt-4">
+          {{ searchError }}
+        </div>
+
+        <div *ngIf="!searching && !searchError && searchPosts.length === 0" class="detail-empty-state mt-4">
+          <p class="text-lg font-semibold text-slate-900">No search matches yet.</p>
+          <p class="mt-2 text-sm text-slate-500">Try a broader phrase, or click Ask AI for semantic matching.</p>
+        </div>
+
+        <div *ngIf="!searching && !searchError && searchPosts.length > 0" class="detail-posts-list mt-4">
+          <div *ngFor="let post of searchPosts; trackBy: trackByPostId">
+            <app-post-card
+              [post]="post"
+              [currentUserId]="userId"
+              [canPinPost]="canManagePost(post)"
+              (voted)="onPostVote(post, $event.value)">
+            </app-post-card>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+	  <div class="community-detail-shell mt-6">
+      <app-community-detail-left-rail [host]="vm"></app-community-detail-left-rail>
+
+	      <main class="detail-main-and-right-rail min-w-0">
+	      <div class="detail-main-column">
+        <ng-template #communitySettingsDialog>
+          <section role="dialog" aria-modal="true" aria-label="Community settings dialog">
+          <div class="detail-settings-dialog overflow-hidden rounded-3xl border border-slate-200 bg-white">
+            <div class="border-b border-slate-200 bg-slate-50 px-5 py-4">
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 class="text-lg font-black text-slate-900">Community settings</h2>
+                  <p class="mt-1 text-sm text-slate-500">Tune community management and member notification preferences in one place.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">{{ roleLabel(c.userRole) }}</span>
+                  <button type="button" class="detail-secondary-button" (click)="closeActiveSettingsDialog()">
+                    <i class="fas fa-xmark mr-1"></i>Close
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="detail-settings-workflow px-5 py-4">
+              <button *ngIf="canEditCommunity" type="button" class="detail-workflow-chip" [ngClass]="isManagementSectionOpen('identity') ? 'detail-workflow-chip-active' : 'detail-workflow-chip-idle'" (click)="activateManagementSection('identity')">
+                <span class="detail-workflow-chip-title">Identity</span>
+                <span class="detail-workflow-chip-meta">Brand and visibility</span>
+              </button>
+              <button *ngIf="canEditCommunity" type="button" class="detail-workflow-chip" [ngClass]="isManagementSectionOpen('rules') ? 'detail-workflow-chip-active' : 'detail-workflow-chip-idle'" (click)="activateManagementSection('rules')">
+                <span class="detail-workflow-chip-title">Rules</span>
+                <span class="detail-workflow-chip-meta">{{ rules.length }} configured</span>
+              </button>
+              <button *ngIf="canEditCommunity" type="button" class="detail-workflow-chip" [ngClass]="isManagementSectionOpen('flairs') ? 'detail-workflow-chip-active' : 'detail-workflow-chip-idle'" (click)="activateManagementSection('flairs')">
+                <span class="detail-workflow-chip-title">Flairs</span>
+                <span class="detail-workflow-chip-meta">{{ flairs.length }} labels</span>
+              </button>
+              <button *ngIf="canManageModerators" type="button" class="detail-workflow-chip" [ngClass]="isManagementSectionOpen('moderators') ? 'detail-workflow-chip-active' : 'detail-workflow-chip-idle'" (click)="activateManagementSection('moderators')">
+                <span class="detail-workflow-chip-title">Moderators</span>
+                <span class="detail-workflow-chip-meta">Member permissions</span>
+              </button>
+              <button *ngIf="isMember" type="button" class="detail-workflow-chip" [ngClass]="isManagementSectionOpen('notifications') ? 'detail-workflow-chip-active' : 'detail-workflow-chip-idle'" (click)="activateManagementSection('notifications')">
+                <span class="detail-workflow-chip-title">Notifications</span>
+                <span class="detail-workflow-chip-meta">Email alerts and digest</span>
+              </button>
+            </div>
+
+            <div class="detail-settings-body space-y-3 px-5 pb-4">
+              <div id="detail-settings-identity" *ngIf="canEditCommunity && managementIdentityOpen" class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                <button type="button" (click)="toggleManagementSection('identity')" class="flex w-full items-center justify-between gap-3 bg-slate-50 px-4 py-3 text-left">
+                  <div>
+                    <h3 class="text-base font-bold text-slate-900">Community identity</h3>
+                    <p class="mt-0.5 text-xs text-slate-500">Name, description, visibility, and media assets.</p>
+                  </div>
+                  <span class="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                    <i class="fas mr-2" [ngClass]="managementIdentityOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                    {{ managementIdentityOpen ? 'Collapse' : 'Expand' }}
+                  </span>
+                </button>
+
+                <div *ngIf="managementIdentityOpen" class="border-t border-slate-200 px-4 py-4">
+                  <div class="flex justify-end" *ngIf="!editingCommunity">
+                    <button (click)="enableEditCommunity()" class="detail-inline-button">
+                      <i class="fas fa-pen mr-2"></i>Edit details
+                    </button>
+                  </div>
+
+                  <form *ngIf="editingCommunity" [formGroup]="editForm" (ngSubmit)="saveCommunity()" class="space-y-4">
+                    <div>
+                      <label class="mb-1 block text-sm font-semibold text-slate-700">Name</label>
+                      <input formControlName="name" maxlength="80" class="w-full rounded-2xl border border-slate-300 px-4 py-3 bg-white focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 outline-none" [class.border-red-400]="editForm.get('name')?.invalid && editForm.get('name')?.touched">
+                      <div class="mt-1 flex items-center justify-between text-xs text-slate-400">
+                        <p>Short, recognizable, and easy to scan.</p>
+                        <span>{{ editNameLength }}/80</span>
+                      </div>
+                      <p *ngIf="editForm.get('name')?.touched && editForm.get('name')?.hasError('required')" class="mt-1 text-sm text-red-600">Name is required.</p>
+                      <p *ngIf="editForm.get('name')?.touched && editForm.get('name')?.hasError('minlength')" class="mt-1 text-sm text-red-600">Name must be at least 3 characters.</p>
+                      <div class="create-slug-preview mt-3">
+                        <span class="create-slug-label">Locked handle</span>
+                        <strong class="create-slug-value">c/{{ c.slug }}</strong>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label class="mb-1 block text-sm font-semibold text-slate-700">Description</label>
+                      <textarea formControlName="description" rows="4" maxlength="1000" class="w-full rounded-2xl border border-slate-300 px-4 py-3 bg-white focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 outline-none" [class.border-red-400]="editForm.get('description')?.invalid && editForm.get('description')?.touched"></textarea>
+                      <div class="mt-1 flex items-center justify-between text-xs text-slate-400">
+                        <p>Clarify what belongs here and what kind of posts are most useful.</p>
+                        <span>{{ editDescriptionLength }}/1000</span>
+                      </div>
+                      <p *ngIf="editForm.get('description')?.touched && editForm.get('description')?.hasError('required')" class="mt-1 text-sm text-red-600">Description is required.</p>
+                      <p *ngIf="editForm.get('description')?.touched && editForm.get('description')?.hasError('minlength')" class="mt-1 text-sm text-red-600">Description must be at least 20 characters.</p>
+                    </div>
+
+                    <div>
+                      <label class="mb-1 block text-sm font-semibold text-slate-700">Visibility</label>
+                      <div class="grid gap-3 sm:grid-cols-2">
+                        <button type="button" (click)="editForm.patchValue({ type: 'PUBLIC' })" class="create-choice-card" [ngClass]="editForm.get('type')?.value === 'PUBLIC' ? 'create-choice-card-active' : 'create-choice-card-idle'">
+                          <div class="flex items-center justify-between gap-3">
+                            <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-teal/10 text-brand-teal">
+                              <i class="fas fa-earth-africa"></i>
+                            </span>
+                            <span class="rounded-full bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Discovery</span>
+                          </div>
+                          <p class="mt-4 text-base font-bold text-slate-950">Public</p>
+                          <p class="mt-2 text-sm leading-6 text-slate-500">Visible in discovery and open to browsing.</p>
+                        </button>
+
+                        <button type="button" (click)="editForm.patchValue({ type: 'PRIVATE' })" class="create-choice-card" [ngClass]="editForm.get('type')?.value === 'PRIVATE' ? 'create-choice-card-active' : 'create-choice-card-idle'">
+                          <div class="flex items-center justify-between gap-3">
+                            <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-orange/10 text-brand-orange">
+                              <i class="fas fa-lock"></i>
+                            </span>
+                            <span class="rounded-full bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Curated</span>
+                          </div>
+                          <p class="mt-4 text-base font-bold text-slate-950">Private</p>
+                          <p class="mt-2 text-sm leading-6 text-slate-500">Reserved for moderated or invite-based participation.</p>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <div class="create-upload-card">
+                        <label class="mb-1 block text-sm font-semibold text-slate-700">Banner URL</label>
+                        <input [id]="editBannerInputId" type="file" accept="image/*" (change)="onEditImagePicked($event, 'bannerUrl')" class="hidden">
+                        <div class="mb-2 flex items-center gap-2">
+                          <label [for]="editBannerInputId" class="detail-upload-button">
+                            <i class="fas fa-upload text-brand-teal"></i>Upload banner
+                          </label>
+                          <button *ngIf="editForm.get('bannerUrl')?.value" type="button" (click)="clearEditImage('bannerUrl')" class="detail-remove-button">Remove</button>
+                        </div>
+                        <input formControlName="bannerUrl" class="w-full rounded-2xl border border-slate-300 px-4 py-3 bg-white focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 outline-none">
+                        <div class="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                          <img *ngIf="editForm.get('bannerUrl')?.value; else detailBannerFallback" [src]="editForm.get('bannerUrl')?.value" alt="Banner preview" class="h-24 w-full object-cover">
+                          <ng-template #detailBannerFallback>
+                            <div class="h-24 w-full" [style.backgroundColor]="bannerFallbackColor(c)"></div>
+                          </ng-template>
+                        </div>
+                      </div>
+
+                      <div class="create-upload-card">
+                        <label class="mb-1 block text-sm font-semibold text-slate-700">Icon URL</label>
+                        <input [id]="editIconInputId" type="file" accept="image/*" (change)="onEditImagePicked($event, 'iconUrl')" class="hidden">
+                        <div class="mb-2 flex items-center gap-2">
+                          <label [for]="editIconInputId" class="detail-upload-button">
+                            <i class="fas fa-upload text-brand-teal"></i>Upload icon
+                          </label>
+                          <button *ngIf="editForm.get('iconUrl')?.value" type="button" (click)="clearEditImage('iconUrl')" class="detail-remove-button">Remove</button>
+                        </div>
+                        <input formControlName="iconUrl" class="w-full rounded-2xl border border-slate-300 px-4 py-3 bg-white focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 outline-none">
+                        <div class="mt-4 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                          <ng-container *ngIf="editForm.get('iconUrl')?.value; else detailIconFormFallback">
+                            <img [src]="editForm.get('iconUrl')?.value" alt="Icon preview" class="h-14 w-14 rounded-full border border-slate-200 object-cover">
+                          </ng-container>
+                          <ng-template #detailIconFormFallback>
+                            <div class="flex h-14 w-14 items-center justify-center rounded-full border border-slate-200 bg-white text-base font-black text-slate-700">
+                              {{ (c.name || 'C').charAt(0) | uppercase }}
+                            </div>
+                          </ng-template>
+                          <div class="min-w-0">
+                            <p class="text-sm font-semibold text-slate-900">Icon preview</p>
+                            <p class="mt-1 text-xs leading-5 text-slate-500">Shows up in lists, feed cards, and header states.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-3">
+                      <button type="submit" [disabled]="savingCommunity" class="detail-primary-button">
+                        <i class="fas fa-save mr-2"></i>{{ savingCommunity ? 'Saving...' : 'Save changes' }}
+                      </button>
+                      <button type="button" (click)="cancelEditCommunity()" class="detail-secondary-button">Cancel</button>
+                    </div>
+                  </form>
+
+                  <div *ngIf="!editingCommunity" class="grid grid-cols-1 gap-3 md:grid-cols-3">
+                    <div class="detail-info-chip">
+                      <span class="detail-info-label">Name</span>
+                      <strong class="detail-info-value">{{ c.name }}</strong>
+                    </div>
+                    <div class="detail-info-chip">
+                      <span class="detail-info-label">Visibility</span>
+                      <strong class="detail-info-value">{{ typeLabel(c.type) }}</strong>
+                    </div>
+                    <div class="detail-info-chip">
+                      <span class="detail-info-label">Media</span>
+                      <strong class="detail-info-value">{{ c.bannerUrl || c.iconUrl ? 'Configured' : 'Using defaults' }}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div id="detail-settings-rules" *ngIf="canEditCommunity && managementRulesOpen" class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                <button type="button" (click)="toggleManagementSection('rules')" class="flex w-full items-center justify-between gap-3 bg-slate-50 px-4 py-3 text-left">
+                  <div>
+                    <h4 class="text-base font-bold text-slate-900">Rule studio</h4>
+                    <p class="mt-0.5 text-xs text-slate-500">Expectations and posting boundaries.</p>
+                  </div>
+                  <span class="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                    <i class="fas mr-2" [ngClass]="managementRulesOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                    {{ managementRulesOpen ? 'Collapse' : 'Expand' }}
+                  </span>
+                </button>
+
+                <div *ngIf="managementRulesOpen" class="border-t border-slate-200 px-4 py-4">
+                  <div class="grid grid-cols-1 gap-3">
+                    <div>
+                      <label class="mb-1 block text-sm font-semibold text-slate-700">Rule title</label>
+                      <input [(ngModel)]="newRuleTitle" maxlength="200" placeholder="e.g. Keep advice practical and respectful" class="w-full rounded-2xl border border-slate-300 px-3 py-3 bg-white text-sm focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 outline-none">
+                    </div>
+                    <div>
+                      <label class="mb-1 block text-sm font-semibold text-slate-700">Description (optional)</label>
+                      <textarea [(ngModel)]="newRuleDescription" rows="3" maxlength="1000" placeholder="Clarify what this rule means in practice." class="w-full rounded-2xl border border-slate-300 px-3 py-3 bg-white text-sm focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 outline-none"></textarea>
+                    </div>
+                  </div>
+
+                  <div class="mt-3 flex flex-wrap items-center gap-3">
+                    <button (click)="createRule()" [disabled]="creatingRule" class="detail-primary-button">
+                      <i class="fas fa-plus mr-2"></i>{{ creatingRule ? 'Adding...' : 'Add rule' }}
+                    </button>
+                    <span *ngIf="ruleError" class="text-sm text-red-600">{{ ruleError }}</span>
+                  </div>
+
+                  <div class="mt-4 space-y-2" *ngIf="rules.length > 0">
+                    <div *ngFor="let rule of rules; trackBy: trackByRuleOrder" class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                      <div *ngIf="editingRuleId !== rule.id; else editRuleBlock">
+                        <div class="flex items-start justify-between gap-3">
+                          <div class="min-w-0">
+                            <p class="text-sm font-semibold text-slate-900">{{ rule.ruleOrder }}. {{ rule.title || 'Untitled rule' }}</p>
+                            <p *ngIf="rule.description" class="mt-1 text-xs leading-5 text-slate-500">{{ rule.description }}</p>
+                          </div>
+                          <button type="button" (click)="startEditRule(rule)" class="detail-inline-button">
+                            <i class="fas fa-pen mr-1"></i>Edit
+                          </button>
+                        </div>
+                      </div>
+                      <ng-template #editRuleBlock>
+                        <div class="space-y-2">
+                          <div class="grid grid-cols-1 gap-2 md:grid-cols-3">
+                            <div class="md:col-span-2">
+                              <label class="mb-1 block text-xs font-semibold text-slate-600">Title</label>
+                              <input [(ngModel)]="editRuleTitle" maxlength="200" class="w-full rounded-2xl border border-slate-300 px-3 py-2 bg-white text-sm focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 outline-none">
+                            </div>
+                            <div>
+                              <label class="mb-1 block text-xs font-semibold text-slate-600">Order</label>
+                              <input [(ngModel)]="editRuleOrder" type="number" min="0" class="w-full rounded-2xl border border-slate-300 px-3 py-2 bg-white text-sm focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 outline-none">
+                            </div>
+                          </div>
+                          <div>
+                            <label class="mb-1 block text-xs font-semibold text-slate-600">Description</label>
+                            <textarea [(ngModel)]="editRuleDescription" rows="3" maxlength="1000" class="w-full rounded-2xl border border-slate-300 px-3 py-2 bg-white text-sm focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 outline-none"></textarea>
+                          </div>
+                          <div class="flex flex-wrap items-center gap-2">
+                            <button type="button" (click)="saveRule(rule)" [disabled]="savingRuleId === rule.id" class="detail-primary-button">
+                              <i class="fas fa-save mr-2"></i>{{ savingRuleId === rule.id ? 'Saving...' : 'Save rule' }}
+                            </button>
+                            <button type="button" (click)="cancelEditRule()" class="detail-secondary-button">Cancel</button>
+                          </div>
+                        </div>
+                      </ng-template>
+                    </div>
+                  </div>
+
+                  <div *ngIf="rules.length === 0" class="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
+                    No rules yet. Add your first one now or skip and create rules later.
+                  </div>
+                </div>
+              </div>
+
+              <div id="detail-settings-flairs" *ngIf="canEditCommunity && managementFlairsOpen" class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                <button type="button" (click)="toggleManagementSection('flairs')" class="flex w-full items-center justify-between gap-3 bg-slate-50 px-4 py-3 text-left">
+                  <div>
+                    <h4 class="text-base font-bold text-slate-900">Flair studio</h4>
+                    <p class="mt-0.5 text-xs text-slate-500">Post labels for routing and feed clarity.</p>
+                  </div>
+                  <span class="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                    <i class="fas mr-2" [ngClass]="managementFlairsOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                    {{ managementFlairsOpen ? 'Collapse' : 'Expand' }}
+                  </span>
+                </button>
+
+                <div *ngIf="managementFlairsOpen" class="border-t border-slate-200 px-4 py-4">
+                  <div class="grid grid-cols-1 gap-2 md:grid-cols-4">
+                    <div class="md:col-span-2">
+                      <input [(ngModel)]="newFlairName" maxlength="30" placeholder="Flair name" class="w-full rounded-2xl border border-slate-300 px-3 py-3 bg-white text-sm focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 outline-none">
+                      <div class="mt-2 flex items-center justify-between text-xs text-slate-400">
+                        <p>Keep flair labels short and easy to skim.</p>
+                        <span>{{ flairNameLength }}/30</span>
+                      </div>
+                    </div>
+                    <label class="rounded-2xl border border-slate-300 bg-white p-3 text-xs font-semibold text-slate-600">
+                      Background
+                      <input [(ngModel)]="newFlairColor" type="color" class="mt-2 h-10 w-full rounded-xl border border-slate-300 bg-white p-1">
+                    </label>
+                    <label class="rounded-2xl border border-slate-300 bg-white p-3 text-xs font-semibold text-slate-600">
+                      Text
+                      <input [(ngModel)]="newFlairTextColor" type="color" class="mt-2 h-10 w-full rounded-xl border border-slate-300 bg-white p-1">
+                    </label>
+                  </div>
+                  <div class="mt-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                    <p class="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">Preview</p>
+                    <div class="mt-3">
+                      <span class="rounded-full px-2.5 py-1 text-xs font-semibold" [style.backgroundColor]="newFlairColor" [style.color]="newFlairTextColor">
+                        {{ newFlairName.trim() || 'Flair preview' }}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="mt-3 flex flex-wrap items-center gap-3">
+                    <button (click)="createFlair()" [disabled]="creatingFlair" class="detail-primary-button">
+                      <i class="fas fa-plus mr-2"></i>{{ creatingFlair ? 'Adding...' : 'Add flair' }}
+                    </button>
+                    <span *ngIf="flairError" class="text-sm text-red-600">{{ flairError }}</span>
+                  </div>
+
+                  <div class="mt-4 overflow-hidden rounded-2xl border border-slate-200" *ngIf="flairs.length > 0">
+                    <div class="grid grid-cols-12 bg-slate-50 px-4 py-3 border-b border-slate-200">
+                      <p class="col-span-7 text-[11px] uppercase tracking-[0.12em] text-slate-500 font-semibold">Flair</p>
+                      <p class="col-span-5 text-[11px] uppercase tracking-[0.12em] text-slate-500 font-semibold text-right">Action</p>
+                    </div>
+                    <div *ngFor="let f of flairs; trackBy: trackByFlairId" class="grid grid-cols-12 items-center px-4 py-3 bg-white border-b border-slate-100 last:border-b-0">
+                      <div class="col-span-7">
+                        <div *ngIf="editingFlairId !== f.id; else editFlairBlock">
+                          <span class="rounded-full px-2.5 py-1 text-xs font-semibold" [style.backgroundColor]="f.color" [style.color]="f.textColor">{{ f.name || 'Flair' }}</span>
+                        </div>
+                        <ng-template #editFlairBlock>
+                          <div class="space-y-2">
+                            <input [(ngModel)]="editFlairName" maxlength="30" class="w-full rounded-2xl border border-slate-300 px-3 py-2 bg-white text-sm focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 outline-none" placeholder="Flair name">
+                            <div class="grid grid-cols-2 gap-2">
+                              <label class="rounded-xl border border-slate-300 px-2 py-2 text-[11px] font-semibold text-slate-600">
+                                Background
+                                <input [(ngModel)]="editFlairColor" type="color" class="mt-1 h-8 w-full rounded border border-slate-300 bg-white p-1">
+                              </label>
+                              <label class="rounded-xl border border-slate-300 px-2 py-2 text-[11px] font-semibold text-slate-600">
+                                Text
+                                <input [(ngModel)]="editFlairTextColor" type="color" class="mt-1 h-8 w-full rounded border border-slate-300 bg-white p-1">
+                              </label>
+                            </div>
+                            <div>
+                              <span class="rounded-full px-2.5 py-1 text-xs font-semibold" [style.backgroundColor]="editFlairColor" [style.color]="editFlairTextColor">{{ editFlairName.trim() || 'Preview' }}</span>
+                            </div>
+                          </div>
+                        </ng-template>
+                      </div>
+                      <div class="col-span-5 text-right">
+                        <div *ngIf="editingFlairId !== f.id; else editingFlairActions" class="flex justify-end gap-2">
+                          <button type="button" (click)="startEditFlair(f)" class="detail-inline-button">
+                            <i class="fas fa-pen mr-1"></i>Edit
+                          </button>
+                          <button type="button" (click)="deleteFlair(f)" [disabled]="deletingFlairId === f.id" class="detail-remove-button">
+                            <i class="fas fa-trash-alt mr-1"></i>{{ deletingFlairId === f.id ? 'Deleting...' : 'Delete' }}
+                          </button>
+                        </div>
+                        <ng-template #editingFlairActions>
+                          <div class="flex justify-end gap-2">
+                            <button type="button" (click)="saveFlair(f)" [disabled]="savingFlairId === f.id" class="detail-primary-button">
+                              <i class="fas fa-save mr-1"></i>{{ savingFlairId === f.id ? 'Saving...' : 'Save' }}
+                            </button>
+                            <button type="button" (click)="cancelEditFlair()" class="detail-secondary-button">Cancel</button>
+                          </div>
+                        </ng-template>
+                      </div>
+                    </div>
+                  </div>
+                  <div *ngIf="flairs.length === 0" class="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
+                    No flairs yet. Add a few core labels so members can route posts quickly.
+                  </div>
+                </div>
+              </div>
+
+              <div id="detail-settings-moderators" class="overflow-hidden rounded-2xl border border-slate-200 bg-white" *ngIf="canManageModerators && managementModeratorsOpen">
+                <button type="button" (click)="toggleManagementSection('moderators')" class="flex w-full items-center justify-between gap-3 bg-slate-50 px-4 py-3 text-left">
+                  <div>
+                    <h4 class="text-base font-bold text-slate-900">Moderator assignment</h4>
+                    <p class="mt-0.5 text-xs text-slate-500">Promote or demote member permissions.</p>
+                  </div>
+                  <span class="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                    <i class="fas mr-2" [ngClass]="managementModeratorsOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                    {{ managementModeratorsOpen ? 'Collapse' : 'Expand' }}
+                  </span>
+                </button>
+
+                <div *ngIf="managementModeratorsOpen" class="border-t border-slate-200 px-4 py-4">
+                  <div>
+                    <label class="mb-1 block text-sm font-semibold text-slate-700">Search members</label>
+                    <input [(ngModel)]="moderatorSearch" placeholder="Search by name or role" class="w-full rounded-2xl border border-slate-300 px-3 py-3 bg-white text-sm focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 outline-none">
+                  </div>
+
+                  <div class="mt-4 space-y-2" *ngIf="filteredModeratorMembers.length > 0">
+                    <div *ngFor="let m of filteredModeratorMembers; trackBy: trackByMemberId" class="detail-member-preview-row">
+                      <span class="detail-member-avatar">{{ memberInitial(m) }}</span>
+                      <div class="min-w-0 flex-1">
+                        <p class="truncate text-sm font-semibold text-slate-800">{{ memberDisplayName(m) }}</p>
+                        <p class="mt-0.5 text-[11px] text-slate-500">{{ roleLabel(m.role) }}</p>
+                      </div>
+                      <button *ngIf="m.role === 'MEMBER'" type="button" (click)="promoteMemberToModerator(m)" [disabled]="promotingMemberId === m.userId" class="detail-inline-button">
+                        {{ promotingMemberId === m.userId ? 'Promoting...' : 'Make moderator' }}
+                      </button>
+                      <button *ngIf="m.role === 'MODERATOR'" type="button" (click)="demoteModeratorToMember(m)" [disabled]="demotingMemberId === m.userId" class="detail-remove-button">
+                        {{ demotingMemberId === m.userId ? 'Updating...' : 'Demote' }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <p *ngIf="filteredModeratorMembers.length === 0" class="mt-4 text-sm text-slate-500">No members match your search.</p>
+                  <p *ngIf="memberActionError" class="mt-3 text-sm text-red-600">{{ memberActionError }}</p>
+                </div>
+              </div>
+
+              <div id="detail-settings-notifications" class="overflow-hidden rounded-2xl border border-slate-200 bg-white" *ngIf="isMember && managementNotificationsOpen">
+                <button type="button" (click)="toggleManagementSection('notifications')" class="flex w-full items-center justify-between gap-3 bg-slate-50 px-4 py-3 text-left">
+                  <div>
+                    <h4 class="text-base font-bold text-slate-900">Notification settings</h4>
+                    <p class="mt-0.5 text-xs text-slate-500">Choose which community moments should reach your inbox.</p>
+                  </div>
+                  <span class="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                    <i class="fas mr-2" [ngClass]="managementNotificationsOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                    {{ managementNotificationsOpen ? 'Collapse' : 'Expand' }}
+                  </span>
+                </button>
+
+                <div *ngIf="managementNotificationsOpen" class="border-t border-slate-200 px-4 py-4">
+                  <div *ngIf="loadingNotificationPreferences" class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
+                    Loading notification preferences...
+                  </div>
+
+                  <div *ngIf="notificationPreferencesError" class="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {{ notificationPreferencesError }}
+                  </div>
+
+                  <div *ngIf="notificationPreferences as prefs" class="space-y-3">
+                    <div class="detail-notification-card">
+                      <div>
+                        <p class="detail-notification-title">Email me when someone replies to my post</p>
+                        <p class="detail-notification-copy">Great for keeping discussions moving after you start a thread.</p>
+                      </div>
+                      <label class="detail-toggle">
+                        <input type="checkbox" [checked]="prefs.emailOnPostReply" [disabled]="isSavingNotificationPreference('emailOnPostReply')" (change)="updateNotificationPreference('emailOnPostReply', $any($event.target).checked)">
+                        <span class="detail-toggle-slider"></span>
+                      </label>
+                    </div>
+
+                    <div class="detail-notification-card">
+                      <div>
+                        <p class="detail-notification-title">Email me when I'm mentioned</p>
+                        <p class="detail-notification-copy">Includes mentions in posts, comments, and chat threads.</p>
+                      </div>
+                      <label class="detail-toggle">
+                        <input type="checkbox" [checked]="prefs.emailOnMention" [disabled]="isSavingNotificationPreference('emailOnMention')" (change)="updateNotificationPreference('emailOnMention', $any($event.target).checked)">
+                        <span class="detail-toggle-slider"></span>
+                      </label>
+                    </div>
+
+                    <div class="detail-notification-card">
+                      <div>
+                        <p class="detail-notification-title">Weekly digest for this community</p>
+                        <p class="detail-notification-copy">A curated recap of the busiest posts from the last 7 days.</p>
+                      </div>
+                      <label class="detail-toggle">
+                        <input type="checkbox" [checked]="prefs.weeklyDigestEnabled" [disabled]="isSavingNotificationPreference('weeklyDigestEnabled')" (change)="updateNotificationPreference('weeklyDigestEnabled', $any($event.target).checked)">
+                        <span class="detail-toggle-slider"></span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="detail-settings-footer px-5 py-3">
+              <p class="text-xs text-slate-500">Changes save per section. You can close and continue later.</p>
+              <button type="button" class="detail-primary-button" (click)="closeActiveSettingsDialog()">
+                <i class="fas fa-check mr-2"></i>Done
+              </button>
+            </div>
+          </div>
+	          </section>
+	        </ng-template>
+
+        <app-community-detail-feed [host]="vm"></app-community-detail-feed>
+      </div>
+      <app-community-detail-right-rail [host]="vm"></app-community-detail-right-rail>
+      </main>
+    </div>
+  </div>
+</section>

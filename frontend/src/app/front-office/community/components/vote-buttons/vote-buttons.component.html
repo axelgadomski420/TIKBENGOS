@@ -1,0 +1,25 @@
+<div class="inline-flex min-w-12 shrink-0 flex-col items-center rounded-xl border border-slate-200 bg-slate-50 px-1 py-1" role="group" [attr.aria-label]="'Vote controls. Current score ' + scoreLabel">
+  <button
+    (click)="vote(1)"
+    type="button"
+    [attr.title]="upvoteAriaLabel"
+    [attr.aria-pressed]="userVote === 1"
+    class="h-8 w-8 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal/40"
+    [ngClass]="userVote === 1 ? 'bg-brand-teal/10 text-brand-teal' : 'text-slate-500 hover:bg-white hover:text-brand-teal'"
+    [attr.aria-label]="upvoteAriaLabel">
+    <i class="fas fa-chevron-up"></i>
+  </button>
+  <span class="py-1 text-xs font-extrabold" [ngClass]="userVote === 1 ? 'text-brand-teal' : userVote === -1 ? 'text-brand-red' : 'text-slate-700'" aria-live="polite" aria-atomic="true">
+    {{ scoreLabel }}
+  </span>
+  <button
+    (click)="vote(-1)"
+    type="button"
+    [attr.title]="downvoteAriaLabel"
+    [attr.aria-pressed]="userVote === -1"
+    class="h-8 w-8 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-red/40"
+    [ngClass]="userVote === -1 ? 'bg-brand-red/10 text-brand-red' : 'text-slate-500 hover:bg-white hover:text-brand-red'"
+    [attr.aria-label]="downvoteAriaLabel">
+    <i class="fas fa-chevron-down"></i>
+  </button>
+</div>

@@ -1,0 +1,78 @@
+:host {
+  display: block;
+}
+
+/* ─── Hero Header ─────────────────────────────────────────────────── */
+.admin-entry-hero {
+  border-radius: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: #ffffff;
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
+  padding: 1.25rem 1.5rem;
+}
+
+/* ─── Summary Chips ────────────────────────────────────────────────── */
+.admin-entry-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(203, 213, 225, 0.9);
+  background: rgba(255, 255, 255, 0.92);
+  padding: 0.34rem 0.7rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+/* ─── Card Surface ─────────────────────────────────────────────────── */
+.admin-surface {
+  border-radius: 0.9rem;
+  border: 1px solid rgba(203, 213, 225, 0.8);
+  background: #ffffff;
+}
+
+/* ─── Hover Lift ───────────────────────────────────────────────────── */
+.hover-lift {
+  transition: transform 220ms ease, box-shadow 220ms ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+}
+
+/* ─── Pet Avatar ───────────────────────────────────────────────────── */
+.pet-avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: #f1f5f9;
+  border: 1px solid rgba(203, 213, 225, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* ─── Teal row highlight helpers (Tailwind can't use / in dynamic classes) */
+.bg-brand-teal-5 {
+  background-color: rgba(20, 184, 166, 0.05);
+}
+
+.bg-brand-teal-10:hover {
+  background-color: rgba(20, 184, 166, 0.1);
+}
+
+/* ─── Screen reader only ───────────────────────────────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

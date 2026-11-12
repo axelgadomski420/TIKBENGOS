@@ -1,0 +1,150 @@
+<app-event-toast-container></app-event-toast-container>
+<section class="rec-shell" aria-label="Recommended events">
+  <div class="rec-state rec-state--not-logged" *ngIf="pageState === 'not-logged-in'">
+    <div class="rec-state__icon">
+      <mat-icon class="material-icons-round">lock</mat-icon>
+    </div>
+    <h3>Please log in</h3>
+    <p>You need to be logged in to see personalized recommendations.</p>
+    <button class="rec-btn rec-btn--primary" (click)="goToLogin()">Log in</button>
+  </div>
+
+  <div class="rec-state rec-state--error" *ngIf="pageState === 'error'">
+    <div class="rec-state__icon">
+      <mat-icon class="material-icons-round">error_outline</mat-icon>
+    </div>
+    <h3>Unable to load recommendations</h3>
+    <p>{{ errorMessage || 'Please check your connection and try again.' }}</p>
+    <button class="rec-btn rec-btn--primary" (click)="retry()">Try again</button>
+    <a class="rec-btn rec-btn--ghost" routerLink="/app/events">Browse all events</a>
+  </div>
+
+  <ng-container *ngIf="pageState !== 'error' && pageState !== 'not-logged-in'">
+    <header class="rec-hero">
+      <div class="rec-hero__content">
+        <div>
+          <a class="rec-inline-link" routerLink="/app/events">
+            <mat-icon class="material-icons-round">arrow_back</mat-icon>
+            Back to all events
+          </a>
+          <p class="rec-eyebrow">Personalized feed</p>
+          <h1 class="rec-title">Recommendations shaped by your activity and event history.</h1>
+          <p class="rec-subtitle">
+            This page keeps the same card language as the catalogue while bringing stronger emphasis to match score,
+            timing, and why each event was suggested.
+          </p>
+        </div>
+
+        <div class="rec-hero__panel">
+          <span class="rec-hero__label">Suggested now</span>
+          <strong>{{ recommendations.length }}</strong>
+          <span>updated from your current preferences</span>
+        </div>
+      </div>
+    </header>
+
+    <section class="rec-body">
+      <div class="rec-section-head">
+        <div>
+          <p class="rec-section-head__eyebrow">Matches</p>
+          <h2>Top recommendations</h2>
+        </div>
+        <button class="rec-btn rec-btn--ghost" type="button" (click)="loadRecommendations()">
+          <mat-icon class="material-icons-round">refresh</mat-icon>
+          Refresh
+        </button>
+      </div>
+
+      <div class="rec-loading__grid" *ngIf="loading">
+        <div class="rec-skel" *ngFor="let i of [1, 2, 3, 4, 5, 6]">
+          <div class="rec-skel__cover"></div>
+          <div class="rec-skel__body">
+            <div class="rec-skel__line rec-skel__line--short"></div>
+            <div class="rec-skel__line rec-skel__line--long"></div>
+            <div class="rec-skel__line rec-skel__line--mid"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rec-empty" *ngIf="!loading && recommendations.length === 0">
+        <div class="rec-empty__icon">
+          <mat-icon class="material-icons-round">travel_explore</mat-icon>
+        </div>
+        <h3>No recommendations yet.</h3>
+        <p>Once you browse, register, and review events, the recommendation engine will surface better matches here.</p>
+        <a class="rec-btn rec-btn--primary" routerLink="/app/events">Browse all events</a>
+      </div>
+
+      <div class="rec-grid" *ngIf="!loading && recommendations.length > 0">
+        <article
+          class="rec-card"
+          *ngFor="let rec of recommendations; let i = index"
+          [style.animation-delay]="(i * 50) + 'ms'"
+          tabindex="0"
+          role="button"
+          (click)="openEvent(rec.event.id)"
+          (keydown.enter)="openEvent(rec.event.id)">
+
+          <div class="rec-card__cover">
+            <img
+              *ngIf="rec.event.coverImageUrl"
+              [src]="rec.event.coverImageUrl"
+              [alt]="rec.event.title"
+              class="rec-card__img"
+              loading="lazy" />
+            <div class="rec-card__fallback" *ngIf="!rec.event.coverImageUrl">
+              <mat-icon class="material-icons-round">event</mat-icon>
+            </div>
+
+            <span class="rec-score" [class]="getScoreClass(rec.score)">{{ rec.score }}%</span>
+            <span class="rec-status-pill rec-status-pill--{{ rec.event.status.toLowerCase() }}">
+              {{ rec.event.status }}
+            </span>
+          </div>
+
+          <div class="rec-card__body">
+            <p class="rec-card__cat">
+              <mat-icon class="material-icons-round">label</mat-icon>
+              {{ rec.event.category?.name || 'General event' }}
+            </p>
+            <h3 class="rec-card__title">{{ rec.event.title }}</h3>
+
+            <div class="rec-card__meta">
+              <p>
+                <mat-icon class="material-icons-round">calendar_month</mat-icon>
+                {{ formatDate(rec.event.startDate) }}
+              </p>
+              <p>
+                <mat-icon class="material-icons-round">place</mat-icon>
+                {{ rec.event.location }}
+              </p>
+            </div>
+
+            <div class="rec-cap">
+              <div class="rec-cap__track">
+                <div
+                  class="rec-cap__fill"
+                  [style.width.%]="fillPercentage(rec.event)"
+                  [class.rec-cap__fill--warn]="fillPercentage(rec.event) >= 75 && fillPercentage(rec.event) < 100"
+                  [class.rec-cap__fill--full]="fillPercentage(rec.event) >= 100">
+                </div>
+              </div>
+              <span class="rec-cap__label">{{ rec.event.remainingSlots }} left</span>
+            </div>
+
+            <p class="rec-reason" *ngIf="rec.reason">{{ rec.reason }}</p>
+          </div>
+
+          <div class="rec-card__footer">
+            <span class="rec-match-label">
+              {{ rec.score >= 85 ? 'Excellent match' : rec.score >= 70 ? 'Strong match' : rec.score >= 50 ? 'Recommended' : 'Suggested' }}
+            </span>
+            <span class="rec-card__cta">
+              <mat-icon class="material-icons-round">arrow_forward</mat-icon>
+            </span>
+          </div>
+        </article>
+      </div>
+    </section>
+  </ng-container>
+</section>

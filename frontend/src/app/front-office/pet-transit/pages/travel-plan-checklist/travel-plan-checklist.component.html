@@ -1,0 +1,272 @@
+<div class="checklist-page">
+  <section class="page-shell">
+    <header class="top-bar">
+      <button type="button" class="pill-btn secondary" (click)="goBack()">
+        <mat-icon>arrow_back</mat-icon>
+        <span>Back to Trip Details</span>
+      </button>
+
+      <div class="title-wrap">
+        <h1>Safety Checklist</h1>
+        <p>Complete your preparation tasks before departure.</p>
+      </div>
+    </header>
+
+    <section class="error-state" *ngIf="!loading && error">
+      <mat-icon>error_outline</mat-icon>
+      <h2>Unable to load checklist</h2>
+      <p>{{ error }}</p>
+      <button type="button" class="pill-btn primary" (click)="retry()">
+        <mat-icon>refresh</mat-icon>
+        <span>Retry</span>
+      </button>
+    </section>
+
+    <ng-container *ngIf="loading">
+      <section class="progress-card skeleton-card">
+        <div class="skeleton-line xl"></div>
+        <div class="skeleton-line lg"></div>
+        <div class="skeleton-line"></div>
+      </section>
+
+      <section class="skeleton-category" *ngFor="let category of categories; trackBy: trackByCategory">
+        <div class="skeleton-line lg"></div>
+        <div class="skeleton-item" *ngFor="let i of [1, 2, 3]"></div>
+      </section>
+    </ng-container>
+
+    <ng-container *ngIf="!loading && !error">
+      <ng-container *ngIf="stats">
+        <section class="progress-card">
+          <div class="progress-columns">
+            <article class="progress-block">
+              <div class="progress-head">
+                <span>Overall Completion</span>
+                <strong>{{ formatPercent(stats.completionPercentage) }}</strong>
+              </div>
+
+              <div class="progress-track">
+                <span
+                  class="progress-fill"
+                  [style.background]="progressColor(stats.completionPercentage)"
+                  [style.width.%]="stats.completionPercentage"
+                ></span>
+              </div>
+
+              <p>{{ completedItemsCount }} of {{ totalItemsCount }} tasks completed</p>
+            </article>
+
+            <article class="progress-block">
+              <div class="progress-head">
+                <span>Mandatory Tasks</span>
+                <strong>{{ formatPercent(stats.mandatoryCompletionPercentage) }}</strong>
+              </div>
+
+              <div class="progress-track">
+                <span
+                  class="progress-fill"
+                  [style.background]="mandatoryProgressColor"
+                  [style.width.%]="stats.mandatoryCompletionPercentage"
+                ></span>
+              </div>
+
+              <p class="mandatory-note">Counts 40% of your readiness score.</p>
+            </article>
+          </div>
+
+          <div class="stats-row">
+            <article class="mini-card">
+              <mat-icon class="stat-icon done">check_circle</mat-icon>
+              <strong>{{ completedItemsCount }}</strong>
+              <span>Completed</span>
+            </article>
+
+            <article class="mini-card">
+              <mat-icon class="stat-icon muted">radio_button_unchecked</mat-icon>
+              <strong>{{ remainingItemsCount }}</strong>
+              <span>Remaining</span>
+            </article>
+
+            <article class="mini-card">
+              <mat-icon class="stat-icon required">priority_high</mat-icon>
+              <strong>{{ mandatoryLeftCount }}</strong>
+              <span>Mandatory Left</span>
+            </article>
+          </div>
+        </section>
+
+        <div class="locked-banner" *ngIf="isLocked">
+          <mat-icon>lock</mat-icon>
+          <span>
+            This plan is under review.
+            Checklist editing is locked.
+          </span>
+        </div>
+
+        <div class="completion-banner" *ngIf="Math.round(stats.completionPercentage) === 100">
+          <mat-icon>celebration</mat-icon>
+          <div>
+            <strong>All tasks completed!</strong>
+            <span>Your trip preparation is ready.</span>
+          </div>
+          <button type="button" (click)="goBackToDetail()">
+            Back to Trip Details
+            <mat-icon>arrow_forward</mat-icon>
+          </button>
+        </div>
+      </ng-container>
+
+      <section class="filters-row">
+        <button
+          type="button"
+          class="filter-chip"
+          [class.active]="activeFilter === 'ALL'"
+          (click)="setFilter('ALL')"
+        >
+          All
+        </button>
+        <button
+          type="button"
+          class="filter-chip"
+          [class.active]="activeFilter === 'REMAINING'"
+          (click)="setFilter('REMAINING')"
+        >
+          Remaining
+        </button>
+        <button
+          type="button"
+          class="filter-chip"
+          [class.active]="activeFilter === 'COMPLETED'"
+          (click)="setFilter('COMPLETED')"
+        >
+          Completed
+        </button>
+        <button
+          type="button"
+          class="filter-chip"
+          [class.active]="activeFilter === 'MANDATORY'"
+          (click)="setFilter('MANDATORY')"
+        >
+          Mandatory
+        </button>
+      </section>
+
+      <div class="filter-empty-state" *ngIf="filteredItems.length === 0">
+        <mat-icon>filter_list_off</mat-icon>
+        <p>No tasks match this filter.</p>
+        <button type="button" (click)="setFilter('ALL')">Show All Tasks</button>
+      </div>
+
+      <section class="categories-wrap" *ngIf="filteredItems.length > 0">
+        <ng-container *ngFor="let category of categories; trackBy: trackByCategory">
+          <article class="category-section" *ngIf="getCategoryItems(category).length > 0">
+            <header class="category-header">
+              <div class="category-title-row">
+                <span class="category-icon" [style.background]="categoryConfig[category].bgColor">
+                  <mat-icon [style.color]="categoryConfig[category].color">{{ categoryConfig[category].icon }}</mat-icon>
+                </span>
+
+                <div>
+                  <h2 [style.color]="categoryConfig[category].color">{{ categoryConfig[category].label }}</h2>
+                  <span class="task-count">({{ getCategoryItems(category).length }} tasks)</span>
+                </div>
+              </div>
+
+              <div class="mini-progress">
+                <div class="mini-track">
+                  <span
+                    class="mini-fill"
+                    [style.width.%]="categoryCompletion(category)"
+                    [style.background]="categoryConfig[category].color"
+                  ></span>
+                </div>
+                <span>{{ categoryCompletion(category) }}%</span>
+              </div>
+            </header>
+
+            <div class="task-list">
+              <article
+                class="task-card"
+                [class.task-card--done]="item.completed"
+                [class.task-card--pending]="!item.completed"
+                *ngFor="let item of getCategoryItems(category); trackBy: trackByItem"
+              >
+                <button
+                  *ngIf="item.completed"
+                  type="button"
+                  class="toggle-btn toggle-btn--done"
+                  (click)="toggleItem(item)"
+                  [disabled]="toggling.has(item.id) || isLocked"
+                  title="Mark as incomplete"
+                >
+                  <mat-icon>check_circle</mat-icon>
+                </button>
+
+                <button
+                  *ngIf="!item.completed"
+                  type="button"
+                  class="toggle-btn toggle-btn--pending"
+                  (click)="toggleItem(item)"
+                  [disabled]="toggling.has(item.id) || isLocked"
+                  title="Mark as complete"
+                >
+                  <mat-icon>radio_button_unchecked</mat-icon>
+                </button>
+
+                <div class="task-main">
+                  <h3 class="task-title">{{ item.title }}</h3>
+
+                  <div class="task-badges">
+                    <span
+                      class="badge"
+                      [style.color]="categoryConfig[item.category].color"
+                      [style.background]="categoryConfig[item.category].bgColor"
+                    >
+                      {{ categoryConfig[item.category].label }}
+                    </span>
+
+                    <span
+                      *ngIf="item.priorityLevel && item.priorityLevel.trim()"
+                      class="badge"
+                      [style.color]="priorityConfig[item.priorityLevel].color"
+                      [style.background]="priorityConfig[item.priorityLevel].bgColor"
+                    >
+                      {{ priorityConfig[item.priorityLevel].label }}
+                    </span>
+
+                    <span class="badge required" *ngIf="item.mandatory">Required</span>
+                    <span class="badge optional" *ngIf="!item.mandatory">Optional</span>
+
+                    <span class="badge ai" *ngIf="item.generatedByAi">
+                      <mat-icon>auto_awesome</mat-icon>
+                      AI
+                    </span>
+                  </div>
+
+                  <div class="doc-task-hint" *ngIf="isDocumentTask(item)">
+                    <button type="button" class="doc-link-btn" (click)="goToDocuments()">
+                      <mat-icon>description</mat-icon>
+                      Go to Documents
+                      <mat-icon>arrow_forward</mat-icon>
+                    </button>
+                  </div>
+
+                  <p class="due-date" *ngIf="item.dueDate && item.dueDate.trim()" [ngClass]="dueDateTone(item.dueDate)">
+                    <mat-icon>calendar_today</mat-icon>
+                    <span>{{ formatDate(item.dueDate) }}</span>
+                  </p>
+                </div>
+
+                <div class="task-status">
+                  <mat-icon class="done" *ngIf="item.completed">check_circle</mat-icon>
+                  <mat-icon class="pending" *ngIf="!item.completed">radio_button_unchecked</mat-icon>
+                  <span>{{ item.completed ? 'Done' : 'Pending' }}</span>
+                </div>
+              </article>
+            </div>
+          </article>
+        </ng-container>
+      </section>
+    </ng-container>
+  </section>
+</div>

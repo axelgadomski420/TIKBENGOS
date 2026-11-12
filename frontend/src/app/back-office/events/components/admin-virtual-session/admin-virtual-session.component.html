@@ -1,0 +1,378 @@
+<section class="avs">
+  <div *ngIf="loading" class="avs__loading">
+    <div class="avs__loading-line avs__loading-line--lg"></div>
+    <div class="avs__loading-grid">
+      <div class="avs__loading-card"></div>
+      <div class="avs__loading-card"></div>
+      <div class="avs__loading-card"></div>
+    </div>
+  </div>
+
+  <ng-container *ngIf="!loading">
+    <div *ngIf="!session" class="avs__panel avs__panel--setup">
+      <div class="avs__hero">
+        <div class="avs__hero-copy">
+          <span class="avs__eyebrow">Virtual Session Studio</span>
+          <h2 class="avs__title">Launch a polished live experience with attendance and certificates built in.</h2>
+          <p class="avs__subtitle">
+            Configure the access window, define the certificate threshold, and choose whether attendees join through the built-in room or an external platform.
+          </p>
+        </div>
+        <div class="avs__hero-stats">
+          <div class="avs__hero-stat">
+            <span class="avs__hero-label">Early access</span>
+            <strong>{{ createForm.earlyAccessMinutes }} min</strong>
+          </div>
+          <div class="avs__hero-stat">
+            <span class="avs__hero-label">Certificate rule</span>
+            <strong>{{ createForm.attendanceThresholdPercent }}%</strong>
+          </div>
+          <div class="avs__hero-stat">
+            <span class="avs__hero-label">Access control</span>
+            <strong>Confirmed attendees</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="avs__form-shell">
+        <div class="avs__form-main">
+          <label class="avs__field">
+            <span class="avs__label">External room URL</span>
+            <input
+              class="avs__input"
+              type="url"
+              [(ngModel)]="createForm.externalRoomUrl"
+              placeholder="https://zoom.us/j/... or leave empty for the built-in room" />
+            <span class="avs__hint">Keep this empty to use the native room and ELIF attendance tracking.</span>
+          </label>
+
+          <label class="avs__field">
+            <span class="avs__label">Early access window</span>
+            <div class="avs__range-row">
+              <input
+                class="avs__range"
+                type="range"
+                min="0"
+                max="60"
+                step="5"
+                [(ngModel)]="createForm.earlyAccessMinutes" />
+              <span class="avs__range-value">{{ createForm.earlyAccessMinutes }} min</span>
+            </div>
+            <span class="avs__hint">Attendees can enter this many minutes before the event begins.</span>
+          </label>
+
+          <label class="avs__field">
+            <span class="avs__label">Certificate attendance threshold</span>
+            <div class="avs__range-row">
+              <input
+                class="avs__range"
+                type="range"
+                min="50"
+                max="100"
+                step="5"
+                [(ngModel)]="createForm.attendanceThresholdPercent" />
+              <span class="avs__range-value">{{ createForm.attendanceThresholdPercent }}%</span>
+            </div>
+            <span class="avs__hint">Participants who meet this threshold can view and receive a certificate.</span>
+          </label>
+
+          <button class="avs__button avs__button--primary" type="button" (click)="createSession()" [disabled]="creating">
+            <span *ngIf="!creating">Create Virtual Session</span>
+            <span *ngIf="creating" class="avs__button-progress">
+              <span class="avs__spinner"></span>
+              Creating session
+            </span>
+          </button>
+        </div>
+
+        <aside class="avs__preview">
+          <div class="avs__preview-card">
+            <span class="avs__preview-kicker">What attendees experience</span>
+            <h3>Clear join timing, live-room activation, and certificate eligibility.</h3>
+            <ul class="avs__preview-list">
+              <li>The room opens automatically within the early-access window.</li>
+              <li>The moderator password activates the room for confirmed participants.</li>
+              <li>Certificate eligibility is calculated from tracked attendance.</li>
+            </ul>
+          </div>
+          <div class="avs__preview-card avs__preview-card--muted">
+            <span class="avs__preview-kicker">Certificate readiness</span>
+            <p>Certificate links stay tied to verified attendance records, so the issued document reflects the latest session data.</p>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <div *ngIf="session" class="avs__stack">
+      <section class="avs__hero avs__hero--session">
+        <div class="avs__hero-copy">
+          <div class="avs__status-row">
+            <span class="avs__eyebrow">Virtual Session Studio</span>
+            <span class="avs__status-chip" [ngClass]="sessionStatusTone">{{ sessionStatusLabel }}</span>
+          </div>
+          <h2 class="avs__title">{{ session.eventTitle }}</h2>
+          <p class="avs__subtitle">{{ session.statusMessage }}</p>
+        </div>
+        <div class="avs__hero-stats">
+          <div class="avs__hero-stat">
+            <span class="avs__hero-label">Room type</span>
+            <strong>{{ session.roomUrl?.includes('jit.si') ? 'Built-in room' : 'External room' }}</strong>
+          </div>
+          <div class="avs__hero-stat">
+            <span class="avs__hero-label">Early access</span>
+            <strong>{{ session.earlyAccessMinutes }} min</strong>
+          </div>
+          <div class="avs__hero-stat">
+            <span class="avs__hero-label">Certificate</span>
+            <strong>{{ session.attendanceThresholdPercent }}% minimum</strong>
+          </div>
+        </div>
+      </section>
+
+      <div class="avs__tabs">
+        <button class="avs__tab" type="button" [class.is-active]="activeTab === 'setup'" (click)="switchTab('setup')">
+          Overview
+        </button>
+        <button
+          class="avs__tab"
+          type="button"
+          [class.is-active]="activeTab === 'stats'"
+          (click)="switchTab('stats')"
+          [disabled]="session.status === 'SCHEDULED' || session.status === 'OPEN'">
+          Attendance & Certificates
+        </button>
+      </div>
+
+      <ng-container *ngIf="activeTab === 'setup'">
+        <section class="avs__grid">
+          <article
+            class="avs__panel avs__panel--password"
+            *ngIf="session.moderatorPassword && session.status !== 'CLOSED' && session.status !== 'ARCHIVED'">
+            <div class="avs__panel-head">
+              <div>
+                <span class="avs__eyebrow">Moderator Access</span>
+                <h3>Start the room from the event page with this password.</h3>
+              </div>
+              <button class="avs__button avs__button--ghost" type="button" (click)="copyModeratorPassword()">
+                {{ copiedModeratorPassword ? 'Copied' : 'Copy password' }}
+              </button>
+            </div>
+            <div class="avs__password">{{ session.moderatorPassword }}</div>
+            <p class="avs__panel-text">
+              Share this only with trusted moderators. Once the moderator starts the room, confirmed participants can join immediately.
+            </p>
+          </article>
+
+          <article class="avs__panel">
+            <div class="avs__panel-head">
+              <div>
+                <span class="avs__eyebrow">Session Configuration</span>
+                <h3>Live settings</h3>
+              </div>
+            </div>
+            <div class="avs__metric-grid">
+              <div class="avs__metric-card">
+                <span class="avs__metric-label">Room type</span>
+                <strong>{{ session.roomUrl?.includes('jit.si') ? 'Built-in room' : 'External room' }}</strong>
+              </div>
+              <div class="avs__metric-card">
+                <span class="avs__metric-label">Early access</span>
+                <strong>{{ session.earlyAccessMinutes }} min</strong>
+              </div>
+              <div class="avs__metric-card">
+                <span class="avs__metric-label">Threshold</span>
+                <strong>{{ session.attendanceThresholdPercent }}%</strong>
+              </div>
+              <div class="avs__metric-card">
+                <span class="avs__metric-label">Window opens</span>
+                <strong>{{ session.accessWindowStart | date:'dd MMM, HH:mm' }}</strong>
+              </div>
+              <div class="avs__metric-card">
+                <span class="avs__metric-label">Opened at</span>
+                <strong>{{ session.openedAt ? (session.openedAt | date:'dd MMM, HH:mm') : 'Not started' }}</strong>
+              </div>
+              <div class="avs__metric-card">
+                <span class="avs__metric-label">Closed at</span>
+                <strong>{{ session.closedAt ? (session.closedAt | date:'dd MMM, HH:mm') : 'Still active' }}</strong>
+              </div>
+            </div>
+          </article>
+
+          <article class="avs__panel avs__panel--timeline">
+            <div class="avs__panel-head">
+              <div>
+                <span class="avs__eyebrow">Operations Guide</span>
+                <h3>Recommended session flow</h3>
+              </div>
+            </div>
+            <div class="avs__timeline">
+              <div class="avs__timeline-item">
+                <span class="avs__timeline-step">1</span>
+                <div>
+                  <strong>Pre-open</strong>
+                  <p>The room becomes available {{ session.earlyAccessMinutes }} minutes before start time.</p>
+                </div>
+              </div>
+              <div class="avs__timeline-item">
+                <span class="avs__timeline-step">2</span>
+                <div>
+                  <strong>Go live</strong>
+                  <p>Enter the moderator password on the event page to activate attendee access.</p>
+                </div>
+              </div>
+              <div class="avs__timeline-item">
+                <span class="avs__timeline-step">3</span>
+                <div>
+                  <strong>Issue certificates</strong>
+                  <p>Once attendance is processed, view or send certificates from the analytics tab.</p>
+                </div>
+              </div>
+            </div>
+          </article>
+        </section>
+      </ng-container>
+
+      <ng-container *ngIf="activeTab === 'stats'">
+        <div *ngIf="statsLoading" class="avs__loading">
+          <div class="avs__loading-line avs__loading-line--lg"></div>
+          <div class="avs__loading-grid">
+            <div class="avs__loading-card"></div>
+            <div class="avs__loading-card"></div>
+            <div class="avs__loading-card"></div>
+          </div>
+        </div>
+
+        <ng-container *ngIf="!statsLoading && stats">
+          <section class="avs__metric-grid avs__metric-grid--summary">
+            <article class="avs__metric-card avs__metric-card--feature">
+              <span class="avs__metric-label">Joined</span>
+              <strong>{{ stats.totalJoined }}</strong>
+              <small>{{ joinedRate }}% of {{ stats.totalRegistered }} registered</small>
+            </article>
+            <article class="avs__metric-card avs__metric-card--feature">
+              <span class="avs__metric-label">Average attendance</span>
+              <strong>{{ stats.averageAttendance | number:'1.0-1' }}%</strong>
+              <small>Across attendees who entered the room</small>
+            </article>
+            <article class="avs__metric-card avs__metric-card--feature">
+              <span class="avs__metric-label">Certificates earned</span>
+              <strong>{{ stats.certificatesEarned }}</strong>
+              <small>{{ certificatesEligibleCount }} eligible for certificate access</small>
+            </article>
+          </section>
+
+          <section class="avs__panel avs__panel--notify" *ngIf="stats.certificatesEarned > 0">
+            <div class="avs__panel-head">
+              <div>
+                <span class="avs__eyebrow">Certificate Delivery</span>
+                <h3>Send certificate emails in one action.</h3>
+              </div>
+              <button class="avs__button avs__button--primary" type="button" (click)="notifyAllCertificates()" [disabled]="notifyingAll">
+                <span *ngIf="!notifyingAll">Email {{ stats.certificatesEarned }} certificates</span>
+                <span *ngIf="notifyingAll" class="avs__button-progress">
+                  <span class="avs__spinner"></span>
+                  Sending emails
+                </span>
+              </button>
+            </div>
+            <p class="avs__panel-text">
+              Eligible participants can still view certificates directly from the table below. Bulk email is helpful when attendance has just been finalized.
+            </p>
+          </section>
+
+          <section class="avs__panel avs__panel--table">
+            <div class="avs__panel-head">
+              <div>
+                <span class="avs__eyebrow">Attendance Analytics</span>
+                <h3>Participant outcomes</h3>
+              </div>
+            </div>
+
+            <div class="avs__table-wrap">
+              <table class="avs__table">
+                <thead>
+                  <tr>
+                    <th class="is-sortable" (click)="sortBy('userName')">
+                      Participant
+                      <span *ngIf="statsSortField === 'userName'">{{ statsSortDir === 'asc' ? '↑' : '↓' }}</span>
+                    </th>
+                    <th class="is-sortable" (click)="sortBy('totalMinutesPresent')">
+                      Time present
+                      <span *ngIf="statsSortField === 'totalMinutesPresent'">{{ statsSortDir === 'asc' ? '↑' : '↓' }}</span>
+                    </th>
+                    <th class="is-sortable" (click)="sortBy('attendancePercent')">
+                      Attendance
+                      <span *ngIf="statsSortField === 'attendancePercent'">{{ statsSortDir === 'asc' ? '↑' : '↓' }}</span>
+                    </th>
+                    <th>Certificate</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let participant of sortedParticipants; trackBy: trackById">
+                    <td>
+                      <div class="avs__person">
+                        <span class="avs__avatar">{{ participant.userName.charAt(0) }}</span>
+                        <div class="avs__person-copy">
+                          <strong>{{ participant.userName }}</strong>
+                          <span *ngIf="participant.currentlyConnected">Connected</span>
+                          <span *ngIf="!participant.currentlyConnected">Offline</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td>{{ participant.totalMinutesPresent > 0 ? participant.totalMinutesPresent + ' min' : '—' }}</td>
+                    <td>
+                      <ng-container *ngIf="participant.attendancePercent !== null; else processing">
+                        <div class="avs__attendance">
+                          <span class="avs__attendance-badge" [ngClass]="attendanceTone(participant.attendancePercent)">
+                            {{ participant.attendancePercent | number:'1.0-1' }}%
+                          </span>
+                          <span class="avs__attendance-track">
+                            <span
+                              class="avs__attendance-fill"
+                              [ngClass]="attendanceTone(participant.attendancePercent)"
+                              [style.width.%]="attendanceTrackWidth(participant.attendancePercent)"></span>
+                          </span>
+                        </div>
+                      </ng-container>
+                      <ng-template #processing>
+                        <span class="avs__muted">Processing</span>
+                      </ng-template>
+                    </td>
+                    <td>
+                      <div *ngIf="participant.certificateEarned; else noCertificate" class="avs__cert-actions">
+                        <a class="avs__button avs__button--ghost avs__button--sm" [href]="getCertificateUrl(participant.userId)" target="_blank" rel="noopener noreferrer">
+                          View
+                        </a>
+                        <button class="avs__button avs__button--accent avs__button--sm" type="button" (click)="sendCertificateEmail(participant.userId)" [disabled]="sendingCert[participant.userId]">
+                          <span *ngIf="!sendingCert[participant.userId] && !sentCert[participant.userId]">Email</span>
+                          <span *ngIf="sentCert[participant.userId]">Sent</span>
+                          <span *ngIf="sendingCert[participant.userId]" class="avs__button-progress">
+                            <span class="avs__spinner avs__spinner--sm"></span>
+                            Sending
+                          </span>
+                        </button>
+                      </div>
+                      <ng-template #noCertificate>
+                        <span class="avs__muted">Not eligible</span>
+                      </ng-template>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div *ngIf="sortedParticipants.length === 0" class="avs__empty">
+              No participant attendance records are available for this session.
+            </div>
+          </section>
+        </ng-container>
+
+        <div *ngIf="!statsLoading && !stats" class="avs__panel avs__panel--empty">
+          <span class="avs__eyebrow">Attendance & Certificates</span>
+          <h3>Analytics will appear after the session has been closed and processed.</h3>
+          <p class="avs__panel-text">{{ statsError || 'Attendance analytics are still being prepared.' }}</p>
+        </div>
+      </ng-container>
+    </div>
+  </ng-container>
+</section>

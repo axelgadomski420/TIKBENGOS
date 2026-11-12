@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>A Spot is Available!</title>
+    <style>
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { background:#f0f0f0; font-family:Arial,Helvetica,sans-serif; color:#333; }
+        .wrapper { max-width:600px; margin:32px auto; padding:0 16px 40px; }
+        .card { background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,.08); }
+        .header { background:#7c3aed; padding:28px 40px; text-align:center; }
+        .header .brand { font-size:28px; font-weight:800; color:#fff; letter-spacing:1px; }
+        .header .icon { font-size:32px; margin:12px 0 6px; }
+        .header h1 { color:#fff; font-size:19px; font-weight:700; margin:0; }
+        .body { padding:32px 40px; line-height:1.7; }
+        .body h2 { font-size:17px; color:#111; margin-bottom:16px; }
+        .body p { margin-bottom:14px; font-size:15px; }
+        .deadline-box { background:#fff8e1; border-left:4px solid #f59e0b; border-radius:8px; padding:20px; margin:24px 0; }
+        .deadline-box .deadline-title { font-size:14px; font-weight:700; color:#b45309; margin-bottom:6px; }
+        .deadline-box .deadline-value { font-size:30px; font-weight:800; color:#92400e; letter-spacing:.5px; }
+        .deadline-box .deadline-sub { font-size:13px; color:#b45309; margin-top:6px; line-height:1.5; }
+        .cta-wrapper { text-align:center; margin:28px 0; }
+        .cta { display:inline-block; padding:16px 40px; background:#7c3aed; border-radius:8px; color:#fff !important; text-decoration:none; font-size:16px; font-weight:700; }
+        .divider { border:none; border-top:1px solid #eee; margin:24px 0; }
+        .footer { padding:20px 40px; text-align:center; border-top:1px solid #f0f0f0; }
+        .footer p { font-size:12px; color:#aaa; margin-bottom:4px; }
+        .footer a { color:#aaa; text-decoration:none; }
+        @media(max-width:600px){ .header,.body,.footer{ padding-left:24px; padding-right:24px; } }
+    </style>
+</head>
+<body>
+<div class="wrapper">
+    <div class="card">
+        <div class="header">
+            <div class="brand">Elif</div>
+            <div class="icon">🎫</div>
+            <h1>A Spot Just Opened Up!</h1>
+        </div>
+        <div class="body">
+            <h2>Hi <span th:text="${firstName}">there</span>,</h2>
+            <p>
+                You were on the waitlist for
+                <strong th:text="${eventTitle}">Event Name</strong>.
+                A spot has just opened up and it is <strong>reserved for you</strong>!
+            </p>
+            <div class="deadline-box">
+                <div class="deadline-title">Time left to confirm</div>
+                <div class="deadline-value" th:text="${deadlineHours} + ' hour(s)'">24 hour(s)</div>
+                <div class="deadline-sub">
+                    After this deadline, the spot will automatically be offered
+                    to the next person on the waitlist.
+                </div>
+            </div>
+            <div class="cta-wrapper">
+                <a th:href="${confirmUrl}" class="cta">Confirm My Spot Now</a>
+            </div>
+            <hr class="divider"/>
+            <p style="font-size:13px;color:#888;">
+                If the button doesn't work, copy this link into your browser:<br/>
+                <span th:text="${confirmUrl}" style="word-break:break-all; color:#7c3aed;"></span>
+            </p>
+        </div>
+        <div class="footer">
+            <p>© Elif — Please do not reply to this email.</p>
+            <p><a th:href="${baseUrl}">Open the app</a></p>
+        </div>
+    </div>
+</div>
+</body>
+</html>

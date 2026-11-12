@@ -1,0 +1,250 @@
+<section class="chat-admin-page">
+  <div class="chat-admin-container">
+    <header class="chat-admin-hero">
+      <div>
+        <p class="chat-admin-eyebrow">Community Back Office</p>
+        <h1>Live chat review that feels like moderation, not guesswork.</h1>
+        <p class="chat-admin-copy">
+          Review conversations, understand their state quickly, and take message actions from one cleaner workflow.
+        </p>
+
+        <div class="chat-admin-actions">
+          <button type="button" class="detail-secondary-button" (click)="loadConversations()" [disabled]="loadingConversations">
+            <i class="fas fa-rotate-right"></i>
+            {{ loadingConversations ? 'Refreshing...' : 'Refresh queue' }}
+          </button>
+          <button type="button" (click)="exportQueueToPdf()" class="detail-secondary-button">
+            <i class="fas fa-file-pdf"></i>
+            Export PDF
+          </button>
+          <button type="button" (click)="exportQueueToExcel()" class="detail-secondary-button">
+            <i class="fas fa-file-excel"></i>
+            Export Excel
+          </button>
+        </div>
+      </div>
+
+      <div class="chat-kpi-grid">
+        <article class="chat-kpi-card">
+          <p>Open</p>
+          <strong>{{ openCount }}</strong>
+          <span>Threads with no removed messages.</span>
+        </article>
+        <article class="chat-kpi-card">
+          <p>In review</p>
+          <strong>{{ reviewCount }}</strong>
+          <span>Some moderation action taken.</span>
+        </article>
+        <article class="chat-kpi-card chat-kpi-card-accent">
+          <p>Resolved</p>
+          <strong>{{ resolvedCount }}</strong>
+          <span>All messages already removed.</span>
+        </article>
+      </div>
+    </header>
+
+    <div class="chat-inline-notices">
+      <div *ngIf="error" class="chat-notice chat-notice-danger">{{ error }}</div>
+      <div *ngIf="moderationError" class="chat-notice chat-notice-danger">{{ moderationError }}</div>
+      <div *ngIf="exportNotice" class="chat-notice chat-notice-info">{{ exportNotice }}</div>
+    </div>
+
+    <section class="chat-admin-shell">
+      <aside class="chat-queue-panel">
+        <div class="chat-panel-head">
+          <div>
+            <p class="chat-panel-kicker">Queue</p>
+            <h2>Conversation list</h2>
+            <p>Filter the queue before you drill into a thread.</p>
+          </div>
+          <span class="chat-panel-chip">{{ filteredQueue.length }} visible</span>
+        </div>
+
+        <div class="chat-filter-stack">
+          <label class="chat-field">
+            <span class="chat-field-label">Search queue</span>
+            <div class="chat-search-wrap">
+              <i class="fas fa-search"></i>
+              <input
+                id="chat-moderation-search"
+                [(ngModel)]="searchTerm"
+                name="chatModerationSearch"
+                aria-label="Search chat moderation queue"
+                type="search"
+                placeholder="Participants or preview"
+                autocomplete="off"
+                class="chat-input chat-input-with-icon"
+              >
+            </div>
+          </label>
+
+          <div class="chat-filter-grid">
+            <label class="chat-field">
+              <span class="chat-field-label">State</span>
+              <select [(ngModel)]="statusFilter" name="chatStatusFilter" aria-label="Filter by moderation state" class="chat-input">
+                <option value="ALL">All states</option>
+                <option value="OPEN">Open</option>
+                <option value="REVIEW">Review</option>
+                <option value="RESOLVED">Resolved</option>
+              </select>
+            </label>
+
+            <label class="chat-field">
+              <span class="chat-field-label">Sort</span>
+              <select [(ngModel)]="queueSort" name="chatQueueSort" aria-label="Sort moderation queue" class="chat-input">
+                <option value="RECENT">Recent activity</option>
+                <option value="OLDEST">Oldest activity</option>
+                <option value="MOST_MESSAGES">Most messages</option>
+                <option value="MOST_DELETED">Most deleted</option>
+                <option value="STATE">Moderation state</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div class="chat-queue-list">
+          <div *ngIf="loadingConversations" class="queue-state">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span>Loading moderation queue...</span>
+          </div>
+
+          <div *ngIf="!loadingConversations && filteredQueue.length === 0" class="queue-state">
+            <i class="fas fa-check"></i>
+            <span>No conversations match these filters.</span>
+          </div>
+
+          <button
+            type="button"
+            *ngFor="let thread of filteredQueue; trackBy: trackByThreadId"
+            class="queue-card"
+            [class.queue-card-active]="selectedConversation?.id === thread.id"
+            (click)="selectConversation(thread)"
+          >
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <p class="queue-card-title">{{ participantsLabel(thread) }}</p>
+                <p class="queue-card-copy">{{ conversationPreview(thread) }}</p>
+              </div>
+              <span class="state-pill" [ngClass]="stateToneClass(thread)">{{ stateLabel(thread) }}</span>
+            </div>
+
+            <div class="queue-card-meta">
+              <span class="pill">{{ thread.totalMessageCount }} messages</span>
+              <span class="pill">{{ thread.deletedMessageCount }} removed</span>
+              <span *ngIf="thread.lastMessageAt" class="pill">{{ thread.lastMessageAt | date:'short' }}</span>
+            </div>
+          </button>
+        </div>
+      </aside>
+
+      <section class="chat-detail-panel">
+        <div *ngIf="!selectedConversation" class="queue-state queue-state-large">
+          <i class="fas fa-comments"></i>
+          <span>Select a conversation to review messages.</span>
+        </div>
+
+        <ng-container *ngIf="selectedConversation">
+          <header class="chat-detail-hero">
+            <div class="chat-detail-main">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="state-pill" [ngClass]="stateToneClass(selectedConversation)">{{ stateLabel(selectedConversation) }}</span>
+                <span class="pill">{{ selectedConversation.totalMessageCount }} total</span>
+                <span class="pill">{{ selectedConversation.deletedMessageCount }} removed</span>
+                <span class="pill">{{ selectedConversationProgress }}% moderated</span>
+              </div>
+
+              <h2>{{ participantsLabel(selectedConversation) }}</h2>
+              <p class="chat-admin-copy">
+                Focus on message-by-message moderation while keeping visibility into how much of the thread has already been acted on.
+              </p>
+            </div>
+
+            <div class="chat-detail-stats">
+              <article class="chat-mini-stat">
+                <span>Visible</span>
+                <strong>{{ visibleMessageCount }}</strong>
+              </article>
+              <article class="chat-mini-stat">
+                <span>Removed</span>
+                <strong>{{ removedMessageCount }}</strong>
+              </article>
+            </div>
+          </header>
+
+          <div class="chat-toolbar">
+            <label class="chat-field">
+              <span class="chat-field-label">Message visibility</span>
+              <select [(ngModel)]="messageVisibility" name="messageVisibility" aria-label="Filter messages" class="chat-input">
+                <option value="ALL">All messages</option>
+                <option value="VISIBLE">Visible only</option>
+                <option value="REMOVED">Removed only</option>
+              </select>
+            </label>
+
+            <label class="chat-field">
+              <span class="chat-field-label">Sort messages</span>
+              <select [(ngModel)]="messageSort" name="messageSort" aria-label="Sort messages" class="chat-input">
+                <option value="NEWEST">Newest first</option>
+                <option value="OLDEST">Oldest first</option>
+              </select>
+            </label>
+
+            <div class="chat-toolbar-actions">
+              <button type="button" (click)="exportSelectedConversationToPdf()" class="detail-secondary-button">
+                <i class="fas fa-file-pdf"></i>
+                Export conversation PDF
+              </button>
+              <button type="button" (click)="exportSelectedConversationToExcel()" class="detail-secondary-button">
+                <i class="fas fa-file-excel"></i>
+                Export conversation Excel
+              </button>
+            </div>
+          </div>
+
+          <div *ngIf="loadingMessages" class="queue-state queue-state-large">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span>Loading conversation messages...</span>
+          </div>
+
+          <div *ngIf="!loadingMessages && filteredMessages.length === 0" class="queue-state queue-state-large">
+            <i class="fas fa-inbox"></i>
+            <span>No messages found in this conversation.</span>
+          </div>
+
+          <div *ngIf="!loadingMessages && filteredMessages.length > 0" class="chat-message-list">
+            <article *ngFor="let message of filteredMessages; trackBy: trackByMessageId" class="chat-message-card">
+              <div class="chat-message-head">
+                <div>
+                  <p class="chat-message-author">{{ messageAuthorLabel(message) }}</p>
+                  <p class="chat-message-time">{{ message.createdAt | date:'short' }}</p>
+                </div>
+                <span class="pill">{{ isMessageDeleted(message) ? 'Removed' : 'Visible' }}</span>
+              </div>
+
+              <p class="chat-message-body" [ngClass]="isMessageDeleted(message) ? 'chat-message-body-removed' : ''">
+                {{ messageBody(message) }}
+              </p>
+
+              <div *ngIf="message.attachments?.length" class="chat-message-attachments">
+                {{ message.attachments?.length }} attachment(s)
+              </div>
+
+              <div class="chat-message-actions">
+                <button
+                  *ngIf="!isMessageDeleted(message)"
+                  type="button"
+                  class="chat-danger-button"
+                  [disabled]="deletingMessageId === message.id"
+                  (click)="moderateDelete(message)"
+                >
+                  <i class="fas fa-trash-can"></i>
+                  {{ deletingMessageId === message.id ? 'Moderating...' : 'Delete message' }}
+                </button>
+              </div>
+            </article>
+          </div>
+        </ng-container>
+      </section>
+    </section>
+  </div>
+</section>

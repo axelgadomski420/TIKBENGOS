@@ -1,0 +1,101 @@
+<div class="contracts-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="container">
+      <div class="header-content">
+        <h1>📄 Contracts Management</h1>
+        <p>View and manage all adoption contracts</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="container py-4">
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="text-center py-5">
+      <div class="spinner"></div>
+      <p>Loading contracts...</p>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="error" class="alert alert-danger">
+      <i class="fas fa-exclamation-circle"></i> {{ error }}
+    </div>
+
+    <!-- Filters -->
+    <div *ngIf="!loading && !error" class="filters-bar">
+      <div class="filter-group">
+        <label>Status</label>
+        <select [(ngModel)]="statusFilter" (change)="onStatusFilterChange()" class="filter-select">
+          <option value="ALL">All Status</option>
+          <option value="ACTIF">✅ Active</option>
+          <option value="BROUILLON">📝 Draft</option>
+          <option value="SIGNE">✍️ Signed</option>
+          <option value="TERMINE">🏁 Completed</option>
+          <option value="RESILIE">⚡ Terminated</option>
+          <option value="ANNULE">❌ Cancelled</option>
+        </select>
+      </div>
+      <div class="filter-group search-group">
+        <label>Search</label>
+        <input type="text" [(ngModel)]="searchTerm" (input)="onSearchChange()" 
+               placeholder="Search by contract #, animal or adopter..." class="search-input">
+      </div>
+      <div class="filter-group">
+        <label>Total</label>
+        <div class="total-badge">{{ filteredContracts.length }} contracts</div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!loading && !error && filteredContracts.length === 0" class="empty-state">
+      <div class="empty-icon">📄</div>
+      <h3>No contracts found</h3>
+      <p>Try changing your filters</p>
+    </div>
+
+    <!-- Contracts Table -->
+    <div *ngIf="!loading && !error && filteredContracts.length > 0" class="table-responsive">
+      <table class="contracts-table">
+        <thead>
+          <tr>
+            <th>Contract #</th>
+            <th>Animal</th>
+            <th>Adopter</th>
+            <th>Shelter</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let contract of filteredContracts">
+            <td class="contract-number">{{ contract.numeroContrat }}</td>
+            <td><strong>{{ contract.animalName }}</strong></td>
+            <td>{{ contract.adoptantName }}</td>
+            <td>{{ contract.shelterName }}</td>
+            <td>{{ contract.dateAdoption | date:'dd/MM/yyyy' }}</td>
+            <td>
+              <span class="status-badge" [ngClass]="getStatusClass(contract.statut)">
+                {{ getStatusText(contract.statut) }}
+              </span>
+            </td>
+            <td class="actions">
+              <select class="status-select" (change)="updateStatus(contract, $event)" [value]="contract.statut">
+  <option *ngFor="let status of getAvailableStatuses(contract.statut)" [value]="status">
+    Set as {{ status }}
+  </option>
+</select>
+              <button class="btn-pdf" (click)="downloadPdf(contract)" [disabled]="downloadingId === contract.id" title="Download PDF">
+                <i class="fas" [ngClass]="downloadingId === contract.id ? 'fa-spinner fa-spin' : 'fa-file-pdf'"></i>
+              </button>
+              <button class="btn-delete" (click)="deleteContract(contract)" title="Delete">
+                <i class="fas fa-trash-alt"></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

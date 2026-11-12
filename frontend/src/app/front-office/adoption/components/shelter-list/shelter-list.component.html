@@ -1,0 +1,70 @@
+<div class="container">
+  <div class="header">
+    <h1>🏠 Animal Shelters</h1>
+    <button class="btn-pets" (click)="goToPets()">
+      🐾 View Pets
+    </button>
+  </div>
+
+  <!-- Search Bar -->
+  <div class="search-section">
+    <div class="search-box">
+      <input 
+        type="text" 
+        class="search-input" 
+        placeholder="Search shelter by name or city..."
+        [(ngModel)]="searchKeyword"
+        (keyup.enter)="search()"
+      />
+      <button class="btn-search" (click)="search()">🔍 Search</button>
+      <button class="btn-reset" (click)="resetSearch()">🔄 Reset</button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Loading shelters...</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error" class="error">
+    {{ error }}
+  </div>
+
+  <!-- Shelters Grid -->
+  <div *ngIf="!loading && !error" class="shelters-grid">
+    <div *ngFor="let shelter of shelters" class="shelter-card">
+
+      <!-- ✅ card-content : contenu variable, s'étire via flex:1 -->
+      <div class="card-content">
+        <div class="card-header">
+          <h3>{{ shelter.name }}</h3>
+          <span *ngIf="shelter.verified" class="verified-badge">✓ Verified</span>
+        </div>
+        <div class="rating">
+          <span class="stars">{{ getStars(shelter.averageRating || 0) }}</span>
+          <span class="reviews">({{ shelter.totalReviews || 0 }} reviews)</span>
+        </div>
+        <div class="info">
+          <p><strong>📍 Address:</strong> {{ shelter.address }}</p>
+          <p><strong>📞 Phone:</strong> {{ shelter.phone || 'Not specified' }}</p>
+          <p><strong>✉️ Email:</strong> {{ shelter.email }}</p>
+        </div>
+        <p class="description">{{ shelter.description || 'No description available.' }}</p>
+      </div>
+
+      <!-- ✅ buttons EN DEHORS de card-content — toujours en bas -->
+      <div class="buttons">
+        <a [routerLink]="['/adoption/shelters', shelter.id]" class="btn btn-detail">🏠 View Animals</a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Empty state -->
+  <div *ngIf="!loading && !error && shelters.length === 0" class="empty">
+    <p>🏠 No shelters found</p>
+    <p>Try adjusting your search.</p>
+  </div>
+</div>

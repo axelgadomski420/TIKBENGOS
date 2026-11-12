@@ -1,0 +1,84 @@
+<div class="modal-backdrop" (click)="onBackdropClick($event)">
+  <section class="modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <header class="modal-header">
+      <h2>
+        <mat-icon class="material-icons-round">description</mat-icon>
+        <span>Document Details</span>
+      </h2>
+
+      <button type="button" class="icon-close" (click)="closeModal()" aria-label="Close">
+        <mat-icon class="material-icons-round">close</mat-icon>
+      </button>
+    </header>
+
+    <div class="modal-body">
+      <div class="details-grid">
+        <div class="label">Document Type</div>
+        <div class="value with-icon">
+          <mat-icon class="material-icons-round">{{ documentTypeIcon }}</mat-icon>
+          <span>{{ documentTypeLabel }}</span>
+        </div>
+
+        <div class="label">Validation Status</div>
+        <div class="value">
+          <span class="status-badge" [ngClass]="statusClass">{{ statusLabel }}</span>
+        </div>
+
+        <div class="label">Document Number</div>
+        <div class="value">{{ valueOrDash(document.documentNumber) }}</div>
+
+        <div class="label">Holder Name</div>
+        <div class="value">{{ valueOrDash(document.holderName) }}</div>
+
+        <div class="label">Issue Date</div>
+        <div class="value">{{ formatDate(document.issueDate) }}</div>
+
+        <div class="label">Expiry Date</div>
+        <div class="value">{{ formatDate(document.expiryDate) }}</div>
+
+        <div class="label">Issuing Org</div>
+        <div class="value">{{ valueOrDash(document.issuingOrganization) }}</div>
+
+        <div class="label">Uploaded At</div>
+        <div class="value">{{ formatDate(document.uploadedAt) }}</div>
+
+        <div class="label">Attached File</div>
+        <div class="value file-value">
+          <ng-container *ngIf="document.fileUrl; else noFileAttached">
+            <p class="file-name">{{ getFileName(document.fileUrl) }}</p>
+
+            <div class="file-actions">
+              <a class="file-link-btn" [attr.href]="fullFileUrl || null" target="_blank" rel="noopener noreferrer">
+                <mat-icon class="material-icons-round">open_in_new</mat-icon>
+                <span>Open File</span>
+              </a>
+            </div>
+
+            <img
+              *ngIf="isImage(fullFileUrl)"
+              class="file-preview-image"
+              [src]="fullFileUrl"
+              [alt]="getFileName(document.fileUrl)"
+              loading="lazy"
+            />
+
+            <iframe
+              *ngIf="isPdf(fullFileUrl) && pdfPreviewUrl"
+              class="file-preview-frame"
+              [src]="pdfPreviewUrl"
+              title="Document preview"
+            ></iframe>
+
+            <p class="file-preview-fallback" *ngIf="!isImage(fullFileUrl) && !isPdf(fullFileUrl)">
+              Preview not available for this file type.
+            </p>
+          </ng-container>
+
+          <ng-template #noFileAttached>
+            <p class="file-empty-text">No file attached.</p>
+          </ng-template>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

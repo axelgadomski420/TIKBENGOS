@@ -1,0 +1,216 @@
+﻿<div class="upload-modal-backdrop" (click)="onBackdropClick($event)">
+  <section class="upload-modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <header class="modal-header">
+      <h2>
+        <mat-icon class="material-icons-round">cloud_upload</mat-icon>
+        <span>Upload Document</span>
+      </h2>
+
+      <button type="button" class="icon-close" (click)="closeModal()" [disabled]="isUploading" aria-label="Close">
+        <mat-icon class="material-icons-round">close</mat-icon>
+      </button>
+    </header>
+
+    <form class="modal-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="modal-body">
+        <div class="field-group">
+          <label for="documentType">Document Type *</label>
+          <div class="select-shell" [class.locked]="isTypeLocked">
+            <mat-icon class="material-icons-round">{{ selectedTypeIcon }}</mat-icon>
+            <select id="documentType" formControlName="documentType" [disabled]="isTypeLocked || isUploading">
+              <option value="">Select document type</option>
+              <option *ngFor="let type of documentTypes" [value]="type">{{ documentConfig[type].label }}</option>
+            </select>
+          </div>
+          <p class="field-error" *ngIf="form.controls.documentType.touched && form.controls.documentType.invalid">
+            Document type is required.
+          </p>
+        </div>
+
+        <div class="field-group">
+          <label>File *</label>
+          <button
+            type="button"
+            class="dropzone"
+            [class.drag-active]="isDragActive"
+            [disabled]="isUploading"
+            (click)="triggerFilePicker()"
+            (dragover)="onDragOver($event)"
+            (dragleave)="onDragLeave($event)"
+            (drop)="onDrop($event)"
+          >
+            <input
+              #fileInput
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+              (change)="onFileInputChange($event)"
+              hidden
+            />
+            <mat-icon class="material-icons-round">cloud_upload</mat-icon>
+            <p>Click to upload or drag and drop</p>
+            <span>PDF, JPG, PNG accepted</span>
+
+            <div class="file-picked" *ngIf="selectedFile as file">
+              <mat-icon class="material-icons-round">check_circle</mat-icon>
+              <strong>{{ file.name }}</strong>
+            </div>
+          </button>
+          <p class="field-error" *ngIf="!selectedFile && form.touched">File is required.</p>
+          <p class="field-error" *ngIf="fileError">{{ fileError }}</p>
+        </div>
+
+        <div class="ocr-panel" *ngIf="selectedFile">
+
+          <!-- STATE: Analyzing -->
+          <div class="ocr-state-analyzing"
+            *ngIf="ocrState === 'analyzing'">
+            <div class="ocr-pulse-ring">
+              <div class="ocr-pulse-dot"></div>
+            </div>
+            <div class="ocr-analyzing-text">
+              <span class="ocr-analyzing-title">
+                Analyzing document...
+              </span>
+              <span class="ocr-analyzing-sub">
+                AI is reading your document
+              </span>
+            </div>
+          </div>
+
+          <!-- STATE: Result -->
+          <div class="ocr-state-success"
+            *ngIf="ocrState === 'done' && ocrResult">
+
+            <div class="ocr-status-banner"
+              [class.banner-error]="statusBannerType === 'error'"
+              [class.banner-warning]="statusBannerType === 'warning'"
+              [class.banner-success]="statusBannerType === 'success'">
+              <span class="banner-icon">{{ statusBannerIcon }}</span>
+              <span class="banner-text">{{ statusBannerText }}</span>
+            </div>
+
+            <div class="ocr-missing-pills" *ngIf="shouldShowMissingPills">
+              <span class="missing-pill" *ngFor="let fieldName of missingFieldDisplayNames">{{ fieldName }}</span>
+            </div>
+
+            <div class="ocr-fields-grid">
+              <div class="ocr-field-item">
+                <span class="field-key">Document #</span>
+                <span class="field-val">{{ getDisplayValue(ocrResult.documentNumber) }}</span>
+              </div>
+
+              <div class="ocr-field-item">
+                <span class="field-key">Holder</span>
+                <span class="field-val">{{ getDisplayValue(ocrResult.holderName) }}</span>
+              </div>
+
+              <div class="ocr-field-item">
+                <span class="field-key">Issued</span>
+                <span class="field-val">{{ getDisplayValue(ocrResult.issueDate) }}</span>
+              </div>
+
+              <div class="ocr-field-item"
+                [class.field-expired]="ocrResult.isExpired"
+                [class.field-expiring]="!ocrResult.isExpired && isExpiringSoon">
+                <span class="field-key">Expires</span>
+                <span class="field-val">{{ getDisplayValue(ocrResult.expiryDate) }}</span>
+              </div>
+            </div>
+
+            <div class="ocr-action-row">
+              <button class="btn-apply-ocr"
+                *ngIf="ocrState === 'done'"
+                [disabled]="isApplyBlocked"
+                (click)="applyOcrResults()"
+                type="button">
+                <mat-icon>auto_fix_high</mat-icon>
+                Apply to Form
+              </button>
+
+              <div class="ocr-applied-ok" *ngIf="ocrApplied">
+                <mat-icon>check_circle</mat-icon>
+                Applied — verify before uploading
+              </div>
+            </div>
+          </div>
+
+          <!-- STATE: Error -->
+          <div class="ocr-state-error"
+            *ngIf="ocrState === 'error'">
+            <mat-icon>error_outline</mat-icon>
+            <div>
+              <strong>Analysis failed</strong>
+              <span>Please fill the fields manually.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-two">
+          <div class="field-group">
+            <label for="documentNumber">Document Number</label>
+            <input id="documentNumber" type="text" formControlName="documentNumber" [placeholder]="getPlaceholder('documentNumber', 'e.g. TN123456')" />
+          </div>
+
+          <div class="field-group">
+            <label for="holderName">Holder Name</label>
+            <input id="holderName" type="text" formControlName="holderName" [placeholder]="getPlaceholder('holderName', 'e.g. John Doe')" />
+          </div>
+        </div>
+
+        <div class="grid-two">
+          <div class="field-group">
+            <label for="issueDate">Issue Date</label>
+            <input id="issueDate" type="date" formControlName="issueDate" [attr.placeholder]="getPlaceholder('issueDate', 'dd/mm/yyyy')" />
+            <span class="field-error" *ngIf="form.controls.issueDate.touched && form.controls.issueDate.errors?.['issueInFuture']">
+              Issue date cannot be in the future.
+            </span>
+            <span class="field-error" *ngIf="form.controls.issueDate.touched && form.controls.issueDate.errors?.['issueAfterExpiry']">
+              Issue date must be before expiry date.
+            </span>
+          </div>
+
+          <div class="field-group">
+            <label for="expiryDate">Expiry Date</label>
+            <input id="expiryDate" type="date" formControlName="expiryDate" [attr.placeholder]="getPlaceholder('expiryDate', 'dd/mm/yyyy')" />
+            <span class="field-error" *ngIf="form.controls.expiryDate.touched && form.controls.expiryDate.errors?.['expiryPast']">
+              Document is already expired.
+            </span>
+            <span class="field-error" *ngIf="form.controls.expiryDate.touched && form.controls.expiryDate.errors?.['expiryBeforeIssue']">
+              Expiry date must be after issue date.
+            </span>
+          </div>
+        </div>
+
+        <div class="field-group field-group-last">
+          <label for="issuingOrganization">Issuing Organization</label>
+          <input
+            id="issuingOrganization"
+            type="text"
+            formControlName="issuingOrganization"
+            [placeholder]="getPlaceholder('issuingOrganization', 'e.g. Ministry of Agriculture')"
+          />
+        </div>
+      </div>
+
+      <footer class="modal-footer">
+        <button type="button" class="btn secondary" (click)="closeModal()" [disabled]="isUploading">Cancel</button>
+
+        <button type="submit" class="btn primary" [disabled]="isUploadBlocked || !form.valid || !selectedFile || !!fileError || isUploading">
+          <mat-icon class="material-icons-round">{{ isUploading ? 'hourglass_empty' : 'cloud_upload' }}</mat-icon>
+          <span>{{ isUploading ? 'Uploading...' : 'Upload' }}</span>
+        </button>
+      </footer>
+      <div class="upload-blocked-hint"
+        *ngIf="ocrResult?.isExpired">
+        <mat-icon>block</mat-icon>
+        Cannot upload — document is expired.
+      </div>
+
+      <div class="upload-blocked-hint"
+        *ngIf="ocrResult?.isRelevantDocument === false">
+        <mat-icon>block</mat-icon>
+        Cannot upload — wrong document type.
+      </div>
+    </form>
+  </section>
+</div>

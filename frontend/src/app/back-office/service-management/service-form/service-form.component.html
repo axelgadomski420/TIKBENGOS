@@ -1,0 +1,541 @@
+<div class="form-bg">
+  <div class="service-form-container">
+
+    <!-- Back button -->
+    <button type="button" (click)="onCancel()" class="mb-4 inline-flex items-center gap-2 text-gray-400 hover:text-brand-teal transition-colors font-bold text-sm tracking-widest uppercase px-4 py-2 hover:bg-white/50 rounded-xl">
+      <span class="text-xl">←</span>
+      Back
+    </button>
+
+    <!-- Header Section -->
+    <div class="mb-10 flex items-center justify-between">
+      <div>
+        <h1 class="text-4xl font-black text-gray-900 tracking-tight">
+          {{ isEditMode ? 'Edit' : 'Create' }} a service
+        </h1>
+        <p class="text-gray-500 mt-2 font-medium">
+          {{ isEditMode ? 'Updating your expertise for ' : 'Share your expertise in ' }}
+          <span class="text-brand-teal font-black uppercase">{{ selectedCategoryLabel }}</span>
+        </p>
+      </div>
+      <div class="text-4xl opacity-50">{{ isVeterinary ? '🩺' : isGrooming ? '✂️' : isTraining ? '🎓' : isBoarding ? '🏠' : isHotel ? '🏨' : '🚶' }}</div>
+    </div>
+
+    <!-- Loading state -->
+    <div *ngIf="loading" class="service-card py-20 flex flex-col justify-center items-center h-96 bg-white/50 relative overflow-hidden">
+      <div class="w-12 h-12 border-4 border-brand-teal border-t-transparent rounded-full animate-spin mb-6 shadow-indigo-200 shadow-xl"></div>
+      <span class="text-xl font-black text-gray-400 tracking-widest uppercase">Loading</span>
+      <div class="absolute inset-0 bg-gradient-to-t from-white/30 to-transparent"></div>
+    </div>
+
+    <!-- FORM -->
+    <form *ngIf="!loading" [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-8">
+
+      <!-- INPUT FILE CACHÉ -->
+      <input
+        #fileInput
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        class="hidden"
+        (change)="onImageSelected($event)"
+      >
+
+      <!-- SECTION 1: Informations de Base -->
+      <div class="service-card overflow-visible">
+        <div class="flex items-center gap-4 mb-8">
+          <div class="w-12 h-12 bg-brand-teal text-white flex items-center justify-center rounded-2xl text-xl shadow-lg font-black tracking-widest shadow-brand-teal/20">
+            01
+          </div>
+          <h2 class="text-xl font-black text-gray-900 uppercase tracking-widest">General Information</h2>
+        </div>
+
+        <div class="grid grid-cols-1 gap-6">
+          <!-- Nom du service -->
+          <div class="service-form-group">
+            <label class="service-form-label">Service Name <span class="text-red-500">*</span></label>
+            <input type="text" formControlName="name" placeholder="Ex: Veterinary consultation for dogs..."
+                   class="service-form-input" [class.border-red-500]="getFieldError('name')">
+            <p class="text-red-500 text-xs font-bold mt-2 px-1" *ngIf="getFieldError('name')">{{ getFieldError('name') }}</p>
+          </div>
+
+          <!-- Description + bouton Générer -->
+          <div class="service-form-group">
+            <div class="flex items-center justify-between mb-2">
+              <label class="service-form-label mb-0">Detailed Description <span class="text-red-500">*</span></label>
+              <button
+                type="button"
+                (click)="generateDescription()"
+                [disabled]="generatingDescription"
+                class="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-500 text-white text-xs font-black uppercase tracking-widest shadow-md hover:shadow-indigo-300 hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <span *ngIf="generatingDescription" class="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                <span *ngIf="!generatingDescription">✨</span>
+                {{ generatingDescription ? 'Generating...' : 'Auto Generate' }}
+              </button>
+            </div>
+            <textarea formControlName="description" placeholder="Explain what this service offers to reassure your clients..."
+                      class="service-form-textarea" [class.border-red-500]="getFieldError('description')"></textarea>
+            <p class="text-red-500 text-xs font-bold mt-2 px-1" *ngIf="getFieldError('description')">{{ getFieldError('description') }}</p>
+          </div>
+
+          <!-- IMAGE DU SERVICE -->
+          <div class="service-form-group">
+            <label class="service-form-label">Service Image</label>
+
+            <!-- Zone drag & drop (affichée si pas d'image) -->
+            <div
+              *ngIf="!imagePreviewUrl"
+              class="image-drop-zone"
+              [class.drag-over]="isDragOver"
+              (dragover)="onDragOver($event)"
+              (dragleave)="onDragLeave($event)"
+              (drop)="onDrop($event)"
+              (click)="openFilePicker()"
+            >
+              <div class="flex flex-col items-center gap-3 pointer-events-none">
+                <div class="w-16 h-16 rounded-2xl bg-brand-teal/10 flex items-center justify-center text-3xl">
+                  🖼️
+                </div>
+                <div class="text-center">
+                  <p class="font-black text-gray-700 text-sm">Drag an image here</p>
+                  <p class="text-gray-400 text-xs mt-1">or <span class="text-brand-teal font-bold underline">click to browse</span></p>
+                  <p class="text-gray-300 text-[10px] mt-2 uppercase tracking-widest">JPG, PNG, WEBP — max 5 MB</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Preview de l'image sélectionnée -->
+            <div *ngIf="imagePreviewUrl" class="relative group">
+              <img
+                [src]="imagePreviewUrl"
+                alt="Image Preview"
+                class="w-full h-56 object-cover rounded-3xl border-2 border-gray-100 shadow-md"
+              >
+              <!-- Overlay au hover -->
+              <div class="absolute inset-0 bg-black/40 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                <button
+                  type="button"
+                  (click)="openFilePicker()"
+                  class="bg-white text-gray-800 px-4 py-2 rounded-xl font-bold text-xs hover:bg-gray-100 transition-colors"
+                >
+                  🔄 Change
+                </button>
+                <button
+                  type="button"
+                  (click)="removeImage()"
+                  class="bg-red-500 text-white px-4 py-2 rounded-xl font-bold text-xs hover:bg-red-600 transition-colors"
+                >
+                  🗑️ Delete
+                </button>
+              </div>
+              <!-- Badge upload en cours -->
+              <div *ngIf="uploadingImage" class="absolute inset-0 bg-black/60 rounded-3xl flex items-center justify-center">
+                <div class="flex flex-col items-center gap-2 text-white">
+                  <div class="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span class="text-xs font-bold">Uploading...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="service-form-group">
+              <label class="service-form-label">Base price (€) <span class="text-red-500">*</span></label>
+              <div class="relative">
+                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">€</span>
+                <input type="number" formControlName="price" class="service-form-input pl-10" [class.border-red-500]="getFieldError('price')">
+              </div>
+              <p class="text-red-500 text-xs font-bold mt-2 px-1" *ngIf="getFieldError('price')">{{ getFieldError('price') }}</p>
+            </div>
+            
+            <div class="service-form-group">
+              <label class="service-form-label">Duration (minutes) <span class="text-red-500">*</span></label>
+              <div class="relative">
+                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">⏱️</span>
+                <input type="number" formControlName="duration" class="service-form-input pl-10" [class.border-red-500]="getFieldError('duration')">
+              </div>
+              <p class="text-red-500 text-xs font-bold mt-2 px-1" *ngIf="getFieldError('duration')">{{ getFieldError('duration') }}</p>
+            </div>
+          </div>
+
+          <div class="service-form-group">
+            <label class="service-form-label">Availability</label>
+            <select formControlName="status" class="service-form-input font-bold appearance-none cursor-pointer">
+              <option value="ACTIVE">🟢 Active (Visible to clients)</option>
+              <option value="INACTIVE">🔴 Inactive (Hidden from clients)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 2: Dynamic Category Specifics -->
+      <div *ngIf="selectedCategoryId" class="service-card overflow-hidden">
+        <div class="category-header" [ngClass]="selectedCategoryName.toUpperCase()">
+          <span>Details {{ selectedCategoryLabel }}</span>
+          <span class="text-xl ml-auto opacity-70">{{ isVeterinary ? '🩺' : isGrooming ? '✂️' : isTraining ? '🎓' : isBoarding ? '🏠' : isHotel ? '🏨' : '🚶' }}</span>
+        </div>
+
+        <div class="grid grid-cols-1 gap-8 mt-4">
+          <!-- === VETERINARY === -->
+          <ng-container *ngIf="isVeterinary">
+            <div class="service-form-group">
+              <label class="service-form-label">Clinic Name <span class="text-red-500">*</span></label>
+              <input type="text" formControlName="clinicName" class="service-form-input" [class.border-red-500]="getFieldError('clinicName')">
+              <p class="text-red-500 text-xs font-bold mt-2 px-1" *ngIf="getFieldError('clinicName')">{{ getFieldError('clinicName') }}</p>
+            </div>
+            
+            <div class="service-form-group">
+              <label class="service-form-label">Consultation Type <span class="text-red-500">*</span></label>
+              <select formControlName="consultationType" class="service-form-input">
+                <option value="general">🏥 General consultation</option>
+                <option value="surgery">🔬 Specialized surgery</option>
+                <option value="vaccination">💉 Vaccination & Prevention</option>
+              </select>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <label class="flex items-center gap-4 bg-gray-50 px-6 py-4 rounded-2xl cursor-pointer hover:bg-gray-100 transition-all border border-gray-100">
+                <input type="checkbox" formControlName="emergencyAvailable" class="w-6 h-6 accent-brand-teal">
+                <span class="font-bold text-sm text-gray-700">🚨 24/7 Emergencies</span>
+              </label>
+              <label class="flex items-center gap-4 bg-gray-50 px-6 py-4 rounded-2xl cursor-pointer hover:bg-gray-100 transition-all border border-gray-100">
+                <input type="checkbox" formControlName="requiresAppointment" class="w-6 h-6 accent-brand-teal">
+                <span class="font-bold text-sm text-gray-700">🗓️ By appointment only</span>
+              </label>
+            </div>
+          </ng-container>
+
+          <!-- === GROOMING === -->
+          <ng-container *ngIf="isGrooming">
+            <div class="service-form-group">
+              <label class="service-form-label text-center mb-4">Pet size accepted <span class="text-red-500">*</span></label>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <label class="radio-card">
+                  <input type="radio" formControlName="petSize" value="small">
+                  <span class="font-bold text-gray-600">🐕 Small</span>
+                </label>
+                <label class="radio-card">
+                  <input type="radio" formControlName="petSize" value="medium">
+                  <span class="font-bold text-gray-600">🐩 Medium</span>
+                </label>
+                <label class="radio-card">
+                  <input type="radio" formControlName="petSize" value="large">
+                  <span class="font-bold text-gray-600">🐕 Large</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="service-form-group">
+              <label class="service-form-label">Products used</label>
+              <input type="text" formControlName="productsUsed" placeholder="Ex: Organic hypoallergenic shampoo..." class="service-form-input">
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <label class="flex items-center gap-4 bg-gray-50 px-6 py-4 rounded-2xl cursor-pointer hover:bg-gray-100 transition-all border border-gray-100">
+                <input type="checkbox" formControlName="includesBath" class="w-6 h-6 accent-brand-teal">
+                <span class="font-bold text-sm text-gray-700">🧼 Bath included</span>
+              </label>
+              <label class="flex items-center gap-4 bg-gray-50 px-6 py-4 rounded-2xl cursor-pointer hover:bg-gray-100 transition-all border border-gray-100">
+                <input type="checkbox" formControlName="includesHaircut" class="w-6 h-6 accent-brand-teal">
+                <span class="font-bold text-sm text-gray-700">✂️ Haircut included</span>
+              </label>
+            </div>
+          </ng-container>
+
+          <!-- Default logic for others Training/Boarding/Hotel/Walking follow similar structure but updated design -->
+          <ng-container *ngIf="isTraining">
+            <div class="service-form-group">
+              <label class="service-form-label">Training Type <span class="text-red-500">*</span></label>
+              <select formControlName="trainingType" class="service-form-input">
+                <option value="obedience">🦴 Basic obedience</option>
+                <option value="behavior">🧠 Behavioral issue</option>
+                <option value="agility">🏃 Agility & Sport</option>
+              </select>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="service-form-group">
+                <label class="service-form-label">Sessions <span class="text-red-500">*</span></label>
+                <input type="number" formControlName="sessionsCount" class="service-form-input">
+              </div>
+              <div class="service-form-group">
+                <label class="service-form-label">Minutes per session <span class="text-red-500">*</span></label>
+                <input type="number" formControlName="sessionDuration" class="service-form-input">
+              </div>
+            </div>
+            
+            <label class="flex items-center gap-4 bg-gray-50 px-6 py-4 rounded-2xl cursor-pointer hover:bg-gray-100 border border-gray-100">
+              <input type="checkbox" formControlName="groupTraining" class="w-6 h-6 accent-brand-teal">
+              <span class="font-bold text-sm text-gray-700">👥 Group training possible</span>
+            </label>
+          </ng-container>
+
+          <!-- Boarding -->
+          <ng-container *ngIf="isBoarding">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="service-form-group">
+                <label class="service-form-label">Max pets <span class="text-red-500">*</span></label>
+                <input type="number" formControlName="capacity" class="service-form-input">
+              </div>
+              <div class="service-form-group">
+                <label class="service-form-label">Max days (stay) <span class="text-red-500">*</span></label>
+                <input type="number" formControlName="maxStayDays" class="service-form-input">
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <label class="flex items-center gap-4 bg-gray-50 px-6 py-4 rounded-2xl cursor-pointer hover:bg-gray-100 border border-gray-100">
+                <input type="checkbox" formControlName="overnight" class="w-6 h-6 accent-brand-teal">
+                <span class="font-bold text-sm text-gray-700">🌙 Overnight care included</span>
+              </label>
+              <label class="flex items-center gap-4 bg-gray-50 px-6 py-4 rounded-2xl cursor-pointer hover:bg-gray-100 border border-gray-100">
+                <input type="checkbox" formControlName="hasOutdoorSpace" class="w-6 h-6 accent-brand-teal">
+                <span class="font-bold text-sm text-gray-700">🌳 Secured outdoor space</span>
+              </label>
+            </div>
+          </ng-container>
+
+          <!-- Hotel -->
+          <ng-container *ngIf="isHotel">
+            <div class="service-form-group">
+              <label class="service-form-label mb-4">Room Style <span class="text-red-500">*</span></label>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <label class="radio-card">
+                  <input type="radio" formControlName="roomType" value="standard">
+                  <span class="font-bold text-gray-600">🛋️ Standard</span>
+                </label>
+                <label class="radio-card">
+                  <input type="radio" formControlName="roomType" value="deluxe">
+                  <span class="font-bold text-gray-600">🌟 Deluxe</span>
+                </label>
+                <label class="radio-card">
+                  <input type="radio" formControlName="roomType" value="suite">
+                  <span class="font-bold text-gray-600">👑 Suite</span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="service-form-group">
+              <label class="service-form-label">Staff members <span class="text-red-500">*</span></label>
+              <input type="number" formControlName="numberOfStaff" class="service-form-input">
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <label class="flex items-center gap-4 bg-gray-50 px-6 py-4 rounded-2xl cursor-pointer hover:bg-gray-100 border border-gray-100">
+                <input type="checkbox" formControlName="hasCameraAccess" class="w-6 h-6 accent-brand-teal">
+                <span class="font-bold text-sm text-gray-700">🎥 24/7 Camera access</span>
+              </label>
+              <label class="flex items-center gap-4 bg-gray-50 px-6 py-4 rounded-2xl cursor-pointer hover:bg-gray-100 border border-gray-100">
+                <input type="checkbox" formControlName="includesFood" class="w-6 h-6 accent-brand-teal">
+                <span class="font-bold text-sm text-gray-700">🥞 Premium meals included</span>
+              </label>
+            </div>
+          </ng-container>
+
+          <!-- Walking -->
+          <ng-container *ngIf="isWalking">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="service-form-group">
+                <label class="service-form-label">Mins per walk <span class="text-red-500">*</span></label>
+                <input type="number" formControlName="durationPerWalk" class="service-form-input">
+              </div>
+              <div class="service-form-group">
+                <label class="service-form-label">Maximum dogs <span class="text-red-500">*</span></label>
+                <input type="number" formControlName="maxDogs" class="service-form-input">
+              </div>
+            </div>
+            
+            <div class="service-form-group">
+              <label class="service-form-label">Walking area <span class="text-red-500">*</span></label>
+              <input type="text" formControlName="areaCovered" placeholder="Neighborhoods, specific parks..." class="service-form-input" [class.border-red-500]="getFieldError('areaCovered')">
+              <p class="text-red-500 text-xs font-bold mt-2 px-1" *ngIf="getFieldError('areaCovered')">{{ getFieldError('areaCovered') }}</p>
+            </div>
+            
+            <label class="flex items-center gap-4 bg-gray-50 px-6 py-4 rounded-2xl cursor-pointer hover:bg-gray-100 border border-gray-100">
+              <input type="checkbox" formControlName="groupWalk" class="w-6 h-6 accent-brand-teal">
+              <span class="font-bold text-sm text-gray-700">🐕🦺 Group walks</span>
+            </label>
+          </ng-container>
+        </div>
+      </div>
+
+      <!-- SECTION 3: Options (FormArray) -->
+      <div class="service-card overflow-visible">
+        <div class="flex items-center gap-4 mb-4">
+          <div class="w-12 h-12 bg-indigo-600 text-white flex items-center justify-center rounded-2xl text-xl shadow-lg font-black tracking-widest shadow-indigo-200">
+            02
+          </div>
+          <h2 class="text-xl font-black text-gray-900 uppercase tracking-widest flex-grow">Optional Extras</h2>
+          <span class="text-xs font-black bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full border border-indigo-100 uppercase tracking-widest">Extra</span>
+        </div>
+        
+        <p class="text-gray-400 font-bold text-xs mb-8 uppercase tracking-wider px-1">Add additional services to increase your revenue.</p>
+
+        <div formArrayName="options" class="space-y-4">
+          <div *ngFor="let opt of options.controls; let i = index" [formGroupName]="i" class="p-6 bg-gray-50 rounded-3xl border-2 border-transparent hover:border-gray-100 transition-all group relative">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+              <div class="service-form-group mb-0">
+                <label class="service-form-label text-[10px] uppercase font-black tracking-widest text-gray-400">Option Name</label>
+                <input type="text" formControlName="name" placeholder="Ex: Organic shampoo..." class="service-form-input border-2 border-white shadow-sm">
+              </div>
+              <div class="flex items-end gap-3">
+                <div class="service-form-group mb-0 flex-grow">
+                  <label class="service-form-label text-[10px] uppercase font-black tracking-widest text-gray-400">Additional Price (€)</label>
+                  <input type="number" formControlName="price" class="service-form-input border-2 border-white shadow-sm">
+                </div>
+                <button type="button" (click)="removeOption(i)" class="bg-white text-red-400 p-4 rounded-2xl border-2 border-white shadow-sm hover:text-red-600 hover:bg-red-50 transition-all">
+                  🗑️
+                </button>
+              </div>
+            </div>
+            
+            <!-- Index indicator -->
+            <div class="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white border border-gray-100 rounded-full text-[10px] flex items-center justify-center font-black text-gray-300 shadow-sm">
+              {{ i + 1 }}
+            </div>
+          </div>
+        </div>
+
+        <button type="button" (click)="addOption()" class="mt-6 w-full py-5 border-2 border-dashed border-gray-200 rounded-3xl text-gray-400 font-black uppercase tracking-widest text-sm hover:border-brand-teal hover:text-brand-teal hover:bg-brand-teal/5 transition-all">
+          + Add a service option
+        </button>
+      </div>
+
+      <!-- SECTION 3: Availability Zones -->
+      <div class="service-card overflow-visible">
+        <div class="flex items-center gap-4 mb-4">
+          <div class="w-12 h-12 bg-emerald-600 text-white flex items-center justify-center rounded-2xl text-xl shadow-lg font-black tracking-widest shadow-emerald-200">
+            03
+          </div>
+          <h2 class="text-xl font-black text-gray-900 uppercase tracking-widest flex-grow">Availability Zones</h2>
+          <span class="text-xs font-black bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full border border-emerald-100 uppercase tracking-widest">Slots</span>
+        </div>
+
+        <p class="text-gray-400 font-bold text-xs mb-8 uppercase tracking-wider px-1">Define the time slots during which your service is available for booking.</p>
+
+        <div formArrayName="availabilitySlots" class="space-y-4">
+          <div
+            *ngFor="let slot of availabilitySlots.controls; let i = index"
+            [formGroupName]="i"
+            class="p-6 bg-emerald-50/50 rounded-3xl border-2 border-emerald-100 hover:border-emerald-200 transition-all group relative"
+          >
+            <!-- Slot number badge -->
+            <div class="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white border border-emerald-100 rounded-full text-[10px] flex items-center justify-center font-black text-emerald-400 shadow-sm">
+              {{ i + 1 }}
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+              <!-- Date -->
+              <div class="service-form-group mb-0">
+                <label class="service-form-label text-[10px] uppercase font-black tracking-widest text-gray-400">📅 Date</label>
+                <input
+                  type="date"
+                  formControlName="date"
+                  [min]="getTodayString()"
+                  [class.border-red-400]="getSlotError(i, 'date')"
+                  class="service-form-input border-2 border-white shadow-sm"
+                >
+                <p class="text-red-500 text-xs font-bold mt-1 px-1" *ngIf="getSlotError(i, 'date')">
+                  ⚠️ {{ getSlotError(i, 'date') }}
+                </p>
+              </div>
+
+              <!-- Start Time -->
+              <div class="service-form-group mb-0">
+                <label class="service-form-label text-[10px] uppercase font-black tracking-widest text-gray-400">🕐 Start Time</label>
+                <input
+                  type="time"
+                  formControlName="startTime"
+                  [class.border-red-400]="getSlotError(i, 'startTime')"
+                  class="service-form-input border-2 border-white shadow-sm"
+                >
+                <p class="text-red-500 text-xs font-bold mt-1 px-1" *ngIf="getSlotError(i, 'startTime')">
+                  ⚠️ {{ getSlotError(i, 'startTime') }}
+                </p>
+              </div>
+
+              <!-- End Time -->
+              <div class="service-form-group mb-0">
+                <label class="service-form-label text-[10px] uppercase font-black tracking-widest text-gray-400">🕔 End Time</label>
+                <input
+                  type="time"
+                  formControlName="endTime"
+                  [class.border-red-400]="getSlotError(i, 'endTime')"
+                  class="service-form-input border-2 border-white shadow-sm"
+                >
+                <p class="text-red-500 text-xs font-bold mt-1 px-1" *ngIf="getSlotError(i, 'endTime')">
+                  ⚠️ {{ getSlotError(i, 'endTime') }}
+                </p>
+              </div>
+
+              <!-- Available Toggle + Delete -->
+              <div class="flex items-end gap-3">
+                <label class="flex items-center gap-2 bg-white px-4 py-3 rounded-2xl border-2 border-white shadow-sm cursor-pointer hover:bg-emerald-50 transition-all flex-grow">
+                  <input type="checkbox" formControlName="isAvailable" class="w-5 h-5 accent-emerald-500">
+                  <span class="font-bold text-xs text-gray-600 whitespace-nowrap">🟢 Available</span>
+                </label>
+                <button
+                  type="button"
+                  (click)="removeAvailabilitySlot(i)"
+                  class="bg-white text-red-400 p-3 rounded-2xl border-2 border-white shadow-sm hover:text-red-600 hover:bg-red-50 transition-all shrink-0"
+                >
+                  🗑️
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty state -->
+          <div
+            *ngIf="availabilitySlots.length === 0"
+            class="flex flex-col items-center justify-center py-10 border-2 border-dashed border-emerald-200 rounded-3xl text-emerald-300"
+          >
+            <div class="text-4xl mb-3">📅</div>
+            <p class="font-black text-sm uppercase tracking-widest">No availability slot added yet</p>
+            <p class="text-xs mt-1 font-medium opacity-60">Click the button below to add your first time slot</p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          (click)="addAvailabilitySlot()"
+          class="mt-6 w-full py-5 border-2 border-dashed border-emerald-200 rounded-3xl text-emerald-400 font-black uppercase tracking-widest text-sm hover:border-emerald-500 hover:text-emerald-600 hover:bg-emerald-50/50 transition-all"
+        >
+          + Add an availability slot
+        </button>
+      </div>
+
+      <!-- SECTION 4: Résumé & Submit -->
+      <div class="space-y-6">
+        <div class="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-3xl p-8 shadow-2xl text-white ring-1 ring-white/10">
+          <h3 class="text-xs font-black uppercase tracking-tightest mb-6 opacity-40">Billing Summary</h3>
+          <div class="flex justify-between items-center mb-4">
+            <span class="text-gray-400 font-bold">Base Service</span>
+            <span class="text-xl font-bold">{{ formatPrice(form.get('price')?.value || 0) }}</span>
+          </div>
+          <div class="flex justify-between items-center mb-6">
+            <span class="text-gray-400 font-bold">Extras (x{{ options.length }})</span>
+            <span class="text-xl font-bold">+ {{ formatPrice(getTotalPrice() - (form.get('price')?.value || 0)) }}</span>
+          </div>
+          <div class="h-px bg-white/10 mb-6"></div>
+          <div class="flex justify-between items-center">
+            <span class="text-xl font-black uppercase tracking-widest">Total Customer Price</span>
+            <span class="text-4xl font-black text-brand-teal">{{ formatPrice(getTotalPrice()) }}</span>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-6 pt-4">
+          <button type="button" (click)="onCancel()" class="px-10 py-5 font-black uppercase tracking-widest text-sm text-gray-400 hover:text-gray-900 transition-colors">
+            Cancel
+          </button>
+          <button type="submit" [disabled]="saving" class="bg-brand-teal text-white px-12 py-5 rounded-3xl font-black text-lg shadow-2xl shadow-brand-teal/30 hover:-translate-y-2 hover:shadow-brand-teal/50 active:translate-y-0 transition-all disabled:opacity-50 disabled:translate-y-0 flex items-center gap-4">
+            <span *ngIf="saving" class="spinner-sm"></span>
+            {{ saving ? 'Saving your expertise...' : (isEditMode ? 'Save changes' : 'Launch my new service!') }}
+            <span class="text-2xl opacity-50">🚀</span>
+          </button>
+        </div>
+      </div>
+
+    </form>
+  </div>
+</div>

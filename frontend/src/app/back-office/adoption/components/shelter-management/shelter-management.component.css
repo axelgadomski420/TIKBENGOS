@@ -1,0 +1,526 @@
+.shelter-management {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+
+.subtitle {
+  color: #666;
+  margin-bottom: 2rem;
+}
+
+/* Section */
+.section {
+  margin-bottom: 3rem;
+}
+
+.section h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #333;
+  border-left: 4px solid rgb(58 146 130);
+  padding-left: 1rem;
+}
+
+/* Grid */
+.shelters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Card */
+.shelter-card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border: 1px solid #e0e0e0;
+}
+
+.shelter-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+}
+
+.shelter-card.pending {
+  border-left: 4px solid #ffc107;
+}
+
+.shelter-card.verified {
+  border-left: 4px solid #28a745;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  background: #f9f9f9;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.card-header h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  color: #333;
+}
+
+.badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.badge.pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.badge.verified {
+  background: #d4edda;
+  color: #155724;
+}
+
+.card-body {
+  padding: 1rem 1.25rem;
+}
+
+.card-body p {
+  margin: 0.25rem 0;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.description {
+  margin-top: 0.5rem;
+  color: #777;
+}
+
+.card-actions {
+  display: flex;
+  gap: 0.5rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid #e0e0e0;
+  background: #f9f9f9;
+}
+
+.card-actions button {
+  flex: 1;
+  padding: 0.5rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-approve {
+  background: #d4edda;
+  color: #155724;
+}
+
+.btn-approve:hover { background: #c3e6cb; }
+
+.btn-reject {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.btn-reject:hover { background: #f5c6cb; }
+
+.btn-edit {
+  background: #e9ecef;
+  color: #495057;
+}
+
+.btn-edit:hover { background: #dee2e6; }
+
+.btn-delete {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.btn-delete:hover { background: #f5c6cb; }
+
+/* Loading */
+.loading {
+  text-align: center;
+  padding: 3rem;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 1rem;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid rgb(58 146 130);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  background: #f9f9f9;
+  border-radius: 8px;
+  color: #666;
+}
+
+/* Modal Edit (inchangé) */
+.modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  z-index: 1001;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #999;
+}
+
+.close:hover { color: #333; }
+
+.modal-body { padding: 1.5rem; }
+
+.modal-footer {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+.form-group { margin-bottom: 1rem; }
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: rgb(58 146 130);
+  box-shadow: 0 0 0 3px rgba(58,146,130,0.12);
+}
+
+.form-control.is-invalid {
+  border-color: #dc3545;
+}
+
+textarea.form-control { resize: vertical; }
+
+.error-text {
+  color: #dc3545;
+  font-size: 0.7rem;
+  margin-top: 0.25rem;
+}
+
+.btn-cancel, .btn-save {
+  flex: 1;
+  padding: 0.6rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-cancel { background: #f5f5f5; color: #666; }
+.btn-cancel:hover { background: #e0e0e0; }
+
+.btn-save { background: rgb(58 146 130); color: white; }
+.btn-save:hover {
+  background: rgb(58 146 130 / 0.8);
+  transform: translateY(-2px);
+}
+
+.modal-backdrop {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 999;
+}
+
+@media (max-width: 768px) {
+  .shelter-management { padding: 1rem; }
+  .shelters-grid { grid-template-columns: 1fr; }
+  .modal-content { width: 95%; }
+}
+
+/* ============================================================
+   ✅ NOUVEAU : Bouton Add Shelter + Modal Add amélioré
+   (tout ce qui est au-dessus est intact)
+   ============================================================ */
+
+/* Header row avec bouton Add */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.header-left h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+  color: #333;
+}
+
+.header-left .subtitle {
+  color: #666;
+  margin: 0;
+}
+
+/* Bouton Add — vert avec ombre */
+.btn-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgb(58, 146, 130);
+  color: white;
+  border: none;
+  padding: 0.65rem 1.4rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(58, 146, 130, 0.4);
+  white-space: nowrap;
+}
+
+.btn-add:hover {
+  background: rgb(45, 120, 107);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(58, 146, 130, 0.5);
+}
+
+.btn-add:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(58, 146, 130, 0.3);
+}
+
+/* Modal Add — plus large que le modal edit */
+.modal-add-content {
+  background: white;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 640px;
+  max-height: 90vh;
+  overflow-y: auto;
+  z-index: 1001;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+}
+
+/* Header du modal Add avec fond vert */
+.modal-add-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1.25rem 1.5rem;
+  background: linear-gradient(135deg, rgb(58,146,130) 0%, rgb(40,110,100) 100%);
+  border-radius: 16px 16px 0 0;
+}
+
+.modal-add-header h3 {
+  margin: 0 0 0.2rem 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: white;
+}
+
+.modal-add-header p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.78);
+}
+
+.modal-add-header .close-white {
+  background: rgba(255,255,255,0.15);
+  border: none;
+  color: white;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0.3rem 0.55rem;
+  border-radius: 6px;
+  transition: all 0.15s;
+  line-height: 1;
+}
+
+.modal-add-header .close-white:hover {
+  background: rgba(255,255,255,0.28);
+}
+
+/* Grille 2 colonnes dans le formulaire Add */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem 1.1rem;
+}
+
+.form-grid .form-group {
+  margin-bottom: 0;
+}
+
+.form-grid .form-group.full {
+  grid-column: 1 / -1;
+}
+
+/* Label obligatoire */
+label.req::after {
+  content: ' *';
+  color: #dc3545;
+}
+
+/* Toggle verified */
+.verified-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 1rem;
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.verified-toggle:hover {
+  border-color: rgb(58,146,130);
+}
+
+.verified-toggle input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  accent-color: rgb(58,146,130);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.verified-toggle span {
+  font-size: 0.875rem;
+  color: #555;
+  font-weight: 500;
+}
+
+/* Footer modal Add */
+.modal-add-footer {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e0e0e0;
+  background: #fafafa;
+  border-radius: 0 0 16px 16px;
+}
+
+/* Bouton Create dans modal Add */
+.btn-create {
+  flex: 1;
+  padding: 0.65rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: rgb(58, 146, 130);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  box-shadow: 0 2px 8px rgba(58,146,130,0.3);
+}
+
+.btn-create:hover:not(:disabled) {
+  background: rgb(45, 120, 107);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(58,146,130,0.4);
+}
+
+.btn-create:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+@media (max-width: 640px) {
+  .page-header { flex-direction: column; align-items: flex-start; }
+  .btn-add { width: 100%; justify-content: center; }
+  .form-grid { grid-template-columns: 1fr; }
+  .form-grid .form-group.full { grid-column: 1; }
+  .modal-add-content { width: 95%; }
+}

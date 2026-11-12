@@ -1,0 +1,169 @@
+<section class="community-create-page post-create-page min-h-screen px-4 py-10 md:px-8">
+  <div class="mx-auto max-w-6xl">
+    <header class="create-hero">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div class="min-w-0">
+          <p class="text-xs font-bold uppercase tracking-[0.2em] text-brand-teal">Post Composer</p>
+          <h1 class="mt-3 text-3xl font-black text-slate-950 md:text-4xl">Create a thread</h1>
+          <p class="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
+            Keep this composer focused: clear title, exact context, and only the metadata that improves how the community can respond.
+          </p>
+        </div>
+
+        <div class="post-compose-target min-w-[16rem] rounded-[1.3rem] border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+          <p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Posting to</p>
+          <p class="mt-2 text-base font-bold text-slate-950">
+            <span *ngIf="!loadingCommunity">{{ communityName }}</span>
+            <span *ngIf="loadingCommunity">Loading community...</span>
+          </p>
+          <p class="mt-1 text-xs text-slate-500" *ngIf="communitySlug">c/{{ communitySlug }}</p>
+          <p class="mt-2 text-xs font-semibold uppercase tracking-[0.14em]" [ngClass]="communityType === 'PRIVATE' ? 'text-brand-orange' : 'text-brand-teal'">
+            {{ communityType === 'PRIVATE' ? 'Private' : 'Public' }}
+          </p>
+        </div>
+      </div>
+    </header>
+
+    <div class="mt-6 grid items-start gap-6 lg:grid-cols-5">
+      <div class="create-surface lg:col-span-3">
+        <div *ngIf="error" class="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {{ error }}
+        </div>
+
+        <form class="space-y-5" [formGroup]="form" (ngSubmit)="submit()">
+          <section class="create-section">
+            <div class="flex items-center justify-between gap-3">
+              <h2 class="text-lg font-bold text-slate-950">Title <span class="text-red-500">*</span></h2>
+              <span class="text-xs text-slate-400">{{ titleLength }}/140</span>
+            </div>
+            <input formControlName="title" maxlength="140" class="mt-4 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 outline-none" [class.border-red-400]="form.get('title')!.invalid && form.get('title')!.touched" placeholder="State the exact topic or question">
+            <p class="mt-3 text-sm text-slate-500">Good titles read like a searchable summary, not a teaser.</p>
+            <p *ngIf="form.get('title')!.touched && form.get('title')!.hasError('required')" class="mt-2 text-sm text-red-600">Title is required.</p>
+            <p *ngIf="form.get('title')!.touched && form.get('title')!.hasError('minlength')" class="mt-2 text-sm text-red-600">Title must be at least 6 characters.</p>
+          </section>
+
+          <section class="grid gap-4 md:grid-cols-2">
+            <div class="create-section">
+              <label class="block text-sm font-semibold text-slate-700">Thread type</label>
+              <select formControlName="type" class="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 outline-none">
+                <option value="DISCUSSION">Discussion</option>
+                <option value="QUESTION">Question</option>
+              </select>
+            </div>
+
+            <div class="create-section">
+              <label class="block text-sm font-semibold text-slate-700">Flair</label>
+              <select formControlName="flairId" class="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 outline-none">
+                <option [ngValue]="null">No flair</option>
+                <option *ngFor="let f of flairs" [ngValue]="f.id">{{ f.name }}</option>
+              </select>
+            </div>
+          </section>
+
+          <section class="create-section">
+            <div class="flex items-center justify-between gap-3">
+              <h2 class="text-lg font-bold text-slate-950">Content</h2>
+              <span class="text-xs text-slate-400">{{ contentLength }}/5000</span>
+            </div>
+            <div class="relative mt-4">
+              <div class="community-mention-editor">
+                <div
+                  #contentOverlay
+                  class="community-mention-editor-overlay w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm leading-7"
+                  [innerHTML]="(form.get('content')?.value || '') | mentionHighlight"></div>
+
+                <textarea formControlName="content" rows="12" maxlength="5000" class="community-mention-editor-input w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm leading-7 text-slate-800 focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 outline-none" [class.border-red-400]="form.get('content')!.invalid && form.get('content')!.touched" placeholder="Explain the context, what you already know or tried, and what kind of response would help most." (input)="onContentInput($event)" (keydown)="onContentKeydown($event)" (scroll)="syncContentOverlay($event, contentOverlay)" (blur)="onMentionBlur()"></textarea>
+              </div>
+
+              <app-mention-picker
+                class="absolute left-0 right-0 z-30 mt-2"
+                [open]="mentionPickerOpen"
+                [suggestions]="mentionSuggestions"
+                [activeIndex]="mentionActiveIndex"
+                [label]="'Mention someone'"
+                (selectMention)="selectMention($event)">
+              </app-mention-picker>
+            </div>
+            <p class="mt-2 text-xs text-slate-500">Type &#64; to mention someone.</p>
+            <p class="mt-3 text-sm text-slate-500">Strong posts include enough detail that the first useful reply can happen immediately.</p>
+            <p *ngIf="form.get('content')!.touched && form.get('content')!.hasError('required')" class="mt-2 text-sm text-red-600">Content is required.</p>
+            <p *ngIf="form.get('content')!.touched && form.get('content')!.hasError('minlength')" class="mt-2 text-sm text-red-600">Content must be at least 20 characters.</p>
+          </section>
+
+          <section class="create-section">
+            <h2 class="text-lg font-bold text-slate-950">Optional image</h2>
+            <p class="mt-2 text-sm text-slate-500">Only attach media if it adds context or makes the problem easier to understand.</p>
+
+            <div class="mt-4 flex flex-wrap items-center gap-2">
+              <input [id]="imageInputId" type="file" accept="image/*" (change)="onImagePicked($event)" class="hidden">
+              <label [for]="imageInputId" class="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-50">
+                <i class="fas fa-paperclip text-brand-teal"></i>Attach image
+              </label>
+              <button *ngIf="postImagePreview || form.get('imageUrl')?.value" type="button" (click)="clearPostImage()" class="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100">
+                <i class="fas fa-xmark"></i>Remove image
+              </button>
+            </div>
+
+            <input formControlName="imageUrl" placeholder="or paste image URL / data URL" class="mt-4 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 outline-none">
+            <img *ngIf="postImagePreview || form.get('imageUrl')?.value" [src]="postImagePreview || form.get('imageUrl')?.value" alt="Post image preview" class="mt-4 w-full max-h-72 rounded-[1.25rem] border border-slate-200 object-cover">
+          </section>
+
+          <div class="flex flex-col gap-4 border-t border-slate-100 pt-5 md:flex-row md:items-center md:justify-between">
+            <p class="text-sm text-slate-500">Publishing sends the thread live immediately in this community.</p>
+            <button type="submit" [disabled]="saving || loadingCommunity || !communityId" class="create-submit-button inline-flex items-center justify-center px-6 py-3 text-sm">
+              <i class="fas fa-paper-plane mr-2"></i>{{ saving ? 'Publishing...' : 'Publish post' }}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <aside class="lg:col-span-2 space-y-4">
+        <div class="create-surface lg:sticky lg:top-6">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-[0.16em] text-brand-teal">Preview</p>
+              <h2 class="mt-2 text-xl font-black text-slate-950">Thread snapshot</h2>
+            </div>
+            <span class="rounded-full bg-slate-100 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+              {{ form.get('type')?.value === 'QUESTION' ? 'Question' : 'Discussion' }}
+            </span>
+          </div>
+
+          <article class="post-compose-preview-card mt-5 rounded-[1.35rem] border border-slate-200 bg-white p-4 shadow-sm">
+            <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+              <span class="rounded-full bg-brand-teal/10 px-3 py-1 text-brand-teal">c/{{ communitySlug || 'community' }}</span>
+              <span
+                *ngIf="selectedFlair"
+                class="rounded-full px-3 py-1"
+                [style.backgroundColor]="selectedFlair.color || '#3A9282'"
+                [style.color]="selectedFlair.textColor || '#FFFFFF'">
+                {{ selectedFlair.name }}
+              </span>
+            </div>
+            <h3 class="mt-4 text-lg font-black leading-snug text-slate-950">{{ form.get('title')?.value || 'Your title appears here' }}</h3>
+            <p class="mt-3 line-clamp-4 whitespace-pre-line text-sm leading-6 text-slate-600">{{ form.get('content')?.value || 'Your post content preview updates as you write.' }}</p>
+            <img *ngIf="postImagePreview || form.get('imageUrl')?.value" [src]="postImagePreview || form.get('imageUrl')?.value" alt="Post preview image" class="mt-4 w-full max-h-56 rounded-2xl border border-slate-200 object-cover">
+          </article>
+
+          <div class="mt-5 space-y-3">
+            <div class="rounded-[1.2rem] border border-slate-200 bg-slate-50 px-4 py-4">
+              <p class="text-sm font-semibold text-slate-900">Posting checklist</p>
+              <ul class="mt-3 space-y-2 text-sm leading-6 text-slate-600">
+                <li>Use a title that describes the exact topic.</li>
+                <li>Keep flair optional unless it helps routing and discovery.</li>
+                <li>Only add images that improve context.</li>
+              </ul>
+            </div>
+
+            <div class="rounded-[1.2rem] border border-slate-200 bg-slate-50 px-4 py-4">
+              <p class="text-sm font-semibold text-slate-900">Community context</p>
+              <p class="mt-2 text-sm text-slate-600">
+                {{ loadingCommunity ? 'Loading community details...' : 'This post will publish directly into ' + communityName + '.' }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>

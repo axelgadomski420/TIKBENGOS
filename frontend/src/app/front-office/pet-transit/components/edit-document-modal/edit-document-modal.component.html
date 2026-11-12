@@ -1,0 +1,78 @@
+<div class="modal-backdrop" (click)="onBackdropClick($event)">
+  <section class="modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <header class="modal-header">
+      <h2>
+        <mat-icon class="material-icons-round">edit</mat-icon>
+        <span>Edit Document</span>
+      </h2>
+
+      <button type="button" class="icon-close" (click)="closeModal()" [disabled]="isSaving" aria-label="Close">
+        <mat-icon class="material-icons-round">close</mat-icon>
+      </button>
+    </header>
+
+    <form class="modal-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="modal-body">
+        <div class="field-grid">
+          <label>
+            <span>Document Number</span>
+            <input type="text" formControlName="documentNumber" [disabled]="isSaving" />
+          </label>
+
+          <label>
+            <span>Holder Name</span>
+            <input type="text" formControlName="holderName" [disabled]="isSaving" />
+          </label>
+
+          <label>
+            <span>Issue Date</span>
+            <input type="date" formControlName="issueDate" [disabled]="isSaving" />
+            <span class="field-error" *ngIf="form.controls.issueDate.touched && form.controls.issueDate.errors?.['issueInFuture']">
+              Issue date cannot be in the future.
+            </span>
+            <span class="field-error" *ngIf="form.controls.issueDate.touched && form.controls.issueDate.errors?.['issueAfterExpiry']">
+              Issue date must be before expiry date.
+            </span>
+          </label>
+
+          <label>
+            <span>Expiry Date</span>
+            <input type="date" formControlName="expiryDate" [disabled]="isSaving" />
+            <span class="field-error" *ngIf="form.controls.expiryDate.touched && form.controls.expiryDate.errors?.['expiryPast']">
+              Document is already expired.
+            </span>
+            <span class="field-error" *ngIf="form.controls.expiryDate.touched && form.controls.expiryDate.errors?.['expiryBeforeIssue']">
+              Expiry date must be after issue date.
+            </span>
+          </label>
+
+          <label class="field-full">
+            <span>Issuing Organization</span>
+            <input type="text" formControlName="issuingOrganization" [disabled]="isSaving" />
+          </label>
+        </div>
+
+        <label class="file-drop" [class.has-file]="selectedFile">
+          <input type="file" (change)="onFileSelected($event)" [disabled]="isSaving" />
+          <div class="drop-content" *ngIf="!selectedFile">
+            <mat-icon class="material-icons-round">cloud_upload</mat-icon>
+            <p>Replace file (optional) - leave empty to keep current file</p>
+          </div>
+          <div class="drop-content success" *ngIf="selectedFile">
+            <mat-icon class="material-icons-round">check_circle</mat-icon>
+            <p>{{ selectedFile.name }}</p>
+          </div>
+        </label>
+      </div>
+
+      <footer class="modal-footer">
+        <button type="button" class="btn secondary" (click)="closeModal()" [disabled]="isSaving">Cancel</button>
+
+        <button type="submit" class="btn primary" [disabled]="isSaving">
+          <mat-icon class="material-icons-round">{{ isSaving ? 'hourglass_empty' : 'save' }}</mat-icon>
+          <span>{{ isSaving ? 'Saving...' : 'Save Changes' }}</span>
+        </button>
+      </footer>
+    </form>
+  </section>
+</div>

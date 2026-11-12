@@ -1,0 +1,270 @@
+<section class="community-page min-h-screen py-10 px-4 md:px-8">
+  <div class="max-w-6xl mx-auto">
+    <header class="community-hero mb-8">
+      <div class="community-hero-grid">
+        <div class="community-hero-copy">
+          <p class="text-xs font-bold uppercase tracking-[0.24em] text-brand-teal">Back Office / Marketplace</p>
+          <h1 class="mt-4 text-4xl font-black leading-[1.02] text-slate-950 md:text-5xl">Orders dashboard</h1>
+          <p class="mt-4 max-w-2xl text-sm leading-7 text-slate-600 md:text-base">
+            Review marketplace orders, track revenue, and keep an eye on pending checkouts using the same Community page structure.
+          </p>
+
+          <div class="mt-6 flex flex-wrap gap-3">
+            <a routerLink="/admin/marketplace" class="community-hero-action community-hero-action-secondary">
+              <i class="fas fa-arrow-left mr-2"></i>Back to Marketplace
+            </a>
+            <a routerLink="/admin/marketplace/products" class="community-hero-action community-hero-action-primary">
+              <i class="fas fa-store mr-2"></i>Manage Products
+            </a>
+          </div>
+        </div>
+
+        <div class="community-hero-stats">
+          <div class="community-hero-stat-card">
+            <span class="community-hero-stat-label">Orders</span>
+            <strong class="community-hero-stat-value">{{ orders.length }}</strong>
+            <p class="community-hero-stat-copy">All marketplace orders currently recorded.</p>
+          </div>
+          <div class="community-hero-stat-card">
+            <span class="community-hero-stat-label">Pending</span>
+            <strong class="community-hero-stat-value">{{ pendingCount }}</strong>
+            <p class="community-hero-stat-copy">Orders waiting for follow-up or confirmation.</p>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="grid md:grid-cols-2 xl:grid-cols-4 gap-5 mb-8">
+      <div class="community-surface rounded-2xl p-5">
+        <h2 class="font-bold text-gray-900">Total revenue</h2>
+        <p class="text-2xl font-black text-slate-950 mt-2">${{ totalRevenue | number:'1.2-2' }}</p>
+      </div>
+      <div class="community-surface rounded-2xl p-5">
+        <h2 class="font-bold text-gray-900">Average order</h2>
+        <p class="text-2xl font-black text-slate-950 mt-2">${{ averageOrderValue | number:'1.2-2' }}</p>
+      </div>
+      <div class="community-surface rounded-2xl p-5">
+        <h2 class="font-bold text-gray-900">Completed orders</h2>
+        <p class="text-2xl font-black text-slate-950 mt-2">{{ completedCount }}</p>
+      </div>
+      <div class="community-surface rounded-2xl p-5">
+        <h2 class="font-bold text-gray-900">Pending review</h2>
+        <p class="text-2xl font-black text-slate-950 mt-2">{{ pendingCount }}</p>
+      </div>
+    </div>
+
+    <section class="community-surface rounded-2xl p-6">
+      <div class="flex items-center justify-between gap-4 flex-wrap mb-5">
+        <div>
+          <h2 class="text-xl font-black text-gray-900">Recent orders</h2>
+          <p class="text-sm text-gray-600 mt-1">Newest orders appear first. Expand any row to inspect products in the order.</p>
+        </div>
+        <button type="button" (click)="loadOrders()" class="community-hero-action community-hero-action-secondary">
+          <i class="fas fa-rotate-right mr-2"></i>Refresh
+        </button>
+      </div>
+
+      <div class="orders-filter-shell mb-5">
+        <div class="grid md:grid-cols-2 xl:grid-cols-4 gap-3">
+          <div class="xl:col-span-2">
+            <label class="orders-filter-label">Search</label>
+            <input
+              type="text"
+              [(ngModel)]="searchTerm"
+              (ngModelChange)="currentPage = 1"
+              placeholder="Order ID, user ID, product name, or product ID"
+              class="orders-filter-input"
+            />
+          </div>
+
+          <div>
+            <label class="orders-filter-label">Status</label>
+            <select
+              [(ngModel)]="statusFilter"
+              (ngModelChange)="currentPage = 1"
+              class="orders-filter-input"
+            >
+              <option value="ALL">All statuses</option>
+              <option value="PENDING">Pending</option>
+              <option value="CONFIRMED">Confirmed</option>
+              <option value="SHIPPED">Shipped</option>
+              <option value="DELIVERED">Delivered</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="orders-filter-label">Payment</label>
+            <select
+              [(ngModel)]="paymentFilter"
+              (ngModelChange)="currentPage = 1"
+              class="orders-filter-input"
+            >
+              <option value="ALL">All methods</option>
+              <option value="CASH">Cash</option>
+              <option value="ONLINE">Online</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="mt-3 flex items-center justify-between gap-3 flex-wrap">
+          <p class="orders-filter-meta">Showing {{ filteredOrders.length }} of {{ orders.length }} orders</p>
+          <button
+            type="button"
+            (click)="clearFilters()"
+            class="orders-clear-btn"
+            [disabled]="!hasActiveFilters"
+          >
+            Clear Filters
+          </button>
+        </div>
+      </div>
+
+      <div class="orders-filter-kpi-grid mb-5">
+        <article class="orders-filter-kpi-card">
+          <p class="orders-filter-kpi-label">Filtered Revenue</p>
+          <p class="orders-filter-kpi-value">${{ filteredRevenue | number:'1.2-2' }}</p>
+        </article>
+        <article class="orders-filter-kpi-card">
+          <p class="orders-filter-kpi-label">Filtered Pending</p>
+          <p class="orders-filter-kpi-value">{{ filteredPendingCount }}</p>
+        </article>
+        <article class="orders-filter-kpi-card">
+          <p class="orders-filter-kpi-label">Filtered Completed</p>
+          <p class="orders-filter-kpi-value">{{ filteredCompletedCount }}</p>
+        </article>
+        <article class="orders-filter-kpi-card">
+          <p class="orders-filter-kpi-label">Filtered Average</p>
+          <p class="orders-filter-kpi-value">${{ filteredAverageOrderValue | number:'1.2-2' }}</p>
+        </article>
+      </div>
+
+      <div *ngIf="loading" class="py-12 text-center text-gray-500">
+        Loading orders...
+      </div>
+
+      <div *ngIf="!loading && filteredOrders.length > 0" class="overflow-x-auto rounded-2xl border border-gray-200 bg-white">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-slate-50">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Order</th>
+              <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Customer</th>
+              <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Items</th>
+              <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Status</th>
+              <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Action</th>
+              <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Payment</th>
+              <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Total</th>
+              <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Date</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <ng-container *ngFor="let order of pagedOrders">
+              <tr class="hover:bg-slate-50/80">
+                <td class="px-4 py-4 align-top font-semibold text-slate-900">#{{ order.id }}</td>
+                <td class="px-4 py-4 align-top text-sm text-slate-600">User #{{ order.userId }}</td>
+                <td class="px-4 py-4 align-top text-sm text-slate-600">{{ orderItemsCount(order) }}</td>
+                <td class="px-4 py-4 align-top">
+                  <span class="orders-status-pill" [ngClass]="statusClass(order.status)">{{ order.status }}</span>
+                </td>
+                <td class="px-4 py-4 align-top">
+                  <div class="flex flex-col gap-2">
+                    <button
+                      *ngIf="canToggleCompletion(order)"
+                      type="button"
+                      class="orders-action-btn"
+                      [disabled]="updatingOrderId === order.id"
+                      (click)="toggleCompletion(order)"
+                    >
+                      {{ order.status === 'PENDING' ? 'Mark confirmed' : 'Mark pending' }}
+                    </button>
+                    <button
+                      *ngIf="canMarkCancelled(order)"
+                      type="button"
+                      class="orders-action-btn orders-action-btn-danger"
+                      [disabled]="updatingOrderId === order.id"
+                      (click)="markCancelled(order)"
+                    >
+                      Mark cancelled
+                    </button>
+                    <button
+                      *ngIf="canMarkShipped(order)"
+                      type="button"
+                      class="orders-action-btn orders-action-btn-shipped"
+                      [disabled]="updatingOrderId === order.id"
+                      (click)="markShipped(order)"
+                    >
+                      Mark shipped
+                    </button>
+                    <button
+                      type="button"
+                      class="orders-action-btn orders-action-btn-details"
+                      (click)="toggleOrderDetails(order.id)"
+                    >
+                      {{ isOrderExpanded(order.id) ? 'Hide details' : 'View details' }}
+                    </button>
+                    <span *ngIf="!canToggleCompletion(order) && !canMarkCancelled(order) && !canMarkShipped(order)" class="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                      Locked
+                    </span>
+                  </div>
+                </td>
+                <td class="px-4 py-4 align-top text-sm text-slate-600">{{ order.paymentMethod }}</td>
+                <td class="px-4 py-4 align-top text-sm font-semibold text-slate-900">${{ order.totalAmount | number:'1.2-2' }}</td>
+                <td class="px-4 py-4 align-top text-sm text-slate-600">{{ formatDate(order.createdAt) }}</td>
+              </tr>
+
+              <tr *ngIf="isOrderExpanded(order.id)">
+                <td colspan="8" class="px-4 pb-4 pt-0">
+                  <div class="orders-details-panel">
+                    <div class="orders-details-header">
+                      <h3 class="orders-details-title">Order #{{ order.id }} product details</h3>
+                      <span class="orders-details-meta">{{ order.orderItems.length }} line item(s)</span>
+                    </div>
+
+                    <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                      <table class="min-w-full divide-y divide-slate-200">
+                        <thead class="bg-slate-50">
+                          <tr>
+                            <th class="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Product</th>
+                            <th class="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Product ID</th>
+                            <th class="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Qty</th>
+                            <th class="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Unit Price</th>
+                            <th class="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Subtotal</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                          <tr *ngFor="let item of order.orderItems" class="hover:bg-slate-50/70">
+                            <td class="px-3 py-2 text-sm font-semibold text-slate-800">{{ item.productName }}</td>
+                            <td class="px-3 py-2 text-sm text-slate-600">#{{ item.productId }}</td>
+                            <td class="px-3 py-2 text-sm text-slate-600">{{ item.quantity }}</td>
+                            <td class="px-3 py-2 text-sm text-slate-600">${{ item.unitPrice | number:'1.2-2' }}</td>
+                            <td class="px-3 py-2 text-sm font-semibold text-slate-900">${{ item.subtotal | number:'1.2-2' }}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </ng-container>
+          </tbody>
+        </table>
+      </div>
+
+      <div *ngIf="!loading && filteredOrders.length > 0" class="orders-pagination">
+        <p class="orders-pagination-meta">
+          Showing {{ visibleStart }}-{{ visibleEnd }} of {{ filteredOrders.length }} filtered orders
+        </p>
+        <div class="orders-pagination-actions">
+          <button type="button" class="orders-page-btn" (click)="previousPage()" [disabled]="currentPage === 1">Previous</button>
+          <span class="orders-page-indicator">Page {{ currentPage }} / {{ totalPages }}</span>
+          <button type="button" class="orders-page-btn" (click)="nextPage()" [disabled]="currentPage === totalPages">Next</button>
+        </div>
+      </div>
+
+      <div *ngIf="!loading && filteredOrders.length === 0" class="py-12 text-center text-gray-500">
+        <p *ngIf="orders.length === 0">No orders found yet.</p>
+        <p *ngIf="orders.length > 0">No orders match your current filters.</p>
+      </div>
+    </section>
+  </div>
+</section>

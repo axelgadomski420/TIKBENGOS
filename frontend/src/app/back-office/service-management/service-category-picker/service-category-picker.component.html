@@ -1,0 +1,70 @@
+<div class="min-h-screen bg-gray-50 py-12 px-6">
+  <div class="max-w-6xl mx-auto space-y-10">
+
+    <!-- Back button -->
+    <button (click)="goBack()" class="inline-flex items-center gap-2 text-gray-400 hover:text-brand-teal transition-colors font-bold text-sm tracking-widest uppercase mb-4">
+      <span class="text-xl">←</span>
+      Back to services
+    </button>
+
+    <!-- Header Section -->
+    <div class="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-10 md:p-14 mb-10 flex flex-col md:flex-row items-center gap-8">
+      <div class="flex-1 text-center md:text-left">
+        <p class="text-xs font-extrabold text-[#368b75] uppercase tracking-[0.15em] mb-4">NEW SERVICE</p>
+        <h1 class="text-4xl md:text-[2.75rem] font-black text-[#0f172a] leading-[1.1] mb-6">
+          Choose a category
+        </h1>
+        <p class="text-[#64748b] text-[1.05rem] leading-relaxed max-w-2xl">
+          Ready to offer a new service? Select the type of expertise you want to highlight today to start creating your offering.
+        </p>
+      </div>
+      <div class="text-[5rem] animate-float opacity-80">
+        🐾
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div *ngFor="let i of [1,2,3,4,5,6]" class="rounded-3xl h-64 animate-pulse bg-white border border-gray-100 shadow-sm flex flex-col justify-center items-center">
+        <div class="w-16 h-16 bg-gray-100 rounded-2xl mb-6"></div>
+        <div class="w-1/2 h-6 bg-gray-100 rounded-xl mb-3"></div>
+        <div class="w-3/4 h-4 bg-gray-100 rounded-xl"></div>
+      </div>
+    </div>
+
+    <!-- Category Cards Grid -->
+    <div *ngIf="!loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <button
+        *ngFor="let cat of categories"
+        class="group flex flex-col items-start text-left bg-white rounded-3xl border border-gray-100 p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden"
+        (click)="selectCategory(cat)"
+        [id]="'cat-card-' + cat.name.toLowerCase()"
+      >
+        <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mb-6 transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-6" [ngClass]="cat.bgColor">
+          {{ cat.icon }}
+        </div>
+        
+        <h3 class="text-2xl font-black text-gray-900 mb-3 group-hover:text-brand-teal transition-colors">
+          {{ cat.label }}
+        </h3>
+        
+        <p class="text-gray-500 text-sm leading-relaxed mb-8 flex-grow">
+          {{ cat.description }}
+        </p>
+        
+        <div class="flex items-center gap-2 text-brand-teal font-bold opacity-0 translate-x-[-10px] transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0 mt-auto">
+          <span class="text-sm tracking-widest uppercase">Continue</span>
+          <span class="text-lg">→</span>
+        </div>
+      </button>
+    </div>
+
+    <!-- Empty state -->
+    <div *ngIf="!loading && categories.length === 0" class="flex flex-col items-center justify-center py-24 bg-white/50 rounded-3xl border-2 border-dashed border-gray-200 shadow-inner">
+      <div class="text-6xl mb-6 opacity-30">🐾</div>
+      <h3 class="text-2xl font-black text-gray-900 mb-2">No categories available</h3>
+      <p class="text-gray-500 font-medium">Please contact an administrator to add service categories.</p>
+    </div>
+
+  </div>
+</div>

@@ -1,0 +1,192 @@
+<div class="pet-management">
+  <div class="page-header">
+    <div class="overlay"></div>
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-8 mx-auto text-center">
+          <h1 class="display-4 fw-bold">🐾 Manage Pets</h1>
+          <p class="lead">View, edit, or remove pets from all shelters</p>
+          <div class="header-buttons mt-3">
+            <button class="btn btn-outline-light me-2" (click)="goBack()">
+              ← Back to Dashboard
+            </button>
+            <button class="btn btn-light" (click)="addPet()">
+              <i class="fas fa-plus me-2"></i> Add New Pet
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container py-5">
+    <!-- Loading -->
+    <div *ngIf="loading" class="text-center py-5">
+      <div class="spinner-border text-primary"></div>
+      <p class="mt-2">Loading pets...</p>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="error" class="alert alert-danger">
+      {{ error }}
+    </div>
+
+    <!-- Filters -->
+    <div *ngIf="!loading" class="filters-card">
+      <div class="row g-3">
+        <div class="col-md-5">
+          <input type="text" class="form-control" placeholder="Search by name or breed..."
+                 [(ngModel)]="searchTerm">
+        </div>
+        <div class="col-md-4">
+          <select class="form-select" [(ngModel)]="selectedType">
+            <option value="">All Types</option>
+            <option *ngFor="let type of petTypes" [value]="type">{{ getTypeLabel(type) }}</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <button class="btn btn-outline-secondary w-100" (click)="clearFilters()">
+            <i class="fas fa-undo me-1"></i> Reset Filters
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- SECTION 1 : ANIMAUX DISPONIBLES (AVAILABLE) -->
+    <!-- ============================================================ -->
+    <div *ngIf="!loading && filteredAvailablePets.length > 0" class="pets-section">
+      <div class="section-header available-header">
+        <div class="section-title">
+          <i class="fas fa-check-circle"></i>
+          <h2>Available Pets</h2>
+          <span class="badge-count">{{ filteredAvailablePets.length }}</span>
+        </div>
+        <span class="section-desc">Animals ready for adoption</span>
+      </div>
+
+      <div class="pets-grid">
+        <div *ngFor="let pet of filteredAvailablePets" class="pet-card available">
+          <div class="card-status"></div>
+
+          <!-- Pet Image -->
+          <div class="pet-image">
+            <img *ngIf="getFirstPhoto(pet.photos)" [src]="'http://localhost:8087/elif' + getFirstPhoto(pet.photos)"
+                 [alt]="pet.name" class="pet-img">
+            <div *ngIf="!getFirstPhoto(pet.photos)" class="image-placeholder">
+              <span class="pet-icon">🐾</span>
+            </div>
+            <div class="status-badge status-available">
+              <i class="fas fa-check-circle"></i> Available
+            </div>
+          </div>
+
+          <!-- Pet Info -->
+          <div class="card-content">
+            <h3>{{ pet.name }}</h3>
+            <p class="breed">{{ pet.breed || 'Breed not specified' }}</p>
+            <div class="info">
+              <span class="badge">{{ getTypeLabel(pet.type) }}</span>
+              <span class="badge">{{ pet.size || 'Size not specified' }}</span>
+            </div>
+            <p class="details">
+              {{ pet.age || '?' }} months • {{ pet.gender === 'MALE' ? '♂ Male' : '♀ Female' }}
+            </p>
+            <p class="description-truncate">{{ pet.description | slice:0:80 }}{{ (pet.description?.length || 0) > 80 ? '...' : '' }}</p>
+            <div class="shelter-info" *ngIf="pet.shelterName">
+              <i class="fas fa-home"></i> {{ pet.shelterName }}
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="card-actions">
+            <button class="btn-action btn-edit" (click)="editPet(pet)">
+              <i class="fas fa-edit"></i> Edit
+            </button>
+            <button class="btn-action btn-delete" (click)="deletePet(pet)">
+              <i class="fas fa-trash-alt"></i> Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- SECTION 2 : ANIMAUX ADOPTÉS (ADOPTED) -->
+    <!-- ============================================================ -->
+    <div *ngIf="!loading && filteredAdoptedPets.length > 0" class="pets-section">
+      <div class="section-header adopted-header">
+        <div class="section-title">
+          <i class="fas fa-heart"></i>
+          <h2>Adopted Pets</h2>
+          <span class="badge-count adopted">{{ filteredAdoptedPets.length }}</span>
+        </div>
+        <span class="section-desc">Animals that have found a loving home</span>
+      </div>
+
+      <div class="pets-grid">
+        <div *ngFor="let pet of filteredAdoptedPets" class="pet-card adopted">
+          <div class="card-status"></div>
+
+          <!-- Pet Image -->
+          <div class="pet-image">
+            <img *ngIf="getFirstPhoto(pet.photos)" [src]="'http://localhost:8087/elif' + getFirstPhoto(pet.photos)"
+                 [alt]="pet.name" class="pet-img">
+            <div *ngIf="!getFirstPhoto(pet.photos)" class="image-placeholder">
+              <span class="pet-icon">🐾</span>
+            </div>
+            <div class="status-badge status-adopted">
+              <i class="fas fa-heart"></i> Adopted
+            </div>
+          </div>
+
+          <!-- Pet Info -->
+          <div class="card-content">
+            <h3>{{ pet.name }}</h3>
+            <p class="breed">{{ pet.breed || 'Breed not specified' }}</p>
+            <div class="info">
+              <span class="badge">{{ getTypeLabel(pet.type) }}</span>
+              <span class="badge">{{ pet.size || 'Size not specified' }}</span>
+            </div>
+            <p class="details">
+              {{ pet.age || '?' }} months • {{ pet.gender === 'MALE' ? '♂ Male' : '♀ Female' }}
+            </p>
+            <p class="description-truncate">{{ pet.description | slice:0:80 }}{{ (pet.description?.length || 0) > 80 ? '...' : '' }}</p>
+            <div class="shelter-info" *ngIf="pet.shelterName">
+              <i class="fas fa-home"></i> {{ pet.shelterName }}
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="card-actions">
+            <button class="btn-action btn-edit" (click)="editPet(pet)">
+              <i class="fas fa-edit"></i> Edit
+            </button>
+            <button class="btn-action btn-delete" (click)="deletePet(pet)">
+              <i class="fas fa-trash-alt"></i> Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty state pour les deux sections -->
+    <div *ngIf="!loading && filteredAvailablePets.length === 0 && filteredAdoptedPets.length === 0 && (searchTerm || selectedType)" class="empty-state">
+      <div class="empty-state-icon">🐾</div>
+      <h3>No pets found</h3>
+      <p>Try adjusting your filters.</p>
+      <button class="btn btn-primary mt-3" (click)="clearFilters()">
+        <i class="fas fa-undo me-2"></i> Clear Filters
+      </button>
+    </div>
+
+    <div *ngIf="!loading && filteredAvailablePets.length === 0 && filteredAdoptedPets.length === 0 && !searchTerm && !selectedType" class="empty-state">
+      <div class="empty-state-icon">🐾</div>
+      <h3>No pets yet</h3>
+      <p>Start by adding your first pet to the platform.</p>
+      <button class="btn btn-primary mt-3" (click)="addPet()">
+        <i class="fas fa-plus me-2"></i> Add New Pet
+      </button>
+    </div>
+  </div>
+</div>

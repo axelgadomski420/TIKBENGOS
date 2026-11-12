@@ -1,0 +1,6 @@
+<p *ngIf="missingConfig" class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+  Google Sign-In needs a Web Client ID. Set <code class="text-amber-900">googleClientId</code> in
+  <code class="text-amber-900">src/environments/environment*.ts</code> and the same value in
+  <code class="text-amber-900">GOOGLE_CLIENT_ID</code> for the backend.
+</p>
+<div *ngIf="!missingConfig" #container class="flex justify-center"></div>

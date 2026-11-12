@@ -1,0 +1,471 @@
+﻿<section class="travel-plan-admin-detail-page">
+  <app-transit-toast-container></app-transit-toast-container>
+
+  <section class="state-card loading" *ngIf="planLoading && !pageError">
+    <mat-icon>hourglass_empty</mat-icon>
+    <p>Loading travel plan details...</p>
+  </section>
+
+  <section class="state-card error" *ngIf="!planLoading && pageError">
+    <mat-icon>error_outline</mat-icon>
+    <h2>Unable to load travel plan</h2>
+    <p>{{ pageError }}</p>
+    <button type="button" class="btn btn-outline" (click)="retryAll()">
+      <mat-icon>refresh</mat-icon>
+      <span>Retry</span>
+    </button>
+  </section>
+
+  <ng-container *ngIf="pageReady && plan as details">
+    <header class="top-bar">
+      <button type="button" class="btn btn-ghost" (click)="goBack()">
+        <mat-icon>arrow_back</mat-icon>
+        <span>Back to Travel Plans</span>
+      </button>
+
+      <div class="top-copy">
+        <h1>{{ details.ownerName }} - {{ details.destinationTitle }}</h1>
+      </div>
+
+      <span class="status-badge" [ngClass]="statusClass(details.status)">
+        {{ statusLabel(details.status) }}
+      </span>
+    </header>
+
+    <section class="card hero-card">
+      <div class="hero-grid">
+        <div class="hero-left">
+          <p class="section-label">Trip Information</p>
+
+          <p class="info-row">
+            <mat-icon>travel_explore</mat-icon>
+            <span>
+              <strong>{{ details.destinationTitle }}</strong>
+              <em>{{ details.destinationCountry }}</em>
+            </span>
+          </p>
+
+          <p class="info-row">
+            <mat-icon>person</mat-icon>
+            <span>{{ details.ownerName }}</span>
+          </p>
+
+          <p class="info-row">
+            <mat-icon>flight_takeoff</mat-icon>
+            <span>{{ details.origin || '—' }}</span>
+          </p>
+
+          <p class="info-row">
+            <mat-icon>{{ transportIcon(details.transportType) }}</mat-icon>
+            <span>{{ transportLabel(details.transportType) }}</span>
+          </p>
+
+          <p class="info-row">
+            <mat-icon>calendar_today</mat-icon>
+            <span>{{ formatDate(details.travelDate) }} -> {{ formatDate(details.returnDate) }}</span>
+          </p>
+
+          <p class="info-row">
+            <mat-icon>payments</mat-icon>
+            <span>
+              {{ details.estimatedTravelCost ? (details.estimatedTravelCost | number: '1.0-2') : '—' }}
+              {{ details.currency || '' }}
+            </span>
+          </p>
+
+          <div class="pet-profile-row" *ngIf="petProfile">
+            <div class="pet-profile-card">
+              <div class="pet-avatar-wrap">
+                <img
+                  *ngIf="petProfile.photoUrl"
+                  [src]="petPhotoUrl(petProfile)"
+                  [alt]="petProfile.name"
+                  class="pet-avatar-img"
+                />
+                <div class="pet-avatar-placeholder" *ngIf="!petProfile.photoUrl">
+                  <mat-icon>pets</mat-icon>
+                </div>
+                <span class="pet-species-badge">
+                  {{ petProfile.species }}
+                </span>
+              </div>
+
+              <div class="pet-details">
+                <p class="pet-detail-label">TRAVELING PET</p>
+                <h3 class="pet-name">{{ petProfile.name }}</h3>
+                <p class="pet-breed">{{ petProfile.breed }}</p>
+
+                <div class="pet-chips-row">
+                  <span class="pet-chip">
+                    <mat-icon>monitor_weight</mat-icon>
+                    {{ petProfile.weight }} kg
+                  </span>
+                  <span class="pet-chip">
+                    <mat-icon>transgender</mat-icon>
+                    {{ petProfile.gender }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pet-skeleton" *ngIf="petLoading && !petProfile && details?.petId">
+            <div class="skeleton-circle"></div>
+            <div class="skeleton-lines">
+              <div class="skeleton-line w-60"></div>
+              <div class="skeleton-line w-40"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-right">
+          <p class="section-label">Trip Readiness</p>
+
+          <div class="readiness-badge" [ngClass]="readinessClass(details.readinessScore)">
+            <strong>{{ readinessValue(details.readinessScore) | number: '1.0-0' }}%</strong>
+          </div>
+
+          <div class="readiness-track">
+            <span
+              class="readiness-fill"
+              [ngClass]="readinessClass(details.readinessScore)"
+              [style.width.%]="readinessValue(details.readinessScore)"
+            ></span>
+          </div>
+
+          <p class="meta-line">
+            <span class="safety-pill" [ngClass]="safetyClass(details.safetyStatus)">
+              {{ safetyLabel(details.safetyStatus) }}
+            </span>
+          </p>
+
+          <p class="meta-line" *ngIf="details.submittedAt">
+            <mat-icon>send</mat-icon>
+            <span>Submitted {{ formatDateTime(details.submittedAt) }}</span>
+          </p>
+
+          
+        </div>
+      </div>
+    </section>
+
+    <section class="card pet-card">
+      <header>
+        <h2>
+          <mat-icon>pets</mat-icon>
+          <span>Pet and Cage Details</span>
+        </h2>
+      </header>
+
+      <div class="pet-grid">
+        <article>
+          <p class="item-label">Animal Weight</p>
+          <p class="item-value">{{ details.animalWeight ? (details.animalWeight | number: '1.0-2') + ' kg' : '—' }}</p>
+        </article>
+
+        <article>
+          <p class="item-label">Cage Dimensions</p>
+          <p class="item-value">{{ cageDimensions(details) }}</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="card budget-card">
+      <div class="card-header">
+        <mat-icon>payments</mat-icon>
+        <h3>Budget & Timing</h3>
+      </div>
+
+      <div class="budget-grid">
+        <div class="budget-cell">
+          <span class="cell-label">ESTIMATED HOURS</span>
+          <span class="cell-value">
+            <mat-icon>schedule</mat-icon>
+            {{ details.estimatedTravelHours ? details.estimatedTravelHours + 'h' : '—' }}
+          </span>
+        </div>
+
+        <div class="budget-cell">
+          <span class="cell-label">ESTIMATED COST</span>
+          <span class="cell-value cost-value" *ngIf="details.estimatedTravelCost">
+            <mat-icon>payments</mat-icon>
+            {{ details.estimatedTravelCost | number: '1.0-0' }}
+            {{ details.currency }}
+          </span>
+          <span class="cell-value muted" *ngIf="!details.estimatedTravelCost">
+            —
+          </span>
+        </div>
+
+        <div class="budget-cell">
+          <span class="cell-label">CURRENCY</span>
+          <span class="cell-value currency-badge" *ngIf="details.currency">
+            {{ details.currency }}
+          </span>
+          <span class="cell-value muted" *ngIf="!details.currency">—</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card documents-card">
+      <header class="documents-header">
+        <div>
+          <h2>
+            <mat-icon>description</mat-icon>
+            <span>Travel Documents</span>
+          </h2>
+          <p>Review and validate each required document.</p>
+        </div>
+      </header>
+
+      <div class="docs-loading" *ngIf="documentsLoading">
+        <mat-icon>hourglass_empty</mat-icon>
+        <span>Loading documents...</span>
+      </div>
+
+      <article class="state-card empty compact" *ngIf="!documentsLoading && documents.length === 0">
+        <mat-icon>description</mat-icon>
+        <p>No travel documents uploaded for this plan.</p>
+      </article>
+
+      <div class="documents-list" *ngIf="!documentsLoading && documents.length > 0">
+        <article class="document-card" *ngFor="let document of documents; trackBy: trackByDocument">
+          <div class="doc-left">
+            <span class="icon-circle">
+              <mat-icon>{{ documentTypeIcon(document.documentType) }}</mat-icon>
+            </span>
+          </div>
+
+          <div class="doc-center">
+            <h3>{{ documentTypeLabel(document.documentType) }}</h3>
+            <p *ngIf="document.documentNumber">Document No: {{ document.documentNumber }}</p>
+            <p *ngIf="document.holderName">Holder: {{ document.holderName }}</p>
+            <p>{{ formatDate(document.issueDate) }} -> {{ formatDate(document.expiryDate) }}</p>
+            <span class="ocr-chip" *ngIf="document.isOcrProcessed">OCR Processed</span>
+
+            <div class="doc-comment-box" *ngIf="document.validationStatus === 'REJECTED' && document.validationComment">
+              <mat-icon>info</mat-icon>
+              <span>{{ document.validationComment }}</span>
+            </div>
+          </div>
+
+          <div class="doc-right">
+            <span class="doc-status" [ngClass]="documentStatusClass(document.validationStatus)">
+              {{ documentStatusLabel(document.validationStatus) }}
+            </span>
+
+            <div class="doc-actions" *ngIf="document.validationStatus === 'PENDING'">
+              <button type="button" class="btn btn-approve" (click)="openValidatePanel(document.id)">
+                <mat-icon>check_circle</mat-icon>
+                <span>Validate</span>
+              </button>
+
+              <button type="button" class="btn btn-reject" (click)="openRejectPanel(document.id)">
+                <mat-icon>cancel</mat-icon>
+                <span>Reject</span>
+              </button>
+            </div>
+
+            <p class="validation-meta" *ngIf="document.validationStatus === 'VALID'">
+              <mat-icon>check_circle</mat-icon>
+              Validated {{ formatDateTime(document.validatedAt) }}
+              <span *ngIf="document.validatedByAdminName">by {{ document.validatedByAdminName }}</span>
+            </p>
+
+            <p class="validation-meta validation-meta-rejected" *ngIf="document.validationStatus === 'REJECTED'">
+              <mat-icon>cancel</mat-icon>
+              Rejected
+            </p>
+
+            <button type="button" class="btn btn-outline" (click)="openDocumentFile(document.fileUrl)">
+              <mat-icon>open_in_new</mat-icon>
+              <span>Open File</span>
+            </button>
+          </div>
+
+          <div class="doc-action-panel" *ngIf="isDocActionOpen(document.id, 'validate')">
+            <label>Validation Comment (optional)</label>
+            <textarea
+              [formControl]="docActionCommentControl"
+              placeholder="Add a validation note..."
+              rows="3"
+            ></textarea>
+
+            <div class="panel-actions">
+              <button type="button" class="btn btn-ghost" (click)="closeDocActionPanel()" [disabled]="docActionSubmitting">
+                Cancel
+              </button>
+              <button
+                type="button"
+                class="btn btn-approve"
+                (click)="submitDocAction(document)"
+                [disabled]="docActionSubmitting"
+              >
+                <mat-icon>check_circle</mat-icon>
+                <span>{{ docActionSubmitting ? 'Saving...' : 'Confirm Validation' }}</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="doc-action-panel" *ngIf="isDocActionOpen(document.id, 'reject')">
+            <label>Reason for rejection *</label>
+            <textarea
+              [formControl]="docActionCommentControl"
+              placeholder="Reason for rejection..."
+              rows="3"
+            ></textarea>
+            <p class="error-text" *ngIf="docActionCommentControl.touched && docActionCommentControl.invalid">
+              Rejection comment is required.
+            </p>
+
+            <div class="panel-actions">
+              <button type="button" class="btn btn-ghost" (click)="closeDocActionPanel()" [disabled]="docActionSubmitting">
+                Cancel
+              </button>
+              <button
+                type="button"
+                class="btn btn-reject"
+                (click)="openRejectDocDialog(document)"
+                [disabled]="docActionSubmitting"
+              >
+                <mat-icon>cancel</mat-icon>
+                <span>Confirm Rejection</span>
+              </button>
+            </div>
+          </div>
+
+        </article>
+      </div>
+    </section>
+
+    <section class="card checklist-card">
+      <header>
+        <h2>
+          <mat-icon>fact_check</mat-icon>
+          <span>Safety Checklist</span>
+        </h2>
+        <span class="readonly-pill">Read-only</span>
+      </header>
+      <p class="checklist-subtitle">Prepared by the client.</p>
+
+      <div class="docs-loading" *ngIf="checklistLoading">
+        <mat-icon>hourglass_empty</mat-icon>
+        <span>Loading checklist stats...</span>
+      </div>
+
+      <ng-container *ngIf="!checklistLoading && checklistStats as stats">
+        <div class="progress-block">
+          <div class="progress-head">
+            <span>Overall {{ stats.completedItems }}/{{ stats.totalItems }} tasks completed</span>
+            <strong>{{ checklistCompletion | number: '1.0-0' }}%</strong>
+          </div>
+          <div class="progress-track">
+            <span class="progress-fill progress-primary" [style.width.%]="checklistCompletion"></span>
+          </div>
+        </div>
+
+        <div class="progress-block">
+          <div class="progress-head">
+            <span>Mandatory {{ stats.completedMandatory }}/{{ stats.totalMandatory }} completed</span>
+            <strong>{{ checklistMandatoryCompletion | number: '1.0-0' }}%</strong>
+          </div>
+          <div class="progress-track">
+            <span class="progress-fill progress-accent" [style.width.%]="checklistMandatoryCompletion"></span>
+          </div>
+        </div>
+
+        <div class="chip-row">
+          <span class="mini-chip">Completed: {{ stats.completedItems }}</span>
+          <span class="mini-chip">Remaining: {{ checklistRemaining }}</span>
+          <span class="mini-chip">Mandatory Left: {{ checklistMandatoryLeft }}</span>
+        </div>
+      </ng-container>
+    </section>
+
+    <section class="card decision-card" *ngIf="showDecisionPanel()">
+      <header>
+        <h2>
+          <mat-icon>gavel</mat-icon>
+          <span>Admin Decision</span>
+        </h2>
+        <p>Review the complete dossier before deciding.</p>
+      </header>
+
+      <div class="decision-score-chip" [ngClass]="readinessClass(details.readinessScore)">
+        <span>Readiness Score</span>
+        <strong>{{ readinessValue(details.readinessScore) | number: '1.0-0' }}%</strong>
+      </div>
+
+      <div class="score-alert success" *ngIf="readinessValue(details.readinessScore) >= 80">
+        <mat-icon>check_circle</mat-icon>
+        <span>Readiness score is sufficient to approve.</span>
+      </div>
+
+      <div class="score-alert warning" *ngIf="readinessValue(details.readinessScore) < 80">
+        <mat-icon>warning</mat-icon>
+        <span>Readiness score is below 80%. Review carefully.</span>
+      </div>
+
+      <div class="decision-field">
+        <label for="decisionComment">Decision Comment</label>
+        <textarea
+          id="decisionComment"
+          [formControl]="decisionCommentControl"
+          placeholder="Add a comment for the client..."
+          rows="5"
+        ></textarea>
+      </div>
+
+      <div class="decision-actions">
+        <button
+          type="button"
+          class="btn btn-approve btn-lg"
+          (click)="approvePlan()"
+          [disabled]="decisionSubmitting"
+        >
+          <mat-icon>check_circle</mat-icon>
+          <span>{{ decisionSubmitting ? 'Processing...' : 'Approve Plan' }}</span>
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-reject btn-lg"
+          (click)="rejectPlan()"
+          [disabled]="!canRejectPlan()"
+        >
+          <mat-icon>cancel</mat-icon>
+          <span>{{ decisionSubmitting ? 'Processing...' : 'Reject Plan' }}</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="card readonly-status" *ngIf="!showDecisionPanel()">
+      <mat-icon>info</mat-icon>
+      <p>This plan is {{ statusLabel(details.status) }}. No action available.</p>
+    </section>
+  </ng-container>
+
+  <div class="confirm-overlay" *ngIf="showRejectDocDialog">
+    <div class="confirm-dialog confirm-dialog--danger">
+      <div class="confirm-icon">
+        <mat-icon>cancel</mat-icon>
+      </div>
+      <h3>Reject Document</h3>
+      <p>Are you sure you want to reject this document? This action cannot be undone.</p>
+      <div class="confirm-actions">
+        <button type="button" class="btn-cancel" (click)="cancelRejectDoc()">
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="btn-confirm-danger"
+          (click)="confirmRejectDoc()"
+        >
+          <mat-icon>cancel</mat-icon>
+          Confirm
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+

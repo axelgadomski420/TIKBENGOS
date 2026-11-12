@@ -1,0 +1,159 @@
+<div class="contracts-page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="container">
+      <button class="btn-back" (click)="goBack()">
+        <i class="fas fa-arrow-left"></i> Back
+      </button>
+      <div class="header-content">
+        <h1>
+          📄 My Contracts
+          <span class="header-new-badge" *ngIf="hasNewContracts">
+            {{ newContractsCount }} new
+          </span>
+        </h1>
+        <p>Your adoption contracts and documents</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="container py-4">
+
+    <!-- ✅ BANNIÈRE NOUVEAUX CONTRATS -->
+    <div class="new-contracts-banner" *ngIf="hasNewContracts">
+      <div class="banner-left">
+        <div class="banner-icon">🎉</div>
+        <div class="banner-text">
+          <strong>
+            {{ newContractsCount === 1
+              ? 'You have 1 new adoption contract!'
+              : 'You have ' + newContractsCount + ' new adoption contracts!' }}
+          </strong>
+          <span>
+            Your adoption request has been approved. Download your contract below.
+          </span>
+        </div>
+      </div>
+      <button class="banner-dismiss" (click)="markAllAsSeen()">
+        <i class="fas fa-times"></i> Dismiss
+      </button>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="state-box">
+      <div class="spinner"></div>
+      <p>Loading your contracts...</p>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="error && !loading" class="error-box">
+      <i class="fas fa-exclamation-circle"></i> {{ error }}
+    </div>
+
+    <!-- Empty -->
+    <div *ngIf="!loading && !error && contracts.length === 0" class="empty-box">
+      <div class="empty-icon">📄</div>
+      <h3>No contracts yet</h3>
+      <p>Your adoption contracts will appear here once your request is approved by a shelter.</p>
+      <button class="btn-primary" (click)="goBack()">
+        <i class="fas fa-list me-2"></i> View My Requests
+      </button>
+    </div>
+
+    <!-- Liste des contrats -->
+    <div *ngIf="!loading && !error && contracts.length > 0" class="contracts-list">
+
+      <div *ngFor="let contract of contracts"
+           class="contract-card"
+           [class.contract-card--new]="isNew(contract.id)"
+           (click)="markAsSeen(contract.id)">
+
+        <!-- ✅ BADGE NEW -->
+        <div class="new-badge" *ngIf="isNew(contract.id)">
+          <span>🆕 New</span>
+        </div>
+
+        <!-- ✅ BARRE VERTE EN HAUT SI NOUVEAU -->
+        <div class="new-top-bar" *ngIf="isNew(contract.id)"></div>
+
+        <!-- En-tête de la carte -->
+        <div class="card-header">
+          <div class="contract-number">
+            <i class="fas fa-file-contract"></i>
+            <span>{{ contract.numeroContrat || 'Contract #' + contract.id }}</span>
+          </div>
+          <div class="contract-status" [ngClass]="getStatusClass(contract.statut)">
+            {{ getStatusLabel(contract.statut) }}
+          </div>
+        </div>
+
+        <!-- ✅ MESSAGE D'APPROBATION SI NOUVEAU -->
+        <div class="approval-message" *ngIf="isNew(contract.id)">
+          <i class="fas fa-check-circle"></i>
+          <span>
+            Congratulations! Your adoption request has been <strong>approved</strong>.
+            Your contract is ready to download.
+          </span>
+        </div>
+
+        <!-- Infos principales -->
+        <div class="card-body">
+          <div class="info-grid">
+
+            <div class="info-item">
+              <span class="info-label"><i class="fas fa-paw"></i> Animal</span>
+              <span class="info-value">{{ contract.animal?.name || contract.animalName || '—' }}</span>
+            </div>
+
+            <div class="info-item">
+              <span class="info-label"><i class="fas fa-home"></i> Shelter</span>
+              <span class="info-value">{{ contract.shelter?.name || contract.shelterName || '—' }}</span>
+            </div>
+
+            <div class="info-item">
+              <span class="info-label"><i class="fas fa-calendar"></i> Adoption Date</span>
+              <span class="info-value">{{ formatDate(contract.dateAdoption) }}</span>
+            </div>
+
+            <div class="info-item">
+              <span class="info-label"><i class="fas fa-euro-sign"></i> Adoption Fee</span>
+              <span class="info-value free-badge">
+                <i class="fas fa-heart"></i> Free
+              </span>
+            </div>
+
+            <div class="info-item" *ngIf="contract.dateSignature">
+              <span class="info-label"><i class="fas fa-signature"></i> Signed On</span>
+              <span class="info-value">{{ formatDate(contract.dateSignature) }}</span>
+            </div>
+
+          </div>
+
+          <div class="conditions-box" *ngIf="contract.conditionsSpecifiques">
+            <p class="conditions-label">Specific Conditions</p>
+            <p class="conditions-text">{{ contract.conditionsSpecifiques }}</p>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="card-footer">
+          <button class="btn-download"
+                  [class.btn-download--new]="isNew(contract.id)"
+                  (click)="downloadPdf(contract)"
+                  [disabled]="downloading === contract.id">
+            <i class="fas"
+               [ngClass]="downloading === contract.id ? 'fa-spinner fa-spin' : 'fa-file-pdf'"></i>
+            {{ downloading === contract.id ? 'Generating PDF...' : 'Download PDF' }}
+          </button>
+
+          <div class="new-hint" *ngIf="isNew(contract.id)">
+            <i class="fas fa-arrow-left"></i> Download to mark as seen
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>

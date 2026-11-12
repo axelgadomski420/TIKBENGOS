@@ -1,0 +1,286 @@
+/* Nutrition Profile Setup Component Styles */
+
+:host {
+  --teal: #1f8a78;
+  --teal-deep: #13695d;
+  --teal-soft: #e7f6f2;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --line: #d9e8ed;
+  --panel: #ffffff;
+}
+
+.nutrition-profile-setup {
+  display: block;
+  padding: 0;
+}
+
+.setup-card {
+  background:
+    radial-gradient(circle at 2% 0%, rgba(31, 138, 120, 0.1), transparent 42%),
+    linear-gradient(180deg, #ffffff 0%, #fbfefe 100%);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  padding: 1rem;
+  width: 100%;
+  box-shadow: 0 14px 26px rgba(15, 23, 42, 0.07);
+}
+
+.setup-header {
+  margin-bottom: 1rem;
+}
+
+.setup-header h3 {
+  margin: 0 0 0.38rem;
+  font-size: 1.1rem;
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.setup-header h3 i {
+  color: var(--teal-deep);
+}
+
+.setup-header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.nutrition-setup-form {
+  display: grid;
+  gap: 0.95rem;
+}
+
+.form-group {
+  border: 1px solid #dce8ed;
+  border-radius: 0.82rem;
+  padding: 0.7rem;
+  margin: 0;
+  background: #ffffff;
+}
+
+.form-group legend {
+  padding: 0 0.35rem;
+  margin: 0;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-weight: 800;
+  color: #475569;
+}
+
+.radio-group {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.radio-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.62rem;
+  padding: 0.64rem;
+  border: 1px solid #d8e6ec;
+  border-radius: 0.66rem;
+  cursor: pointer;
+  transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+  background-color: #ffffff;
+}
+
+.radio-option:hover {
+  border-color: #b9d7cf;
+  background-color: #f9fefd;
+}
+
+.radio-input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.radio-custom {
+  width: 1.05rem;
+  height: 1.05rem;
+  border: 2px solid #c8d6de;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 0.05rem;
+  transition: all 180ms ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.radio-input:checked + .radio-custom {
+  border-color: var(--teal);
+  background: linear-gradient(145deg, #27a38f, #1f8a78);
+  box-shadow: 0 0 0 3px rgba(31, 138, 120, 0.14);
+}
+
+.radio-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  flex: 1;
+}
+
+.radio-label strong {
+  color: #1e293b;
+  font-size: 0.9rem;
+}
+
+.radio-label small {
+  color: #64748b;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.radio-input:checked + .radio-custom + .radio-label strong {
+  color: var(--teal-deep);
+}
+
+.radio-option:has(.radio-input:checked) {
+  border-color: #8ecfbe;
+  background-color: #f2fbf8;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.form-field {
+  display: grid;
+  gap: 0.33rem;
+}
+
+.form-field label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.form-field input,
+.form-field select {
+  padding: 0.55rem 0.62rem;
+  border: 1px solid #d3dde4;
+  border-radius: 0.62rem;
+  font-size: 0.86rem;
+  font-family: inherit;
+  transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+.form-field input:focus,
+.form-field select:focus {
+  outline: none;
+  border-color: #67b8a7;
+  box-shadow: 0 0 0 3px rgba(31, 138, 120, 0.14);
+}
+
+.form-field input::placeholder {
+  color: #94a3b8;
+}
+
+.form-field small {
+  color: #64748b;
+  font-size: 0.72rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+  margin-top: 0.2rem;
+}
+
+.btn-ghost,
+.btn-primary {
+  padding: 0.58rem 0.95rem;
+  border: 0;
+  border-radius: 0.66rem;
+  font-size: 0.83rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 170ms ease, box-shadow 170ms ease, background 170ms ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.btn-ghost {
+  background-color: #ffffff;
+  color: #475569;
+  border: 1px solid #d1dce4;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background-color: #f8fbfd;
+  border-color: #b7c8d4;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #1f8a78 0%, #0f766e 100%);
+  color: #ffffff;
+  box-shadow: 0 10px 22px rgba(31, 138, 120, 0.28);
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn-primary:disabled,
+.btn-ghost:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.form-error {
+  background-color: #fff1f2;
+  border: 1px solid #fecdd3;
+  border-radius: 0.62rem;
+  padding: 0.58rem 0.7rem;
+  color: #9f1239;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.form-error i {
+  flex-shrink: 0;
+}
+
+@media (min-width: 840px) {
+  .radio-group {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .setup-card {
+    padding: 0.75rem;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .btn-ghost,
+  .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+}

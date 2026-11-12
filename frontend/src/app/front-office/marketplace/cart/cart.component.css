@@ -1,0 +1,75 @@
+.cart-shell {
+	background:
+		radial-gradient(circle at 18% 10%, rgba(58, 146, 130, 0.18), transparent 35%),
+		radial-gradient(circle at 88% 88%, rgba(248, 154, 63, 0.14), transparent 32%),
+		linear-gradient(180deg, #f8fafc 0%, #f3f7fb 100%);
+}
+
+.cart-item-card {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	background: #fff;
+	border: 1px solid #e5e7eb;
+	border-radius: 1rem;
+	padding: 1rem;
+	box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+}
+
+.quantity-wrap {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	border: 1px solid #e5e7eb;
+	border-radius: 999px;
+	padding: 0.2rem;
+}
+
+.qty-btn {
+	width: 1.9rem;
+	height: 1.9rem;
+	border-radius: 999px;
+	border: none;
+	background: #f3f4f6;
+	color: #111827;
+	font-weight: 800;
+	transition: background 0.2s ease;
+}
+
+.qty-btn:hover:not(:disabled) {
+	background: rgba(58, 146, 130, 0.16);
+}
+
+.qty-btn:disabled {
+	opacity: 0.45;
+	cursor: not-allowed;
+}
+
+.summary-row {
+	display: flex;
+	justify-content: space-between;
+	padding-bottom: 0.8rem;
+	margin-bottom: 0.8rem;
+	border-bottom: 1px solid #e5e7eb;
+}
+
+.progress-track {
+	width: 100%;
+	height: 0.5rem;
+	border-radius: 999px;
+	background: #f3f4f6;
+	overflow: hidden;
+}
+
+.progress-fill {
+	height: 100%;
+	border-radius: 999px;
+	background: linear-gradient(90deg, #3a9282 0%, #4bb5a2 100%);
+	transition: width 0.2s ease;
+}
+
+@media (max-width: 768px) {
+	.cart-item-card {
+		flex-wrap: wrap;
+	}
+}

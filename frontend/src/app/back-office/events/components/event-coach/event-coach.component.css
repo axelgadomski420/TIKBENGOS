@@ -1,0 +1,272 @@
+.coach {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  border: 1px solid #d8e2ec;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(16, 185, 129, 0.14), transparent 28%),
+    linear-gradient(180deg, #ffffff 0%, #f6faf8 100%);
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+}
+
+.coach__header,
+.coach__metrics,
+.coach__analysis,
+.coach__recommendation,
+.coach__recommendations-head,
+.coach__meta,
+.coach__loading {
+  display: flex;
+  align-items: flex-start;
+}
+
+.coach__header,
+.coach__analysis,
+.coach__recommendation,
+.coach__recommendations-head {
+  justify-content: space-between;
+}
+
+.coach__header {
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.coach__eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #0f766e;
+}
+
+.coach__title {
+  margin: 0;
+  font-size: 1.45rem;
+  color: #102a43;
+}
+
+.coach__subtitle {
+  margin: 0.35rem 0 0;
+  max-width: 42rem;
+  color: #52606d;
+}
+
+.coach__meta {
+  gap: 0.9rem;
+  align-items: center;
+}
+
+.coach__readiness {
+  min-width: 7.5rem;
+  padding: 0.75rem 0.95rem;
+  border-radius: 16px;
+  background: rgba(15, 118, 110, 0.08);
+  text-align: right;
+}
+
+.coach__readiness-value,
+.coach__metric-value {
+  display: block;
+  font-weight: 700;
+  color: #102a43;
+}
+
+.coach__readiness-value {
+  font-size: 1.15rem;
+}
+
+.coach__readiness-label,
+.coach__metric-label,
+.coach__section-label,
+.coach__timestamp,
+.coach__recommendation-field,
+.coach__suggested {
+  color: #52606d;
+}
+
+.coach__refresh,
+.coach__apply {
+  border: none;
+  border-radius: 999px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.coach__refresh {
+  padding: 0.8rem 1rem;
+  background: #102a43;
+  color: #fff;
+}
+
+.coach__refresh:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.coach__notice,
+.coach__loading,
+.coach__empty {
+  padding: 1rem 1.1rem;
+  border-radius: 18px;
+  background: #edf2f7;
+  color: #334e68;
+}
+
+.coach__notice--error {
+  background: #fff1f2;
+  color: #b42318;
+}
+
+.coach__loading {
+  gap: 0.9rem;
+}
+
+.coach__loading p,
+.coach__analysis p,
+.coach__recommendation p {
+  margin: 0.35rem 0 0;
+}
+
+.coach__spinner {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: 0.2rem;
+  border: 2px solid rgba(16, 42, 67, 0.18);
+  border-top-color: #0f766e;
+  border-radius: 50%;
+  animation: coach-spin 0.8s linear infinite;
+}
+
+.coach__metrics {
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.coach__metric {
+  flex: 1;
+  padding: 1rem 1.1rem;
+  border: 1px solid #e4ebf1;
+  border-radius: 20px;
+  background: #fff;
+}
+
+.coach__metric--score {
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
+}
+
+.coach__metric--score .coach__metric-label,
+.coach__metric--score .coach__metric-value {
+  color: #fff;
+}
+
+.coach__metric-value {
+  margin-top: 0.4rem;
+  font-size: 1.35rem;
+}
+
+.coach__analysis {
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 1rem 1.1rem;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.coach__section-label {
+  display: inline-block;
+  margin-bottom: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.coach__timestamp {
+  white-space: nowrap;
+  font-size: 0.85rem;
+}
+
+.coach__recommendations {
+  margin-top: 1rem;
+}
+
+.coach__history {
+  margin-top: 1rem;
+  padding: 1rem 1.1rem;
+  border-radius: 20px;
+  background: rgba(15, 118, 110, 0.06);
+}
+
+.coach__history-list {
+  margin: 0.6rem 0 0;
+  padding-left: 1.1rem;
+  color: #334e68;
+}
+
+.coach__history-list li + li {
+  margin-top: 0.35rem;
+}
+
+.coach__recommendations-head {
+  margin-bottom: 0.9rem;
+  color: #334e68;
+}
+
+.coach__recommendation {
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid #dbe7f0;
+  border-radius: 20px;
+  background: #fff;
+}
+
+.coach__recommendation-copy {
+  flex: 1;
+}
+
+.coach__recommendation-field {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.coach__suggested {
+  margin-top: 0.65rem;
+  font-size: 0.92rem;
+}
+
+.coach__apply {
+  align-self: center;
+  padding: 0.8rem 1rem;
+  background: #dcfce7;
+  color: #166534;
+}
+
+@media (max-width: 900px) {
+  .coach__header,
+  .coach__analysis,
+  .coach__recommendation,
+  .coach__metrics {
+    flex-direction: column;
+  }
+
+  .coach__meta {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .coach__apply,
+  .coach__refresh {
+    width: 100%;
+  }
+}
+
+@keyframes coach-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

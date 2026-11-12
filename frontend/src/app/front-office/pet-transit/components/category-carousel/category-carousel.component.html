@@ -1,0 +1,34 @@
+<section class="category-carousel" (mouseenter)="onMouseEnter()" (mouseleave)="onMouseLeave()">
+  <button
+    type="button"
+    class="carousel-nav"
+    (click)="scrollBackward()"
+    aria-label="Scroll categories left"
+  >
+    <mat-icon class="material-icons-round">chevron_left</mat-icon>
+  </button>
+
+  <div class="carousel-track" #carouselTrack>
+    <button
+      type="button"
+      class="category-card"
+      *ngFor="let category of categories; index as categoryIndex; trackBy: trackByCategory"
+      [class.category-card--active]="isActive(category)"
+      [style.--cat-color]="category.color"
+      [style.--cat-bg]="category.bgColor"
+      (click)="onCategoryClick(category, categoryIndex)"
+    >
+      <mat-icon class="material-icons-round category-icon">{{ category.icon }}</mat-icon>
+      <span class="category-label">{{ category.label }}</span>
+    </button>
+  </div>
+
+  <button
+    type="button"
+    class="carousel-nav"
+    (click)="scrollForward()"
+    aria-label="Scroll categories right"
+  >
+    <mat-icon class="material-icons-round">chevron_right</mat-icon>
+  </button>
+</section>

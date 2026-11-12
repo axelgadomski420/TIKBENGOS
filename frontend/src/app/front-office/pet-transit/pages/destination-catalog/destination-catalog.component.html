@@ -1,0 +1,224 @@
+﻿<div class="catalog-page">
+  <!-- FIX 1: Hero with parallax background binding -->
+  <section class="hero-banner"
+    [style.backgroundPositionY]="heroParallax + 'px'">
+    <div class="hero-overlay"></div>
+
+    <div class="hero-content">
+      <p class="hero-badge"><mat-icon class="material-icons-round">pets</mat-icon><span>PET TRANSIT</span></p>
+      <h1>Travel the world with your companion</h1>
+      <p>
+        Discover verified pet-friendly destinations. Every route planned, every document ready.
+      </p>
+
+      <div class="hero-actions">
+        <button type="button" class="hero-btn hero-btn--primary" (click)="scrollToExploreByType()">
+          Explore Destinations
+        </button>
+        <button type="button" class="hero-btn hero-btn--secondary" (click)="scrollToGuide()">
+          How It Works
+        </button>
+      </div>
+    </div>
+
+    <div class="hero-scroll-indicator" (click)="scrollToExploreByType()" role="button" tabindex="0">
+      <mat-icon class="material-icons-round">arrow_downward</mat-icon>
+    </div>
+  </section>
+
+  <section class="category-section" id="explore-by-type" #exploreByTypeSection>
+    <div class="section-inner">
+      <h2 class="section-title">Explore by Type</h2>
+      <app-category-carousel
+        [selectedType]="selectedType"
+        (typeSelected)="onTypeSelected($event)"
+      ></app-category-carousel>
+    </div>
+  </section>
+
+  <section class="destinations-section" id="destinations">
+    <div class="section-inner">
+      <header class="section-header">
+        <div>
+          <h2>Pet-Friendly Destinations</h2>
+          <span class="count-pill">({{ destinationCountLabel }})</span>
+        </div>
+
+        <div class="section-header-actions">
+          <button type="button" class="my-plans-inline-btn" (click)="goToMyPlans()" aria-label="My Plans">
+            <mat-icon class="material-icons-round">luggage</mat-icon>
+            <span>My Plans</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="filters-bar" *ngIf="!loading && !errorMessage && destinations.length > 0">
+        <div class="action-bar mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2" aria-label="Destination action bar">
+          <div class="relative">
+            <i class="fas fa-search pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400"></i>
+            <input
+              id="destinationCatalogSearch"
+              type="search"
+              [(ngModel)]="searchTerm"
+              (ngModelChange)="onSearchChange()"
+              placeholder="Search by title, country, or region"
+              aria-label="Search destinations"
+              class="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm text-slate-700 shadow-inner focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/20"
+            />
+          </div>
+
+          <button
+            type="button"
+            class="detail-secondary-button"
+            (click)="toggleFilters()"
+            [attr.aria-expanded]="showFilters"
+            aria-label="Toggle filters"
+          >
+            <i class="fas fa-filter"></i>
+            Filter
+          </button>
+        </div>
+
+        <div class="filters-panel" *ngIf="showFilters" aria-label="Destination filters">
+          <label class="filter-field">
+            <span>Country</span>
+            <select [(ngModel)]="selectedCountry" (change)="onCountryChange()">
+              <option value="ALL">All countries</option>
+              <option *ngFor="let country of availableCountries" [value]="country">{{ country }}</option>
+            </select>
+          </label>
+
+          <label class="filter-field">
+            <span>Region</span>
+            <select [(ngModel)]="selectedRegion" (change)="onRegionChange()">
+              <option value="ALL">All regions</option>
+              <option *ngFor="let region of availableRegions" [value]="region">{{ region }}</option>
+            </select>
+          </label>
+
+          <label class="filter-field">
+            <span>Start Date</span>
+            <input
+              type="date"
+              [value]="startDateFilter"
+              (input)="onStartDateFilterChange($event)"
+            />
+          </label>
+
+          <label class="filter-field">
+            <span>End Date</span>
+            <input
+              type="date"
+              [value]="endDateFilter"
+              (input)="onEndDateFilterChange($event)"
+            />
+          </label>
+
+          <button type="button" class="detail-secondary-button" *ngIf="hasActiveFilters" (click)="showAllDestinations()">
+            <i class="fas fa-rotate-left"></i>
+            Reset
+          </button>
+        </div>
+      </section>
+
+      <div class="skeleton-grid" *ngIf="loading">
+        <article class="skeleton-card" *ngFor="let item of skeletonItems">
+          <div class="skeleton skeleton-image"></div>
+          <div class="skeleton skeleton-line skeleton-title"></div>
+          <div class="skeleton skeleton-line"></div>
+          <div class="skeleton skeleton-line"></div>
+          <div class="skeleton skeleton-footer"></div>
+        </article>
+      </div>
+
+      <div class="error-state" *ngIf="!loading && errorMessage">
+        <mat-icon class="material-icons-round">error_outline</mat-icon>
+        <h3>Unable to load destinations</h3>
+        <p>{{ errorMessage }}</p>
+        <button type="button" (click)="retryLoad()">Retry</button>
+      </div>
+
+      <div class="empty-state" *ngIf="!loading && !errorMessage && filteredDestinations.length === 0">
+        <mat-icon class="material-icons-round">pets</mat-icon>
+        <h3>No destinations found for this selection</h3>
+        <p>Try selecting a different type, country, region, or search term.</p>
+        <button type="button" (click)="showAllDestinations()">Show All</button>
+      </div>
+
+      <div class="destination-grid" *ngIf="!loading && !errorMessage && filteredDestinations.length > 0">
+        <app-destination-card
+          *ngFor="let destination of paginatedDestinations"
+          [destination]="destination"
+          (cardClick)="exploreDestination($event)"
+          (planClick)="planTrip($event)"
+        ></app-destination-card>
+      </div>
+
+      <app-pagination
+        *ngIf="!loading && !errorMessage && filteredDestinations.length > 0"
+        [totalItems]="totalItems"
+        [itemsPerPage]="itemsPerPage"
+        [currentPage]="currentPage"
+        (pageChange)="onPageChange($event)"
+      ></app-pagination>
+    </div>
+  </section>
+
+  <section class="why-section" id="guide">
+    <div class="section-inner">
+      <p class="promise-badge">Our Promise</p>
+      <h2>Why Choose Pet Transit?</h2>
+      <p class="section-subtitle">
+        Everything you need to travel safely with your companion - verified destinations, required
+        documents, and expert guidance.
+      </p>
+
+      <div class="features-grid">
+        <article
+          class="feature-card"
+          *ngFor="let feature of features"
+          #featureCard
+          [ngClass]="toneClass(feature)"
+        >
+          <div class="feature-icon-wrap">
+            <mat-icon class="material-icons-round">{{ feature.icon }}</mat-icon>
+          </div>
+          <h3>{{ feature.title }}</h3>
+          <p>{{ feature.description }}</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="steps-section" id="how-it-works">
+    <div class="section-inner">
+      <h2>How to Plan a Safe Pet Trip</h2>
+      <p class="section-subtitle">
+        Follow these steps to prepare your perfect pet-friendly journey.
+      </p>
+
+      <div class="steps-grid">
+        <ng-container *ngFor="let step of planningSteps; index as stepIndex">
+          <article class="step-card">
+            <p class="step-number">{{ step.number }}</p>
+            <mat-icon class="material-icons-round step-icon">{{ step.icon }}</mat-icon>
+            <h3>{{ step.title }}</h3>
+            <p>{{ step.description }}</p>
+          </article>
+
+          <mat-icon class="material-icons-round step-connector" *ngIf="stepIndex < planningSteps.length - 1">arrow_forward</mat-icon>
+        </ng-container>
+      </div>
+    </div>
+  </section>
+
+  <section class="final-cta">
+    <mat-icon class="material-icons-round cta-decor">pets</mat-icon>
+    <div class="section-inner">
+      <h2>Ready to plan your next adventure?</h2>
+      <p>Join thousands of pet owners who travel smarter with Pet Transit.</p>
+      <button type="button" (click)="scrollToDestinations()">Start Planning Now</button>
+    </div>
+  </section>
+
+</div>

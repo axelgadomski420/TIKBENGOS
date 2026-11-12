@@ -1,0 +1,79 @@
+<aside class="detail-left-rail space-y-4" *ngIf="host.community as c">
+  <div class="detail-rail-card p-4">
+    <h2 class="text-xs font-extrabold uppercase tracking-[0.16em] text-slate-600">Community Snapshot</h2>
+    <p class="mt-3 text-sm leading-6 text-slate-600">{{ c.description || 'No description provided yet.' }}</p>
+    <div class="detail-meta-stack mt-4">
+      <div class="detail-meta-row">
+        <span>Created</span>
+        <strong>{{ c.createdAt ? (c.createdAt | date:'MMM d, y') : 'Unknown' }}</strong>
+      </div>
+      <div class="detail-meta-row">
+        <span>Rules</span>
+        <strong>{{ host.rules.length }}</strong>
+      </div>
+      <div class="detail-meta-row">
+        <span>Flairs</span>
+        <strong>{{ host.flairs.length }}</strong>
+      </div>
+      <div class="detail-meta-row">
+        <span>Visibility</span>
+        <strong>{{ host.typeLabel(c.type) }}</strong>
+      </div>
+      <div class="detail-meta-row" *ngIf="c.userRole">
+        <span>Your role</span>
+        <strong>{{ host.roleLabel(c.userRole) }}</strong>
+      </div>
+    </div>
+    <div class="detail-rail-callout mt-4">
+      <p class="detail-rail-callout-title">How this workspace feels</p>
+      <p class="detail-rail-callout-copy">{{ host.membershipCallout }}</p>
+    </div>
+  </div>
+
+  <div class="detail-rail-card p-4">
+    <div class="flex items-center justify-between">
+      <h2 class="text-xs font-extrabold uppercase tracking-[0.16em] text-slate-600">Community Rules</h2>
+      <span class="text-[11px] text-slate-400">{{ host.rules.length }}</span>
+    </div>
+    <div *ngIf="host.rules.length > 0" class="mt-4 space-y-3">
+      <div *ngFor="let rule of host.rules; trackBy: host.trackByRuleOrder" class="detail-rule">
+        <div class="detail-rule-order">{{ rule.ruleOrder || '-' }}</div>
+        <div class="min-w-0">
+          <p class="text-sm font-semibold text-slate-900">{{ rule.title || 'Untitled rule' }}</p>
+          <p class="mt-1 text-xs leading-5 text-slate-500">{{ rule.description || 'No details provided.' }}</p>
+        </div>
+      </div>
+    </div>
+    <p *ngIf="host.rules.length === 0" class="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-xs leading-6 text-slate-500">
+      No rules have been published yet. Moderators can add them from the community management area.
+    </p>
+  </div>
+
+  <div class="detail-rail-card p-4">
+    <div class="flex items-center justify-between">
+      <h2 class="text-xs font-extrabold uppercase tracking-[0.16em] text-slate-600">Filter by Flair</h2>
+      <span class="text-[11px] text-slate-400">{{ host.flairs.length }}</span>
+    </div>
+    <div class="mt-4 flex flex-wrap gap-2">
+      <button
+        type="button"
+        (click)="host.filterFlair()"
+        class="detail-filter-chip"
+        [ngClass]="host.selectedFlairId === undefined ? 'detail-filter-chip-active' : 'detail-filter-chip-idle'"
+        [attr.aria-pressed]="host.selectedFlairId === undefined"
+      >
+        All
+      </button>
+      <button
+        *ngFor="let f of host.flairs; trackBy: host.trackByFlairId"
+        type="button"
+        (click)="host.filterFlair(f.id)"
+        class="detail-filter-chip"
+        [ngClass]="host.selectedFlairId === f.id ? 'detail-filter-chip-active' : 'detail-filter-chip-idle'"
+        [attr.aria-pressed]="host.selectedFlairId === f.id"
+      >
+        {{ f.name || 'Flair' }}
+      </button>
+    </div>
+  </div>
+</aside>

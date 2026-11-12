@@ -1,0 +1,274 @@
+<!-- ════════════════════════════════════════════════════════════════
+     ai-description-generator.component.html  (v2)
+════════════════════════════════════════════════════════════════ -->
+<div class="aig" [class.aig--active]="panelState === 'generating'" [class.aig--done]="panelState === 'done'">
+
+  <!-- ══ HEADER ════════════════════════════════════════════════════ -->
+  <div class="aig__header">
+    <div class="aig__header-brand">
+      <div class="aig__brand-mark">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+          <path d="M8 1L10 6H15L11 9.5L12.5 15L8 12L3.5 15L5 9.5L1 6H6L8 1Z"
+            fill="currentColor" opacity="0.9"/>
+        </svg>
+      </div>
+      <div class="aig__brand-text">
+        <span class="aig__brand-name">AI Writer</span>
+        <span class="aig__brand-sub">Smart description generator</span>
+      </div>
+    </div>
+
+    <div class="aig__header-actions">
+      <!-- History button -->
+      <button
+        class="aig__icon-btn"
+        *ngIf="history.length > 0"
+        (click)="showHistory = !showHistory"
+        [class.aig__icon-btn--active]="showHistory"
+        title="Generation history">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.39"/>
+        </svg>
+        <span class="aig__icon-btn-badge">{{ history.length }}</span>
+      </button>
+
+      <!-- Context meter -->
+      <div class="aig__context-meter" [class]="'aig__context-meter--' + contextLevel">
+        <div class="aig__context-bar">
+          <div class="aig__context-fill" [style.width.%]="contextScore"></div>
+        </div>
+        <span class="aig__context-text">{{ contextLevelText }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ HISTORY PANEL ════════════════════════════════════════════ -->
+  <div class="aig__history" *ngIf="showHistory && history.length > 0">
+    <div class="aig__history-header">
+      <span>Recent generations</span>
+      <button class="aig__history-close" (click)="showHistory = false">✕</button>
+    </div>
+    <div
+      class="aig__history-item"
+      *ngFor="let entry of history; trackBy: trackHistory"
+      (click)="loadFromHistory(entry)">
+      <div class="aig__history-meta">
+        <span class="aig__history-tone">{{ entry.tone | titlecase }}</span>
+        <span class="aig__history-lang">{{ entry.language === 'fr' ? '🇫🇷' : '🇬🇧' }}</span>
+        <span class="aig__history-words">{{ entry.words }} words</span>
+        <span class="aig__history-time">{{ entry.timestamp | date:'HH:mm' }}</span>
+      </div>
+      <p class="aig__history-preview">{{ entry.text | slice:0:90 }}…</p>
+    </div>
+  </div>
+
+  <!-- ══ MISSING FIELDS NOTICE ════════════════════════════════════ -->
+  <div class="aig__notice aig__notice--warn" *ngIf="!canGenerate && panelState === 'idle'">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+      <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+    <span>
+      Fill in
+      <strong>{{ missingFields.join(' and ') }}</strong>
+      above to enable generation
+    </span>
+  </div>
+
+  <!-- ══ OPTIONS (visible à l'état idle et done) ═══════════════════ -->
+  <div class="aig__options" *ngIf="panelState === 'idle' || panelState === 'done' || panelState === 'error'">
+
+    <!-- Tone selector -->
+    <fieldset class="aig__fieldset">
+      <legend class="aig__legend">Tone</legend>
+      <div class="aig__tone-grid">
+        <label
+          *ngFor="let tone of tones; trackBy: trackTone"
+          class="aig__tone-card"
+          [class.aig__tone-card--selected]="selectedTone === tone.id">
+          <input
+            type="radio"
+            class="aig__tone-radio"
+            [value]="tone.id"
+            [(ngModel)]="selectedTone"
+            name="tone"/>
+          <span class="aig__tone-emoji">{{ tone.emoji }}</span>
+          <span class="aig__tone-name">{{ tone.label }}</span>
+          <span class="aig__tone-tagline">{{ tone.tagline }}</span>
+          <span class="aig__tone-check">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </span>
+        </label>
+      </div>
+    </fieldset>
+
+    <!-- Language selector -->
+    <fieldset class="aig__fieldset">
+      <legend class="aig__legend">Output language</legend>
+      <div class="aig__lang-pills">
+        <label
+          *ngFor="let lang of langs; trackBy: trackLang"
+          class="aig__lang-pill"
+          [class.aig__lang-pill--selected]="selectedLang === lang.id">
+          <input
+            type="radio"
+            class="aig__lang-radio"
+            [value]="lang.id"
+            [(ngModel)]="selectedLang"
+            name="lang"/>
+          <span>{{ lang.flag }}</span>
+          <span>{{ lang.name }}</span>
+        </label>
+      </div>
+    </fieldset>
+  </div>
+
+  <!-- ══ GENERATING ═══════════════════════════════════════════════ -->
+  <ng-container *ngIf="panelState === 'generating'">
+
+    <!-- Live metrics bar -->
+    <div class="aig__live-bar">
+      <div class="aig__live-indicator">
+        <span class="aig__live-dot"></span>
+        <span class="aig__live-label">Generating</span>
+      </div>
+      <div class="aig__live-metrics">
+        <span class="aig__metric">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          </svg>
+          {{ wordCount }} words
+        </span>
+        <span class="aig__metric">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+          {{ elapsedFormatted }}
+        </span>
+        <button class="aig__cancel-btn" (click)="cancel()">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+          Cancel
+        </button>
+      </div>
+    </div>
+
+    <!-- Streaming text output -->
+    <div class="aig__stream-area" #streamEl>
+      <div class="aig__stream-shimmer" *ngIf="wordCount < 3"></div>
+      <p class="aig__stream-text" *ngIf="wordCount >= 3 || streamedText">
+        {{ streamedText }}<span class="aig__cursor"></span>
+      </p>
+    </div>
+
+  </ng-container>
+
+  <!-- ══ DONE — Résultat ═══════════════════════════════════════════ -->
+  <ng-container *ngIf="panelState === 'done'">
+
+    <!-- Result header -->
+    <div class="aig__result-bar">
+      <div class="aig__result-badge">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        Done · {{ elapsedFormatted }}
+      </div>
+      <div class="aig__result-stats">
+        <span>{{ wordCount }} words</span>
+        <span class="aig__stats-sep">·</span>
+        <span>{{ charCount }} chars</span>
+        <span class="aig__stats-sep">·</span>
+        <span>{{ selectedToneEmoji }} {{ selectedTone | titlecase }}</span>
+        <span class="aig__stats-sep">·</span>
+        <span>{{ selectedLang === 'fr' ? '🇫🇷' : '🇬🇧' }}</span>
+      </div>
+    </div>
+
+    <!-- Result text -->
+    <div class="aig__result-text-area">
+      <p class="aig__result-text">{{ streamedText }}</p>
+    </div>
+
+    <!-- Action row -->
+    <div class="aig__result-actions">
+      <!-- Primary CTA -->
+      <button
+        class="aig__btn-apply"
+        (click)="apply()"
+        [class.aig__btn-apply--pulse]="buttonPulsing">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        Apply to description
+      </button>
+
+      <!-- Secondary actions -->
+      <div class="aig__secondary-actions">
+        <button class="aig__btn-icon" (click)="copyToClipboard()" [title]="copied ? 'Copied!' : 'Copy text'">
+          <ng-container *ngIf="!copied">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+          </ng-container>
+          <ng-container *ngIf="copied">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </ng-container>
+        </button>
+        <button class="aig__btn-icon" (click)="regenerate()" title="Regenerate">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="1 4 1 10 7 10"/>
+            <path d="M3.51 15a9 9 0 1 0 .49-3.39"/>
+          </svg>
+        </button>
+        <button class="aig__btn-text" (click)="reset()">Discard</button>
+      </div>
+    </div>
+
+  </ng-container>
+
+  <!-- ══ ERROR ════════════════════════════════════════════════════ -->
+  <div class="aig__error-panel" *ngIf="panelState === 'error'">
+    <div class="aig__error-icon">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+    </div>
+    <div class="aig__error-body">
+      <strong>Generation failed</strong>
+      <p>{{ errorMessage }}</p>
+    </div>
+    <button class="aig__btn-retry" (click)="generate()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="1 4 1 10 7 10"/>
+        <path d="M3.51 15a9 9 0 1 0 .49-3.39"/>
+      </svg>
+      Retry
+    </button>
+  </div>
+
+  <!-- ══ GENERATE BUTTON ═══════════════════════════════════════════ -->
+  <div class="aig__footer" *ngIf="panelState === 'idle'">
+    <button
+      class="aig__btn-generate"
+      (click)="generate()"
+      [disabled]="!canGenerate">
+      <svg class="aig__btn-generate-icon" width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+        <path d="M8 1L10 6H15L11 9.5L12.5 15L8 12L3.5 15L5 9.5L1 6H6L8 1Z"/>
+      </svg>
+      Generate with AI
+      <span class="aig__btn-generate-shortcut" *ngIf="canGenerate">⌘↵</span>
+    </button>
+    <p class="aig__footer-hint" *ngIf="contextLevel === 'minimal'">
+      Add location, dates and eligibility rules for better results
+    </p>
+  </div>
+
+</div>

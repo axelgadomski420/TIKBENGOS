@@ -1,0 +1,154 @@
+<aside
+  class="admin-sidebar h-screen flex flex-col fixed lg:sticky top-0 left-0 z-20 max-w-[86vw] lg:max-w-none overflow-hidden transition-all duration-300 ease-in-out"
+  [ngClass]="isOpen
+    ? 'translate-x-0 w-72 lg:w-72 border-r border-[#d7e1ea]'
+    : '-translate-x-full w-72 lg:translate-x-0 lg:w-0 border-r-0 shadow-none'"
+>
+  <div class="sidebar-top">
+    <div class="flex items-center gap-3 min-w-0">
+      <img src="images/logo/logo-cropped-transparent.png" alt="PURRE PETS Admin" class="h-10 w-auto" />
+      <div class="min-w-0">
+        <p class="brand-name">PURRE PETS Console</p>
+        <p class="brand-subline">Platform Administration</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="px-5 py-5">
+    <p class="menu-label">Main Menu</p>
+    <nav class="space-y-2">
+      <a
+        *ngFor="let link of topAdminLinks"
+        [routerLink]="link.path"
+        [ngClass]="isActive(link.path)
+          ? 'sidebar-link sidebar-link-active'
+          : 'sidebar-link sidebar-link-idle'"
+      >
+        <i [class]="'menu-icon ' + link.iconClass + ' ' + link.iconColorClass" aria-hidden="true"></i>
+        <span>{{ link.label }}</span>
+      </a>
+
+      <button
+        type="button"
+        class="sidebar-link transit-trigger"
+        [ngClass]="isCommunityRoute() ? 'sidebar-link-active' : 'sidebar-link-idle'"
+        (click)="toggleCommunity()"
+      >
+        <i class="menu-icon fa-solid fa-comments icon-community" aria-hidden="true"></i>
+        <span class="sidebar-link-copy">
+          <span class="sidebar-link-title">Community</span>
+
+        </span>
+        <mat-icon class="expand-icon">{{ communityExpanded ? 'expand_more' : 'chevron_right' }}</mat-icon>
+      </button>
+
+      <div class="transit-submenu" [class.transit-submenu-expanded]="communityExpanded">
+        <button
+          type="button"
+          *ngFor="let child of communityLinks"
+          class="sub-link"
+          [class.sub-link-active]="isCommunityLinkActive(child)"
+          (click)="navigateToCommunity(child)"
+        >
+          <mat-icon>{{ child.icon }}</mat-icon>
+          <span class="sub-link-copy">
+            <span class="sub-link-title">{{ child.label }}</span>
+            <span class="sub-link-meta">{{ child.description }}</span>
+          </span>
+        </button>
+      </div>
+
+      <button
+        type="button"
+        class="sidebar-link transit-trigger"
+        [ngClass]="isTransitRoute() ? 'sidebar-link-active' : 'sidebar-link-idle'"
+        (click)="toggleTransit()"
+      >
+        <mat-icon class="transit-plane-icon">flight_takeoff</mat-icon>
+        <span>Transit</span>
+        <mat-icon class="expand-icon">{{ transitExpanded ? 'expand_more' : 'chevron_right' }}</mat-icon>
+      </button>
+
+      <div class="transit-submenu" [class.transit-submenu-expanded]="transitExpanded">
+        <a
+          *ngFor="let child of transitLinks"
+          [routerLink]="child.path"
+          class="sub-link"
+          [class.sub-link-active]="isActive(child.path)"
+        >
+          <mat-icon>{{ child.icon }}</mat-icon>
+          <span>{{ child.label }}</span>
+        </a>
+      </div>
+
+      <button
+        type="button"
+        class="sidebar-link transit-trigger"
+        [ngClass]="isMarketplaceRoute() ? 'sidebar-link-active' : 'sidebar-link-idle'"
+        (click)="toggleMarketplace()"
+      >
+        <i class="menu-icon fa-solid fa-store icon-marketplace" aria-hidden="true"></i>
+        <span>Marketplace</span>
+        <mat-icon class="expand-icon">{{ marketplaceExpanded ? 'expand_more' : 'chevron_right' }}</mat-icon>
+      </button>
+
+      <div class="transit-submenu" [class.transit-submenu-expanded]="marketplaceExpanded">
+        <a
+          *ngFor="let child of marketplaceLinks"
+          [routerLink]="child.path"
+          class="sub-link"
+          [class.sub-link-active]="isActive(child.path)"
+        >
+          <mat-icon>{{ child.icon }}</mat-icon>
+          <span>{{ child.label }}</span>
+        </a>
+      </div>
+
+      <button
+        type="button"
+        class="sidebar-link transit-trigger"
+        [ngClass]="isEventsRoute() ? 'sidebar-link-active' : 'sidebar-link-idle'"
+        (click)="toggleEvents()"
+      >
+        <i class="menu-icon fa-solid fa-calendar-days icon-events" aria-hidden="true"></i>
+        <span>Events</span>
+        <mat-icon class="expand-icon">{{ eventsExpanded ? 'expand_more' : 'chevron_right' }}</mat-icon>
+      </button>
+
+      <div class="transit-submenu" [class.transit-submenu-expanded]="eventsExpanded">
+        <a
+          *ngFor="let child of eventsLinks"
+          [routerLink]="child.path"
+          class="sub-link"
+          [class.sub-link-active]="isActive(child.path)"
+        >
+          <mat-icon>{{ child.icon }}</mat-icon>
+          <span>{{ child.label }}</span>
+        </a>
+      </div>
+
+      <a
+        *ngFor="let link of bottomAdminLinks"
+        [routerLink]="link.path"
+        [ngClass]="isActive(link.path)
+          ? 'sidebar-link sidebar-link-active'
+          : 'sidebar-link sidebar-link-idle'"
+      >
+        <i [class]="'menu-icon ' + link.iconClass + ' ' + link.iconColorClass" aria-hidden="true"></i>
+        <span>{{ link.label }}</span>
+      </a>
+    </nav>
+  </div>
+
+  <div class="mt-auto px-5 pb-5 pt-4 border-t border-slate-200">
+    <a [routerLink]="['/app']" [queryParams]="{ allowPortal: 1 }" class="footer-action footer-action-primary">
+      <i class="footer-icon fa-solid fa-arrow-right" aria-hidden="true"></i>
+      <span>Front Office</span>
+    </a>
+
+    <button type="button" (click)="logout()" class="footer-action footer-action-danger mt-2 w-full">
+      <i class="footer-icon fa-solid fa-right-from-bracket" aria-hidden="true"></i>
+      <span>Logout</span>
+    </button>
+  </div>
+</aside>

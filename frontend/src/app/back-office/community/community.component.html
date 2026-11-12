@@ -1,0 +1,1292 @@
+<section class="bo-community-page">
+  <div class="bo-community-container">
+    <header class="bo-page-hero">
+      <div class="bo-page-hero-copy">
+        <p class="bo-eyebrow">{{ pageEyebrow }}</p>
+        <h1>{{ pageTitle }}</h1>
+        <p class="bo-page-hero-text">{{ pageDescription }}</p>
+
+        <div class="bo-action-row">
+          <button type="button" (click)="openCreateCommunityModal()" class="detail-primary-button">
+            <i class="fas fa-plus"></i>
+            Create community
+          </button>
+          <button type="button" (click)="loadCommunities()" class="detail-secondary-button">
+            <i class="fas fa-rotate-right"></i>
+            {{ isContentMode ? 'Refresh workspace' : 'Refresh communities' }}
+          </button>
+          <button type="button" (click)="exportCommunitiesToPdf()" class="detail-secondary-button">
+            <i class="fas fa-file-pdf"></i>
+            Export PDF
+          </button>
+          <button type="button" (click)="exportCommunitiesToExcel()" class="detail-secondary-button">
+            <i class="fas fa-file-excel"></i>
+            Export Excel
+          </button>
+        </div>
+      </div>
+
+      <div class="bo-kpi-grid">
+        <article class="bo-kpi-card">
+          <p class="bo-kpi-label">Communities</p>
+          <p class="bo-kpi-value">{{ communities.length }}</p>
+          <p class="bo-kpi-copy">All spaces visible to admins.</p>
+        </article>
+        <article class="bo-kpi-card">
+          <p class="bo-kpi-label">Public</p>
+          <p class="bo-kpi-value">{{ publicCommunityCount }}</p>
+          <p class="bo-kpi-copy">Discovery-first communities.</p>
+        </article>
+        <article class="bo-kpi-card">
+          <p class="bo-kpi-label">Private</p>
+          <p class="bo-kpi-value">{{ privateCommunityCount }}</p>
+          <p class="bo-kpi-copy">Invite-only moderated spaces.</p>
+        </article>
+        <article class="bo-kpi-card bo-kpi-card-accent">
+          <p class="bo-kpi-label">Selected readiness</p>
+          <p class="bo-kpi-value">{{ selectedCommunity ? selectedCommunityReadinessScore + '/4' : '0/4' }}</p>
+          <p class="bo-kpi-copy">{{ selectedCommunity ? selectedCommunityReadinessLabel : 'Pick a community to inspect.' }}</p>
+        </article>
+      </div>
+    </header>
+
+    <div class="bo-inline-notices">
+      <div *ngIf="createCommunitySuccess" class="bo-notice bo-notice-success">{{ createCommunitySuccess }}</div>
+      <div *ngIf="error" class="bo-notice bo-notice-danger">{{ error }}</div>
+      <div *ngIf="exportNotice" class="bo-notice bo-notice-info">{{ exportNotice }}</div>
+    </div>
+
+    <div *ngIf="loading" class="bo-empty-state">
+      <div class="bo-empty-icon">
+        <i class="fas fa-spinner fa-spin"></i>
+      </div>
+      <h2>Loading the community workspace</h2>
+      <p>Fetching the directory, member context, and moderation data.</p>
+    </div>
+
+    <div *ngIf="!loading" [ngClass]="isOverviewMode ? 'bo-overview-layout' : (isContentMode ? 'bo-content-layout' : 'bo-workspace-grid')">
+      <aside *ngIf="isCommunitiesMode" id="community-directory" class="bo-directory-rail">
+        <section class="bo-surface bo-directory-surface">
+          <div class="bo-surface-head">
+            <div>
+              <p class="bo-section-kicker">Communities</p>
+              <h2>Community list</h2>
+              <p>{{ isContentMode ? 'Pick a space before moderating posts and structure.' : 'Search, sort, and open a community management workspace.' }}</p>
+            </div>
+            <span class="bo-section-chip">{{ filteredCommunities.length }} visible</span>
+          </div>
+
+          <div class="bo-search-stack">
+            <label class="bo-field">
+              <span class="bo-field-label">Search communities</span>
+              <div class="bo-search-input-wrap">
+                <i class="fas fa-search"></i>
+                <input
+                  id="community-search"
+                  [(ngModel)]="search"
+                  (ngModelChange)="onCommunitySearchChange()"
+                  name="communitySearch"
+                  type="search"
+                  aria-label="Search communities"
+                  autocomplete="off"
+                  placeholder="Name or slug"
+                  class="bo-input bo-input-with-icon"
+                >
+              </div>
+            </label>
+
+            <label class="bo-field">
+              <span class="bo-field-label">Sort directory</span>
+              <select [(ngModel)]="communitySort" (ngModelChange)="onCommunitySortChange()" name="communitySort" aria-label="Sort communities" class="bo-input">
+                <option value="NAME_ASC">Name A-Z</option>
+                <option value="NAME_DESC">Name Z-A</option>
+                <option value="MEMBERS_DESC">Most members</option>
+                <option value="MEMBERS_ASC">Least members</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="bo-section-chip-row">
+            <span class="admin-entry-chip"><i class="fas fa-layer-group"></i>{{ communities.length }} total</span>
+            <span class="admin-entry-chip"><i class="fas fa-eye"></i>{{ filteredCommunities.length }} shown</span>
+            <span class="admin-entry-chip"><i class="fas fa-lock"></i>{{ privateCommunityCount }} private</span>
+          </div>
+
+          <div class="bo-directory-list">
+            <div *ngIf="!filteredCommunities.length" class="bo-empty-state bo-empty-state-compact">
+              <div class="bo-empty-icon bo-empty-icon-muted">
+                <i class="fas fa-magnifying-glass"></i>
+              </div>
+              <h3>No communities matched</h3>
+              <p>Try a broader search or create a new community.</p>
+            </div>
+
+            <article
+              *ngFor="let community of paginatedDirectoryCommunities; trackBy: trackByCommunityId"
+              class="bo-directory-card"
+              [class.bo-directory-card-active]="selectedCommunity?.id === community.id"
+            >
+              <button type="button" (click)="selectCommunity(community)" class="bo-directory-card-button">
+                <div class="bo-directory-card-top">
+                  <ng-container *ngIf="community.iconUrl; else communityDirectoryFallback">
+                    <img [src]="community.iconUrl" [alt]="community.name + ' icon'" class="bo-directory-avatar">
+                  </ng-container>
+                  <ng-template #communityDirectoryFallback>
+                    <div class="bo-directory-avatar bo-directory-avatar-fallback">{{ communityInitial(community) }}</div>
+                  </ng-template>
+
+                  <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <h3>{{ community.name }}</h3>
+                      <span class="bo-tone-pill" [ngClass]="community.type === 'PRIVATE' ? 'bo-tone-pill-warm' : 'bo-tone-pill-cool'">
+                        {{ communityTypeLabel(community.type) }}
+                      </span>
+                    </div>
+                    <p class="bo-directory-handle">c/{{ community.slug }}</p>
+                  </div>
+                </div>
+
+                <p class="bo-directory-description">{{ community.description }}</p>
+
+                <div class="bo-directory-meta">
+                  <span>{{ community.memberCount }} members</span>
+                  <span *ngIf="community.userRole">{{ roleLabel(community.userRole) }}</span>
+                  <span>{{ community.createdAt | date:'mediumDate' }}</span>
+                </div>
+              </button>
+
+              <div class="bo-directory-actions">
+                <button type="button" (click)="selectCommunity(community)" class="detail-primary-button">Open workspace</button>
+                <button type="button" (click)="openCommunity(community)" class="detail-secondary-button">View front office</button>
+              </div>
+            </article>
+          </div>
+
+          <div class="admin-pagination" *ngIf="filteredCommunities.length > directoryItemsPerPage">
+            <app-pagination
+              [totalItems]="filteredCommunities.length"
+              [itemsPerPage]="directoryItemsPerPage"
+              [currentPage]="directoryCurrentPage"
+              [variant]="'admin'"
+              (pageChange)="onDirectoryPageChange($event)"
+            ></app-pagination>
+          </div>
+        </section>
+      </aside>
+
+      <div class="bo-main-column">
+        <section *ngIf="isOverviewMode" id="community-overview" class="bo-surface">
+          <div class="bo-surface-head">
+            <div>
+              <p class="bo-section-kicker">Overview</p>
+              <h3>Platform-wide community health</h3>
+              <p>Use this page to understand scale, visibility mix, launch momentum, and which communities deserve attention first.</p>
+            </div>
+            <div class="bo-action-row bo-action-row-tight">
+              <button type="button" (click)="exportCommunitiesToPdf()" class="detail-secondary-button">
+                <i class="fas fa-file-pdf"></i>
+                Export overview PDF
+              </button>
+              <button type="button" (click)="exportCommunitiesToExcel()" class="detail-secondary-button">
+                <i class="fas fa-file-excel"></i>
+                Export overview Excel
+              </button>
+            </div>
+          </div>
+
+          <div class="bo-overview-hero mt-5">
+            <article class="bo-overview-hero-main">
+              <div>
+                <p class="bo-stat-label">Current operating focus</p>
+                <h4>{{ overviewPriorityTitle }}</h4>
+                <p>{{ overviewPriorityCopy }}</p>
+              </div>
+              <div class="bo-focus-meta">
+                <span class="bo-focus-pill">{{ communities.length }} total communities</span>
+                <span class="bo-focus-pill">{{ launchedLast30DaysCount }} launched in 30 days</span>
+                <span class="bo-focus-pill">{{ brandingCoveragePercent }}% branded</span>
+              </div>
+            </article>
+
+            <article class="bo-overview-hero-side">
+              <p class="bo-stat-label">Fast read</p>
+              <div class="bo-overview-hero-side-grid">
+                <div>
+                  <span>Largest share</span>
+                  <strong>{{ topCommunitySharePercent }}%</strong>
+                </div>
+                <div>
+                  <span>Public mix</span>
+                  <strong>{{ publicCommunityPercent }}%</strong>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <div class="bo-overview-grid mt-5">
+            <article class="bo-overview-card bo-overview-card-animated" style="--overview-delay: 0s;">
+              <p class="bo-stat-label">Total communities</p>
+              <strong>{{ communities.length }}</strong>
+              <span>Every community currently available to the admin workspace.</span>
+              <div class="bo-overview-meter">
+                <div class="bo-overview-meter-bar" [style.width.%]="100"></div>
+              </div>
+            </article>
+            <article class="bo-overview-card bo-overview-card-animated" style="--overview-delay: 0.06s;">
+              <p class="bo-stat-label">Average size</p>
+              <strong>{{ averageMembersPerCommunity }}</strong>
+              <span>Average members per community across the current platform footprint.</span>
+              <div class="bo-overview-meter">
+                <div class="bo-overview-meter-bar" [style.width.%]="publicCommunityPercent"></div>
+              </div>
+            </article>
+            <article class="bo-overview-card bo-overview-card-animated" style="--overview-delay: 0.12s;">
+              <p class="bo-stat-label">Brand coverage</p>
+              <strong>{{ communitiesWithBrandingCount }}</strong>
+              <span>{{ communitiesWithoutBrandingCount }} communities still need a banner or icon.</span>
+              <div class="bo-overview-meter">
+                <div class="bo-overview-meter-bar" [style.width.%]="brandingCoveragePercent"></div>
+              </div>
+            </article>
+            <article class="bo-overview-card bo-overview-card-animated" style="--overview-delay: 0.18s;">
+              <p class="bo-stat-label">Visibility split</p>
+              <strong>{{ publicCommunityCount }}/{{ privateCommunityCount }}</strong>
+              <span>Public communities first, with private spaces tracked separately for tighter moderation.</span>
+              <div class="bo-overview-meter">
+                <div class="bo-overview-meter-bar" [style.width.%]="publicCommunityPercent"></div>
+              </div>
+            </article>
+          </div>
+
+          <div class="bo-overview-focus-grid mt-5">
+            <article class="bo-overview-focus-card bo-overview-card-animated" style="--overview-delay: 0.08s;">
+              <div>
+                <p class="bo-stat-label">Priority focus</p>
+                <h4>{{ selectedCommunity?.name || largestCommunity?.name || 'No community selected yet' }}</h4>
+                <span>
+                  {{ selectedCommunity
+                    ? 'This is the community currently in focus across the workspace. Use Communities or Content Ops to go deeper.'
+                    : (largestCommunity ? 'The largest active community is a strong candidate for your next operational review.' : 'Create or load communities to start building a real operating picture.') }}
+                </span>
+              </div>
+              <div class="bo-focus-meta" *ngIf="selectedCommunity || largestCommunity as focusCommunity">
+                <span class="bo-focus-pill">{{ communityTypeLabel(focusCommunity.type) }}</span>
+                <span class="bo-focus-pill">{{ focusCommunity.memberCount }} members</span>
+                <span class="bo-focus-pill">c/{{ focusCommunity.slug }}</span>
+              </div>
+            </article>
+
+            <article class="bo-overview-focus-card bo-overview-card-animated" style="--overview-delay: 0.14s;">
+              <div>
+                <p class="bo-stat-label">Latest launch</p>
+                <h4>{{ latestCommunity?.name || 'No recent community yet' }}</h4>
+                <span>
+                  {{ latestCommunity
+                    ? 'Newest community created on ' + (latestCommunity.createdAt | date:'mediumDate') + '. Review branding and setup before it grows.'
+                    : 'Once communities are created, their launch cadence will show up here.' }}
+                </span>
+              </div>
+              <div class="bo-focus-meta" *ngIf="latestCommunity">
+                <span class="bo-focus-pill">{{ communityTypeLabel(latestCommunity.type) }}</span>
+                <span class="bo-focus-pill">c/{{ latestCommunity.slug }}</span>
+              </div>
+            </article>
+
+            <article class="bo-overview-focus-card bo-overview-card-animated" style="--overview-delay: 0.2s;">
+              <div>
+                <p class="bo-stat-label">Workflow guide</p>
+                <h4>Use each tab with intent</h4>
+                <span>Overview is for health and priorities, Communities is for setup and staffing, and Content Ops is for rules, flairs, posts, and moderation.</span>
+              </div>
+            </article>
+          </div>
+
+          <div class="bo-overview-charts mt-5">
+            <article class="bo-chart-card">
+              <div class="bo-surface-head">
+                <div>
+                  <p class="bo-section-kicker">Visibility mix</p>
+                  <h3>Public vs private communities</h3>
+                  <p>Real distribution based on current backend community entities.</p>
+                </div>
+              </div>
+              <div class="bo-chart-wrap">
+                <canvas #overviewTypeChart aria-label="Community type distribution chart"></canvas>
+              </div>
+            </article>
+
+            <article class="bo-chart-card">
+              <div class="bo-surface-head">
+                <div>
+                  <p class="bo-section-kicker">Creation cadence</p>
+                  <h3>New communities over time</h3>
+                  <p>Communities created in the last six months using real `createdAt` values.</p>
+                </div>
+              </div>
+              <div class="bo-chart-wrap bo-chart-wrap-bar">
+                <canvas #overviewGrowthChart aria-label="Community creation trend chart"></canvas>
+              </div>
+            </article>
+          </div>
+
+          <div class="bo-overview-watchlist mt-5">
+            <article class="bo-chart-card bo-overview-card-animated" style="--overview-delay: 0.12s;">
+              <div class="bo-surface-head">
+                <div>
+                  <p class="bo-section-kicker">Scale watchlist</p>
+                  <h3>Largest communities</h3>
+                  <p>These communities carry the most member volume right now.</p>
+                </div>
+              </div>
+              <div class="bo-ranking-list">
+                <div *ngFor="let community of topCommunitiesByMembers; let index = index" class="bo-ranking-item">
+                  <div>
+                    <span class="bo-ranking-index">#{{ index + 1 }}</span>
+                    <strong>{{ community.name }}</strong>
+                    <p>c/{{ community.slug }}</p>
+                  </div>
+                  <span class="bo-ranking-value">{{ community.memberCount }} members</span>
+                </div>
+              </div>
+            </article>
+
+            <article class="bo-chart-card bo-overview-card-animated" style="--overview-delay: 0.18s;">
+              <div class="bo-surface-head">
+                <div>
+                  <p class="bo-section-kicker">Launch watchlist</p>
+                  <h3>Newest communities</h3>
+                  <p>These are the freshest launches worth checking for setup quality.</p>
+                </div>
+              </div>
+              <div class="bo-ranking-list">
+                <div *ngFor="let community of newestCommunities" class="bo-ranking-item">
+                  <div>
+                    <strong>{{ community.name }}</strong>
+                    <p>{{ communityTypeLabel(community.type) }} • c/{{ community.slug }}</p>
+                  </div>
+                  <span class="bo-ranking-value">{{ community.createdAt | date:'mediumDate' }}</span>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section *ngIf="isContentMode" class="bo-surface bo-content-selector">
+          <div class="bo-surface-head bo-surface-head-wide">
+            <div>
+              <p class="bo-section-kicker">Moderation scope</p>
+              <h3>Choose the community you want to moderate</h3>
+              <p>This selector is intentionally different from the Communities page: it is optimized for jumping straight into rules, flairs, and posts.</p>
+            </div>
+            <div class="bo-action-row bo-action-row-tight">
+              <span class="bo-section-chip">{{ selectedCommunityDisplayName }}</span>
+              <button type="button" (click)="exportPostsToPdf()" [disabled]="!selectedCommunity" class="detail-secondary-button">
+                <i class="fas fa-file-pdf"></i>
+                Export content PDF
+              </button>
+              <button type="button" (click)="exportPostsToExcel()" [disabled]="!selectedCommunity" class="detail-secondary-button">
+                <i class="fas fa-file-excel"></i>
+                Export content Excel
+              </button>
+            </div>
+          </div>
+
+          <div class="bo-content-selector-bar mt-5">
+            <label class="bo-field">
+              <span class="bo-field-label">Find a moderation target</span>
+              <div class="bo-search-input-wrap bo-search-input-wrap-accent">
+                <i class="fas fa-shield-halved"></i>
+                <input
+                  id="bo-content-community-search"
+                  [(ngModel)]="search"
+                  (ngModelChange)="onCommunitySearchChange()"
+                  name="contentCommunitySearch"
+                  type="search"
+                  aria-label="Find community for content moderation"
+                  autocomplete="off"
+                  placeholder="Search the community whose posts or structure you want to moderate"
+                  class="bo-input bo-input-with-icon bo-input-strong"
+                >
+              </div>
+            </label>
+
+            <div class="bo-content-target-card">
+              <p class="bo-stat-label">Current target</p>
+              <strong>{{ selectedCommunityDisplayName }}</strong>
+              <span>{{ communitySelectionHint }}</span>
+              <div class="bo-content-target-meta">
+                <span class="bo-focus-pill">{{ filteredCommunities.length }} visible</span>
+                <span class="bo-focus-pill">{{ communities.length }} total</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bo-content-community-grid mt-5">
+            <button
+              type="button"
+              *ngFor="let community of paginatedContentCommunities; trackBy: trackByCommunityId"
+              class="bo-content-community-card"
+              [class.bo-content-community-card-active]="selectedCommunity?.id === community.id"
+              (click)="selectCommunity(community)"
+            >
+              <div class="flex items-center gap-3">
+                <ng-container *ngIf="community.iconUrl; else contentCommunityFallback">
+                  <img [src]="community.iconUrl" [alt]="community.name + ' icon'" class="bo-content-community-avatar">
+                </ng-container>
+                <ng-template #contentCommunityFallback>
+                  <div class="bo-content-community-avatar bo-content-community-avatar-fallback" [ngClass]="community.type === 'PRIVATE' ? 'bo-content-community-avatar-private' : 'bo-content-community-avatar-public'">
+                    {{ communityInitial(community) }}
+                  </div>
+                </ng-template>
+                <div class="min-w-0 text-left">
+                  <strong>{{ community.name }}</strong>
+                  <p>c/{{ community.slug }}</p>
+                </div>
+              </div>
+              <div class="bo-directory-meta mt-3">
+                <span>{{ community.memberCount }} members</span>
+                <span>{{ communityTypeLabel(community.type) }}</span>
+              </div>
+              <div class="bo-content-community-template">
+                <span><i class="fas fa-scroll"></i> {{ community.id === selectedCommunity?.id ? rules.length : 'Rules' }}</span>
+                <span><i class="fas fa-tags"></i> {{ community.id === selectedCommunity?.id ? flairs.length : 'Flairs' }}</span>
+                <span><i class="fas fa-file-lines"></i> {{ community.id === selectedCommunity?.id ? posts.length : 'Posts' }}</span>
+              </div>
+            </button>
+          </div>
+
+          <div class="admin-pagination" *ngIf="filteredCommunities.length > contentItemsPerPage">
+            <app-pagination
+              [totalItems]="filteredCommunities.length"
+              [itemsPerPage]="contentItemsPerPage"
+              [currentPage]="contentCurrentPage"
+              [variant]="'admin'"
+              (pageChange)="onContentPageChange($event)"
+            ></app-pagination>
+          </div>
+
+          <div *ngIf="!filteredCommunities.length" class="bo-empty-state bo-empty-state-compact mt-5">
+            <div class="bo-empty-icon bo-empty-icon-muted">
+              <i class="fas fa-shield-halved"></i>
+            </div>
+            <h3>No moderation targets matched</h3>
+            <p>Try a broader search term to see the full community list again.</p>
+          </div>
+        </section>
+
+        <section *ngIf="!selectedCommunity && !isOverviewMode" class="bo-empty-state bo-empty-state-large">
+          <div class="bo-empty-icon">
+            <i class="fas fa-compass"></i>
+          </div>
+          <h2>{{ isContentMode ? 'Choose a moderation target to open content operations' : 'Select a community to open the workspace' }}</h2>
+          <p>
+            {{ isContentMode
+              ? 'Content Ops is intentionally focused on rules, flairs, and posts. Pick a community and the moderation workspace will load.'
+              : 'Once you choose a space, this page turns into a focused view for community setup and member management.' }}
+          </p>
+          <button type="button" (click)="openCreateCommunityModal()" class="detail-primary-button">
+            <i class="fas fa-plus"></i>
+            Create a new community
+          </button>
+        </section>
+
+        <ng-container *ngIf="selectedCommunity">
+          <nav *ngIf="!isOverviewMode" class="bo-anchor-nav">
+            <a *ngIf="isCommunitiesMode" href="#community-setup" class="bo-anchor-link">Setup</a>
+            <a *ngIf="isCommunitiesMode" href="#community-members" class="bo-anchor-link">Members</a>
+            <a *ngIf="isContentMode" href="#community-governance" class="bo-anchor-link">Rules & flairs</a>
+            <a *ngIf="isContentMode" href="#community-publishing" class="bo-anchor-link">Posts</a>
+          </nav>
+
+          <section *ngIf="isOverviewMode && selectedCommunity" class="bo-surface">
+            <div class="bo-surface-head">
+              <div>
+                <p class="bo-section-kicker">Selected community snapshot</p>
+                <h3>{{ selectedCommunity.name }}</h3>
+                <p>High-level health for the currently selected community, without dropping you into the heavier management tools.</p>
+              </div>
+              <div class="bo-action-row bo-action-row-tight">
+                <span class="bo-section-chip bo-section-chip-success">{{ selectedCommunityReadinessLabel }}</span>
+                <button type="button" (click)="exportSelectedCommunityFullPdf()" [disabled]="exportingCommunityReport" class="detail-secondary-button">
+                  <i class="fas fa-file-pdf"></i>
+                  {{ exportingCommunityReport ? 'Generating...' : 'Export selected PDF' }}
+                </button>
+              </div>
+            </div>
+
+            <div class="bo-overview-grid mt-5">
+              <article class="bo-overview-card">
+                <p class="bo-stat-label">Readiness</p>
+                <strong>{{ selectedCommunityReadinessScore }}/4</strong>
+                <span>{{ selectedCommunityReadinessPercent }}% of the basic setup is complete.</span>
+              </article>
+
+              <article class="bo-overview-card">
+                <p class="bo-stat-label">Moderation coverage</p>
+                <strong>{{ selectedModeratorCount }}</strong>
+                <span>{{ selectedModeratorCount === 1 ? 'Moderator or creator available.' : 'Moderators or creators available.' }}</span>
+              </article>
+
+              <article class="bo-overview-card">
+                <p class="bo-stat-label">Publishing volume</p>
+                <strong>{{ posts.length }}</strong>
+                <span>{{ activePostCount }} active and {{ softDeletedPostCount }} removed posts in the current view.</span>
+              </article>
+
+              <article class="bo-overview-card">
+                <p class="bo-stat-label">Structure</p>
+                <strong>{{ rules.length + flairs.length }}</strong>
+                <span>{{ rules.length }} rules and {{ flairs.length }} flairs currently support this space.</span>
+              </article>
+            </div>
+
+            <div class="bo-overview-notes mt-5">
+              <div class="bo-overview-note" [class.bo-overview-note-attention]="!selectedCommunityHasBranding">
+                <i class="fas" [ngClass]="selectedCommunityHasBranding ? 'fa-image' : 'fa-triangle-exclamation'"></i>
+                <div>
+                  <p>Brand identity</p>
+                  <span>{{ selectedCommunityHasBranding ? 'Banner or icon is already set.' : 'Add a banner or icon to make the community easier to recognize.' }}</span>
+                </div>
+              </div>
+
+              <div class="bo-overview-note" [class.bo-overview-note-attention]="rules.length === 0">
+                <i class="fas" [ngClass]="rules.length ? 'fa-scroll' : 'fa-triangle-exclamation'"></i>
+                <div>
+                  <p>Governance</p>
+                  <span>{{ rules.length ? 'Rules are defined for this community.' : 'Rules are still missing, so moderation decisions may feel inconsistent.' }}</span>
+                </div>
+              </div>
+
+              <div class="bo-overview-note" [class.bo-overview-note-attention]="flairs.length === 0">
+                <i class="fas" [ngClass]="flairs.length ? 'fa-tags' : 'fa-triangle-exclamation'"></i>
+                <div>
+                  <p>Content labeling</p>
+                  <span>{{ flairs.length ? 'Flairs are available to guide publishing.' : 'No flairs yet, so posts are harder to scan and sort.' }}</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section *ngIf="!isOverviewMode" id="community-spotlight" class="bo-surface bo-community-spotlight">
+            <div class="bo-community-banner" [style.backgroundColor]="previewBannerColor(selectedCommunity.name)">
+              <img *ngIf="selectedCommunity.bannerUrl" [src]="selectedCommunity.bannerUrl" [alt]="selectedCommunity.name + ' banner'" class="bo-community-banner-image">
+              <div class="bo-community-banner-overlay"></div>
+            </div>
+
+            <div class="bo-community-spotlight-body">
+              <div class="bo-community-spotlight-main">
+                <div class="bo-community-identity">
+                  <ng-container *ngIf="selectedCommunity.iconUrl; else selectedCommunityFallback">
+                    <img [src]="selectedCommunity.iconUrl" [alt]="selectedCommunity.name + ' icon'" class="bo-community-identity-avatar">
+                  </ng-container>
+                  <ng-template #selectedCommunityFallback>
+                    <div class="bo-community-identity-avatar bo-community-identity-avatar-fallback">{{ selectedCommunityInitial }}</div>
+                  </ng-template>
+
+                  <div class="min-w-0">
+                    <div class="bo-pill-row">
+                      <span class="bo-focus-pill">{{ communityTypeLabel(selectedCommunity.type) }}</span>
+                      <span class="bo-focus-pill">c/{{ selectedCommunity.slug }}</span>
+                      <span *ngIf="selectedCommunity.userRole" class="bo-focus-pill">{{ roleLabel(selectedCommunity.userRole) }}</span>
+                      <span class="bo-focus-pill">{{ selectedCommunity.createdAt | date:'mediumDate' }}</span>
+                    </div>
+
+                    <h2>{{ selectedCommunity.name }}</h2>
+                    <p class="bo-community-spotlight-copy">{{ selectedCommunity.description }}</p>
+                  </div>
+                </div>
+
+                <div class="bo-action-row">
+                  <button type="button" (click)="openCommunity(selectedCommunity)" class="bo-hero-action bo-hero-action-primary">
+                    <i class="fas fa-arrow-up-right-from-square"></i>
+                    Open front office
+                  </button>
+                  <button type="button" (click)="openCreatePostModal()" [disabled]="!canCreatePostInSelectedCommunity" class="bo-hero-action bo-hero-action-secondary">
+                    <i class="fas fa-pen-to-square"></i>
+                    Create post
+                  </button>
+                  <button type="button" (click)="exportSelectedCommunityFullPdf()" [disabled]="exportingCommunityReport" class="bo-hero-action bo-hero-action-secondary">
+                    <i class="fas fa-file-lines"></i>
+                    {{ exportingCommunityReport ? 'Generating report...' : 'Export dossier' }}
+                  </button>
+                  <button type="button" (click)="refreshSelectedWorkspace()" class="bo-hero-action bo-hero-action-ghost">
+                    <i class="fas fa-rotate-right"></i>
+                    Refresh workspace
+                  </button>
+                </div>
+              </div>
+
+              <aside class="bo-spotlight-aside">
+                <div class="bo-stat-card-grid">
+                  <article class="bo-stat-card">
+                    <span class="bo-stat-label">Members</span>
+                    <strong>{{ selectedCommunity.memberCount }}</strong>
+                  </article>
+                  <article class="bo-stat-card">
+                    <span class="bo-stat-label">Posts</span>
+                    <strong>{{ posts.length }}</strong>
+                  </article>
+                  <article class="bo-stat-card">
+                    <span class="bo-stat-label">Rules</span>
+                    <strong>{{ rules.length }}</strong>
+                  </article>
+                  <article class="bo-stat-card">
+                    <span class="bo-stat-label">Flairs</span>
+                    <strong>{{ flairs.length }}</strong>
+                  </article>
+                </div>
+
+                <div class="bo-health-card">
+                  <div class="flex items-center justify-between gap-3">
+                    <div>
+                      <p class="bo-section-kicker">Health snapshot</p>
+                      <h3>{{ selectedCommunityReadinessLabel }}</h3>
+                    </div>
+                    <span class="bo-section-chip">{{ selectedCommunityReadinessScore }}/4</span>
+                  </div>
+
+                  <div class="bo-progress-track mt-4">
+                    <div class="bo-progress-bar" [style.width.%]="selectedCommunityReadinessPercent"></div>
+                  </div>
+
+                  <div class="bo-health-checks">
+                    <div class="bo-health-item" [class.bo-health-item-done]="selectedCommunityHasBranding">
+                      <i class="fas" [ngClass]="selectedCommunityHasBranding ? 'fa-circle-check' : 'fa-circle'"></i>
+                      <span>Branding assets added</span>
+                    </div>
+                    <div class="bo-health-item" [class.bo-health-item-done]="rules.length > 0">
+                      <i class="fas" [ngClass]="rules.length > 0 ? 'fa-circle-check' : 'fa-circle'"></i>
+                      <span>Rules defined</span>
+                    </div>
+                    <div class="bo-health-item" [class.bo-health-item-done]="flairs.length > 0">
+                      <i class="fas" [ngClass]="flairs.length > 0 ? 'fa-circle-check' : 'fa-circle'"></i>
+                      <span>Flairs available</span>
+                    </div>
+                    <div class="bo-health-item" [class.bo-health-item-done]="selectedModeratorCount > 0">
+                      <i class="fas" [ngClass]="selectedModeratorCount > 0 ? 'fa-circle-check' : 'fa-circle'"></i>
+                      <span>Moderation coverage present</span>
+                    </div>
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </section>
+
+          <div *ngIf="isCommunitiesMode" class="bo-two-column-grid">
+            <section id="community-setup" class="bo-surface">
+              <div class="bo-surface-head">
+                <div>
+                  <p class="bo-section-kicker">Setup</p>
+                  <h3>Identity and visibility</h3>
+                  <p>Keep the community readable, searchable, and aligned with the front-office experience.</p>
+                </div>
+                <div class="bo-action-row bo-action-row-tight">
+                  <span class="bo-section-chip" [ngClass]="selectedCommunityHasChanges ? 'bo-section-chip-attention' : ''">
+                    {{ selectedCommunityHasChanges ? 'Unsaved changes' : 'In sync' }}
+                  </span>
+                  <button type="button" (click)="exportSelectedCommunityFullPdf()" [disabled]="exportingCommunityReport" class="detail-secondary-button">
+                    <i class="fas fa-file-pdf"></i>
+                    {{ exportingCommunityReport ? 'Generating...' : 'Export community PDF' }}
+                  </button>
+                  <button type="button" (click)="exportCommunitiesToExcel()" class="detail-secondary-button">
+                    <i class="fas fa-file-excel"></i>
+                    Export directory Excel
+                  </button>
+                </div>
+              </div>
+
+              <div *ngIf="updateError" class="bo-notice bo-notice-danger mt-5">{{ updateError }}</div>
+              <div *ngIf="updateSuccess" class="bo-notice bo-notice-success mt-5">{{ updateSuccess }}</div>
+
+              <div class="bo-form-grid mt-6">
+                <label class="bo-field bo-field-span-2">
+                  <span class="bo-field-label">Community name</span>
+                  <input
+                    id="bo-community-name"
+                    [(ngModel)]="editName"
+                    name="editCommunityName"
+                    maxlength="80"
+                    aria-label="Community name"
+                    autocomplete="off"
+                    (blur)="touchEditField('name')"
+                    [class.bo-input-invalid]="shouldShowEditFieldError('name')"
+                    class="bo-input"
+                  >
+                  <span class="bo-field-help">Short, memorable names are easier to recognize in feeds and search.</span>
+                  <span class="bo-field-counter">{{ editName.trim().length }}/80</span>
+                  <span *ngIf="shouldShowEditFieldError('name')" class="bo-field-error">{{ editFieldError('name') }}</span>
+                </label>
+
+                <label class="bo-field bo-field-span-2">
+                  <span class="bo-field-label">Description</span>
+                  <textarea
+                    id="bo-community-description"
+                    [(ngModel)]="editDescription"
+                    name="editCommunityDescription"
+                    rows="4"
+                    maxlength="1000"
+                    aria-label="Community description"
+                    (blur)="touchEditField('description')"
+                    [class.bo-input-invalid]="shouldShowEditFieldError('description')"
+                    class="bo-input bo-textarea"
+                  ></textarea>
+                  <span class="bo-field-help">Explain who this space is for, what belongs here, and what good participation looks like.</span>
+                  <span class="bo-field-counter">{{ editDescription.trim().length }}/1000</span>
+                  <span *ngIf="shouldShowEditFieldError('description')" class="bo-field-error">{{ editFieldError('description') }}</span>
+                </label>
+
+                <div class="bo-field bo-field-span-2">
+                  <span class="bo-field-label">Visibility</span>
+                  <div class="bo-choice-grid">
+                    <button type="button" (click)="editType = 'PUBLIC'" class="create-choice-card" [ngClass]="editType === 'PUBLIC' ? 'create-choice-card-active' : 'create-choice-card-idle'">
+                      <div class="flex items-center justify-between gap-3">
+                        <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-teal/10 text-brand-teal"><i class="fas fa-earth-africa"></i></span>
+                        <span class="bo-mini-chip">Discovery</span>
+                      </div>
+                      <p class="mt-4 text-base font-black text-slate-950">Public</p>
+                      <p class="mt-2 text-sm leading-6 text-slate-500">Appears in discovery and grows through browsing.</p>
+                    </button>
+
+                    <button type="button" (click)="editType = 'PRIVATE'" class="create-choice-card" [ngClass]="editType === 'PRIVATE' ? 'create-choice-card-active' : 'create-choice-card-idle'">
+                      <div class="flex items-center justify-between gap-3">
+                        <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-orange/10 text-brand-orange"><i class="fas fa-lock"></i></span>
+                        <span class="bo-mini-chip">Curated</span>
+                      </div>
+                      <p class="mt-4 text-base font-black text-slate-950">Private</p>
+                      <p class="mt-2 text-sm leading-6 text-slate-500">Best for invite-only groups and tighter moderation.</p>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="bo-field bo-field-span-2">
+                  <span class="bo-field-label">Community handle</span>
+                  <div class="bo-readonly-card">c/{{ selectedCommunity.slug }}</div>
+                </div>
+
+                <div class="create-upload-card">
+                  <label class="bo-field-label" for="bo-community-banner-url">Banner image</label>
+                  <input [id]="bannerInputId" type="file" accept="image/*" (change)="onImagePicked($event, 'bannerUrl')" class="hidden">
+                  <div class="bo-upload-row">
+                    <label [for]="bannerInputId" class="create-upload-button"><i class="fas fa-upload text-brand-teal"></i>Upload banner</label>
+                    <button *ngIf="editBannerUrl" type="button" (click)="clearImage('bannerUrl')" class="create-remove-button">Remove</button>
+                  </div>
+                  <input id="bo-community-banner-url" [(ngModel)]="editBannerUrl" name="editCommunityBannerUrl" type="url" aria-label="Community banner URL" placeholder="Paste a banner URL or upload an image" class="bo-input mt-3">
+                  <p class="bo-field-help">Wide hero image used in the selected community header.</p>
+                  <div class="bo-media-preview mt-4">
+                    <img *ngIf="editBannerUrl; else adminBannerFallback" [src]="editBannerUrl" alt="Banner preview" class="bo-banner-preview">
+                    <ng-template #adminBannerFallback>
+                      <div class="bo-banner-preview" [style.backgroundColor]="previewBannerColor(selectedCommunity.name)"></div>
+                    </ng-template>
+                  </div>
+                </div>
+
+                <div class="create-upload-card">
+                  <label class="bo-field-label" for="bo-community-icon-url">Icon image</label>
+                  <input [id]="iconInputId" type="file" accept="image/*" (change)="onImagePicked($event, 'iconUrl')" class="hidden">
+                  <div class="bo-upload-row">
+                    <label [for]="iconInputId" class="create-upload-button"><i class="fas fa-upload text-brand-teal"></i>Upload icon</label>
+                    <button *ngIf="editIconUrl" type="button" (click)="clearImage('iconUrl')" class="create-remove-button">Remove</button>
+                  </div>
+                  <input id="bo-community-icon-url" [(ngModel)]="editIconUrl" name="editCommunityIconUrl" type="url" aria-label="Community icon URL" placeholder="Paste an icon URL or upload an image" class="bo-input mt-3">
+                  <p class="bo-field-help">Square identity image used in lists and detail headers.</p>
+                  <div class="bo-icon-preview-card mt-4">
+                    <ng-container *ngIf="editIconUrl; else adminIconFallback">
+                      <img [src]="editIconUrl" alt="Icon preview" class="bo-icon-preview">
+                    </ng-container>
+                    <ng-template #adminIconFallback>
+                      <div class="bo-icon-preview bo-icon-preview-fallback">{{ selectedCommunityInitial }}</div>
+                    </ng-template>
+                    <div>
+                      <p class="font-black text-slate-950">Identity preview</p>
+                      <p class="mt-1 text-xs leading-5 text-slate-500">This should remain legible even at small sizes.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bo-action-row mt-6">
+                <button type="button" (click)="saveCommunity()" [disabled]="savingCommunity" class="detail-primary-button">
+                  <i class="fas fa-floppy-disk"></i>
+                  {{ savingCommunity ? 'Saving...' : 'Save changes' }}
+                </button>
+                <button type="button" (click)="resetEditForm()" class="detail-secondary-button">
+                  <i class="fas fa-arrow-rotate-left"></i>
+                  Reset
+                </button>
+                <button type="button" (click)="softDeleteSelectedCommunity()" [disabled]="deletingCommunity || hardDeletingCommunity" class="bo-danger-button bo-warning-button">
+                  <i class="fas fa-box-archive"></i>
+                  {{ deletingCommunity ? 'Archiving...' : 'Archive community' }}
+                </button>
+                <button type="button" (click)="hardDeleteSelectedCommunity()" [disabled]="deletingCommunity || hardDeletingCommunity" class="bo-danger-button">
+                  <i class="fas fa-trash-can"></i>
+                  {{ hardDeletingCommunity ? 'Deleting...' : 'Delete permanently' }}
+                </button>
+              </div>
+            </section>
+
+            <section id="community-members" class="bo-surface">
+              <div class="bo-surface-head">
+                <div>
+                  <p class="bo-section-kicker">Members</p>
+                  <h3>Coverage and access</h3>
+                  <p>See who can moderate, who joined recently, and whether the community is staffed well enough.</p>
+                </div>
+                <button type="button" (click)="loadMembers()" class="detail-secondary-button">
+                  <i class="fas fa-rotate-right"></i>
+                  Refresh members
+                </button>
+              </div>
+
+              <div class="bo-mini-stats mt-5">
+                <div class="bo-mini-stat">
+                  <span>Moderators</span>
+                  <strong>{{ selectedModeratorCount }}</strong>
+                </div>
+                <div class="bo-mini-stat">
+                  <span>Total members</span>
+                  <strong>{{ selectedCommunity.memberCount }}</strong>
+                </div>
+                <div class="bo-mini-stat">
+                  <span>Visible rows</span>
+                  <strong>{{ filteredMembers.length }}</strong>
+                </div>
+              </div>
+
+              <div class="bo-search-stack mt-5">
+                <label class="bo-field">
+                  <span class="bo-field-label">Search members</span>
+                  <div class="bo-search-input-wrap">
+                    <i class="fas fa-search"></i>
+                    <input id="bo-community-member-search" [(ngModel)]="memberSearch" name="memberSearch" type="search" aria-label="Search community members" autocomplete="off" placeholder="Search by name or role" class="bo-input bo-input-with-icon">
+                  </div>
+                </label>
+              </div>
+
+              <div *ngIf="membersError" class="bo-notice bo-notice-danger mt-4">{{ membersError }}</div>
+              <div *ngIf="memberActionError" class="bo-notice bo-notice-danger mt-4">{{ memberActionError }}</div>
+              <div *ngIf="memberActionSuccess" class="bo-notice bo-notice-success mt-4">{{ memberActionSuccess }}</div>
+
+              <div *ngIf="membersLoading" class="bo-inline-loading mt-5">
+                <i class="fas fa-spinner fa-spin"></i>
+                Loading members...
+              </div>
+
+              <div *ngIf="!membersLoading" class="bo-scroll-list mt-5">
+                <article *ngFor="let member of filteredMembers; trackBy: trackByMemberId" class="bo-list-card">
+                  <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div class="flex items-start gap-3">
+                      <div class="bo-member-avatar">{{ memberInitial(member.name) }}</div>
+                      <div class="min-w-0">
+                        <div class="flex flex-wrap items-center gap-2">
+                          <p class="text-sm font-black text-slate-950">{{ member.name }}</p>
+                          <span class="bo-tone-pill" [ngClass]="member.role === 'CREATOR' ? 'bo-tone-pill-warm' : (member.role === 'MODERATOR' ? 'bo-tone-pill-cool' : 'bo-tone-pill-neutral')">
+                            {{ roleLabel(member.role) }}
+                          </span>
+                        </div>
+                        <p class="mt-1 text-xs text-slate-500">Joined {{ member.joinedAt | date:'mediumDate' }}</p>
+                      </div>
+                    </div>
+
+                    <div class="bo-action-row bo-action-row-tight">
+                      <button type="button" (click)="openAuthorInUsers(member.userId)" class="detail-secondary-button">
+                        <i class="fas fa-user"></i>
+                        Open user
+                      </button>
+                      <button type="button" (click)="removeMember(member)" [disabled]="!canRemoveMember(member) || removingMemberId === member.userId" class="bo-danger-button">
+                        <i class="fas fa-user-minus"></i>
+                        {{ removingMemberId === member.userId ? 'Removing...' : 'Remove' }}
+                      </button>
+                    </div>
+                  </div>
+                </article>
+
+                <div *ngIf="!filteredMembers.length" class="bo-empty-state bo-empty-state-compact">
+                  <div class="bo-empty-icon bo-empty-icon-muted">
+                    <i class="fas fa-users"></i>
+                  </div>
+                  <h3>No members found</h3>
+                  <p>Try a different keyword or refresh the directory.</p>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div *ngIf="isContentMode" id="community-governance" class="bo-two-column-grid">
+            <section class="bo-surface">
+              <div class="bo-surface-head">
+                <div>
+                  <p class="bo-section-kicker">Governance</p>
+                  <h3>Rules</h3>
+                  <p>Make expectations explicit so moderators do not have to improvise every decision.</p>
+                </div>
+                <span class="bo-section-chip">{{ rules.length }} total</span>
+              </div>
+
+              <div class="bo-form-stack mt-5">
+                <label class="bo-field">
+                  <span class="bo-field-label">New rule title</span>
+                  <input id="bo-new-rule-title" [(ngModel)]="newRuleTitle" name="newRuleTitle" maxlength="200" aria-label="New rule title" autocomplete="off" placeholder="Ex: Keep advice practical and respectful" class="bo-input">
+                  <span class="bo-field-help">Titles should be short enough to scan and specific enough to enforce.</span>
+                  <span class="bo-field-counter">{{ manageRuleTitleLength }}/200</span>
+                </label>
+
+                <label class="bo-field">
+                  <span class="bo-field-label">Rule details</span>
+                  <textarea id="bo-new-rule-description" [(ngModel)]="newRuleDescription" name="newRuleDescription" rows="3" maxlength="1000" aria-label="New rule description" placeholder="Clarify the edge cases, examples, or what moderators should do." class="bo-input bo-textarea"></textarea>
+                  <span class="bo-field-help">Optional, but useful when a title alone could be interpreted in multiple ways.</span>
+                  <span class="bo-field-counter">{{ manageRuleDescriptionLength }}/1000</span>
+                </label>
+              </div>
+
+              <div class="bo-action-row mt-4">
+                <button type="button" (click)="createRule()" [disabled]="creatingRule" class="detail-primary-button">
+                  <i class="fas fa-plus"></i>
+                  {{ creatingRule ? 'Adding...' : 'Add rule' }}
+                </button>
+                <span *ngIf="ruleError" class="bo-inline-error">{{ ruleError }}</span>
+              </div>
+
+              <div class="bo-scroll-list bo-scroll-list-medium mt-5">
+                <article *ngFor="let rule of rules; trackBy: trackByRuleId" class="bo-list-card">
+                  <div class="flex items-start justify-between gap-3" *ngIf="editingRuleId !== rule.id; else editRuleRow">
+                    <div class="min-w-0">
+                      <p class="text-sm font-black text-slate-950">{{ rule.ruleOrder }}. {{ rule.title }}</p>
+                      <p *ngIf="rule.description" class="mt-2 text-xs leading-5 text-slate-500">{{ rule.description }}</p>
+                    </div>
+                    <div class="bo-action-row bo-action-row-tight">
+                      <button type="button" (click)="startEditRule(rule)" class="detail-secondary-button">Edit</button>
+                      <button type="button" (click)="deleteRule(rule)" class="bo-danger-button">Delete</button>
+                    </div>
+                  </div>
+                  <ng-template #editRuleRow>
+                    <div class="space-y-3">
+                      <div class="grid grid-cols-1 gap-2 md:grid-cols-3">
+                        <div class="md:col-span-2">
+                          <label class="bo-field-label">Title</label>
+                          <input [(ngModel)]="editRuleTitle" maxlength="200" class="bo-input mt-1">
+                        </div>
+                        <div>
+                          <label class="bo-field-label">Order</label>
+                          <input [(ngModel)]="editRuleOrder" type="number" min="0" class="bo-input mt-1">
+                        </div>
+                      </div>
+                      <div>
+                        <label class="bo-field-label">Description</label>
+                        <textarea [(ngModel)]="editRuleDescription" rows="3" maxlength="1000" class="bo-input bo-textarea mt-1"></textarea>
+                      </div>
+                      <div class="bo-action-row bo-action-row-tight">
+                        <button type="button" (click)="saveRule(rule)" [disabled]="savingRuleId === rule.id" class="detail-primary-button">
+                          {{ savingRuleId === rule.id ? 'Saving...' : 'Save rule' }}
+                        </button>
+                        <button type="button" (click)="cancelEditRule()" class="detail-secondary-button">Cancel</button>
+                      </div>
+                    </div>
+                  </ng-template>
+                </article>
+
+                <div *ngIf="!rules.length" class="bo-empty-state bo-empty-state-compact">
+                  <div class="bo-empty-icon bo-empty-icon-muted">
+                    <i class="fas fa-scroll"></i>
+                  </div>
+                  <h3>No rules yet</h3>
+                  <p>Add a baseline so moderators and members share the same expectations.</p>
+                </div>
+              </div>
+            </section>
+
+            <section class="bo-surface">
+              <div class="bo-surface-head">
+                <div>
+                  <p class="bo-section-kicker">Taxonomy</p>
+                  <h3>Flairs</h3>
+                  <p>Give posts clear labels so the feed reads cleanly and moderation triage gets faster.</p>
+                </div>
+                <span class="bo-section-chip">{{ flairs.length }} total</span>
+              </div>
+
+              <div class="bo-form-grid mt-5">
+                <label class="bo-field bo-field-span-2">
+                  <span class="bo-field-label">Flair name</span>
+                  <input id="bo-new-flair-name" [(ngModel)]="newFlairName" name="newFlairName" maxlength="30" aria-label="New flair name" autocomplete="off" placeholder="Ex: Adoption help" class="bo-input">
+                  <span class="bo-field-help">Short labels are easier to spot in crowded feeds.</span>
+                  <span class="bo-field-counter">{{ manageFlairNameLength }}/30</span>
+                </label>
+
+                <label class="bo-field">
+                  <span class="bo-field-label">Background color</span>
+                  <input [(ngModel)]="newFlairColor" type="color" class="bo-color-input">
+                </label>
+
+                <label class="bo-field">
+                  <span class="bo-field-label">Text color</span>
+                  <input [(ngModel)]="newFlairTextColor" type="color" class="bo-color-input">
+                </label>
+              </div>
+
+              <div class="bo-action-row mt-4">
+                <button type="button" (click)="createFlair()" [disabled]="creatingFlair" class="detail-primary-button">
+                  <i class="fas fa-plus"></i>
+                  {{ creatingFlair ? 'Adding...' : 'Add flair' }}
+                </button>
+                <span class="bo-preview-pill" [style.backgroundColor]="newFlairColor" [style.color]="newFlairTextColor">{{ newFlairName || 'Preview flair' }}</span>
+                <span *ngIf="flairError" class="bo-inline-error">{{ flairError }}</span>
+              </div>
+
+              <div class="bo-scroll-list bo-scroll-list-medium mt-5">
+                <article *ngFor="let flair of flairs; trackBy: trackByFlairId" class="bo-list-card">
+                  <div class="flex flex-wrap items-center justify-between gap-3" *ngIf="editingFlairId !== flair.id; else editFlairRow">
+                    <div class="flex flex-wrap items-center gap-3">
+                      <span class="bo-preview-pill" [style.backgroundColor]="flair.color" [style.color]="flair.textColor">{{ flair.name }}</span>
+                      <span class="text-xs text-slate-500">{{ flair.color }} • {{ flair.textColor }}</span>
+                    </div>
+                    <div class="bo-action-row bo-action-row-tight">
+                      <button type="button" (click)="startEditFlair(flair)" class="detail-secondary-button">Edit</button>
+                      <button type="button" (click)="deleteFlair(flair)" [disabled]="deletingFlairId === flair.id" class="bo-danger-button">
+                        {{ deletingFlairId === flair.id ? 'Deleting...' : 'Delete' }}
+                      </button>
+                    </div>
+                  </div>
+                  <ng-template #editFlairRow>
+                    <div class="space-y-3">
+                      <div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_8rem_8rem]">
+                        <input [(ngModel)]="editFlairName" maxlength="30" placeholder="Flair name" class="bo-input">
+                        <label class="bo-field">
+                          <span class="bo-field-label">Background</span>
+                          <input [(ngModel)]="editFlairColor" type="color" class="bo-color-input">
+                        </label>
+                        <label class="bo-field">
+                          <span class="bo-field-label">Text</span>
+                          <input [(ngModel)]="editFlairTextColor" type="color" class="bo-color-input">
+                        </label>
+                      </div>
+                      <div class="flex flex-wrap items-center justify-between gap-3">
+                        <span class="bo-preview-pill" [style.backgroundColor]="editFlairColor" [style.color]="editFlairTextColor">{{ editFlairName || 'Preview flair' }}</span>
+                        <div class="bo-action-row bo-action-row-tight">
+                          <button type="button" (click)="saveFlair(flair)" [disabled]="savingFlairId === flair.id" class="detail-primary-button">
+                            {{ savingFlairId === flair.id ? 'Saving...' : 'Save flair' }}
+                          </button>
+                          <button type="button" (click)="cancelEditFlair()" class="detail-secondary-button">Cancel</button>
+                        </div>
+                      </div>
+                    </div>
+                  </ng-template>
+                </article>
+
+                <div *ngIf="!flairs.length" class="bo-empty-state bo-empty-state-compact">
+                  <div class="bo-empty-icon bo-empty-icon-muted">
+                    <i class="fas fa-tags"></i>
+                  </div>
+                  <h3>No flairs yet</h3>
+                  <p>Create a few starter labels so new content stays easy to sort.</p>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <section *ngIf="isContentMode" id="community-publishing" class="bo-surface">
+            <div class="bo-surface-head bo-surface-head-wide">
+              <div>
+                <p class="bo-section-kicker">Publishing and moderation</p>
+                <h3>Post workspace</h3>
+                <p>Review activity, inspect a post in context, and publish fresh content without leaving admin tools.</p>
+              </div>
+              <div class="bo-action-row bo-action-row-wrap">
+                <button type="button" (click)="openCreatePostModal()" [disabled]="!canCreatePostInSelectedCommunity" class="detail-primary-button">
+                  <i class="fas fa-plus"></i>
+                  Create post
+                </button>
+                <button type="button" (click)="loadPosts()" class="detail-secondary-button">
+                  <i class="fas fa-rotate-right"></i>
+                  Refresh posts
+                </button>
+                <button type="button" (click)="exportPostsToPdf()" class="detail-secondary-button">
+                  <i class="fas fa-file-pdf"></i>
+                  Export PDF
+                </button>
+                <button type="button" (click)="exportPostsToExcel()" class="detail-secondary-button">
+                  <i class="fas fa-file-excel"></i>
+                  Export Excel
+                </button>
+              </div>
+            </div>
+
+            <div class="bo-section-chip-row mt-5">
+              <span class="admin-entry-chip"><i class="fas fa-file-lines"></i>{{ filteredPosts.length }} visible</span>
+              <span class="admin-entry-chip"><i class="fas fa-circle-check"></i>{{ activePostCount }} active</span>
+              <span class="admin-entry-chip"><i class="fas fa-box-archive"></i>{{ softDeletedPostCount }} deleted</span>
+            </div>
+
+            <div class="bo-post-filters mt-5">
+              <label class="bo-field bo-field-span-2">
+                <span class="bo-field-label">Search posts</span>
+                <div class="bo-search-input-wrap">
+                  <i class="fas fa-search"></i>
+                  <input id="bo-post-search" [(ngModel)]="postSearch" name="postSearch" type="search" aria-label="Search posts" autocomplete="off" placeholder="Search title or content" class="bo-input bo-input-with-icon">
+                </div>
+              </label>
+              <label class="bo-field">
+                <span class="bo-field-label">Sort posts</span>
+                <select id="bo-post-sort" [(ngModel)]="sort" name="postSort" aria-label="Sort posts" (change)="loadPosts()" class="bo-input">
+                  <option value="HOT">Hot</option>
+                  <option value="NEW">New</option>
+                  <option value="TOP">Top</option>
+                  <option value="CONTROVERSIAL">Controversial</option>
+                </select>
+              </label>
+              <label class="bo-field">
+                <span class="bo-field-label">Filter by type</span>
+                <select id="bo-post-type" [(ngModel)]="postType" name="postTypeFilter" aria-label="Filter posts by type" (change)="loadPosts()" class="bo-input">
+                  <option value="">All post types</option>
+                  <option value="DISCUSSION">Discussion</option>
+                  <option value="QUESTION">Question</option>
+                </select>
+              </label>
+            </div>
+
+            <div *ngIf="createPostSuccess" class="bo-notice bo-notice-success mt-4">{{ createPostSuccess }}</div>
+            <div *ngIf="postsError" class="bo-notice bo-notice-danger mt-4">{{ postsError }}</div>
+            <div *ngIf="postActionError" class="bo-notice bo-notice-danger mt-4">{{ postActionError }}</div>
+
+            <div *ngIf="postsLoading" class="bo-inline-loading mt-5">
+              <i class="fas fa-spinner fa-spin"></i>
+              Loading posts...
+            </div>
+
+            <div *ngIf="!postsLoading" class="bo-post-workspace mt-5">
+              <div class="space-y-3">
+                <article *ngFor="let post of filteredPosts; trackBy: trackByPostId" class="bo-list-card bo-post-card" [class.bo-list-card-active]="selectedPost?.id === post.id" (click)="openPostDetails(post)">
+                  <div class="flex flex-col gap-4">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                      <div class="min-w-0">
+                        <div class="flex flex-wrap items-center gap-2">
+                          <span class="bo-tone-pill" [ngClass]="isSoftDeleted(post) ? 'bo-tone-pill-neutral' : 'bo-tone-pill-success'">
+                            {{ isSoftDeleted(post) ? 'Soft deleted' : 'Active' }}
+                          </span>
+                          <span class="bo-tone-pill bo-tone-pill-warm">{{ postTypeLabel(post.type) }}</span>
+                          <span *ngIf="post.flairName" class="bo-tone-pill bo-tone-pill-neutral">{{ post.flairName }}</span>
+                        </div>
+                        <h4 class="mt-3 text-base font-black leading-6 text-slate-950">{{ post.title }}</h4>
+                        <p class="mt-2 line-clamp-3 text-sm leading-6 text-slate-500">{{ post.content }}</p>
+                      </div>
+                      <p class="text-xs font-semibold text-slate-400">{{ post.createdAt | date:'mediumDate' }}</p>
+                    </div>
+
+                    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <div class="bo-directory-meta">
+                        <span>{{ getAuthorName(post.userId) }}</span>
+                        <span>{{ post.voteScore }} score</span>
+                        <span>{{ post.viewCount }} views</span>
+                        <span>{{ post.commentCount || 0 }} comments</span>
+                      </div>
+
+                      <div class="bo-action-row bo-action-row-tight">
+                        <button type="button" (click)="$event.stopPropagation(); openPostDetails(post)" class="detail-secondary-button">
+                          <i class="fas fa-eye"></i>
+                          Inspect
+                        </button>
+                        <button type="button" (click)="$event.stopPropagation(); softDeletePost(post)" [disabled]="deletingPostId === post.id || isSoftDeleted(post)" class="bo-danger-button bo-warning-button">
+                          {{ deletingPostId === post.id ? 'Deleting...' : 'Soft delete' }}
+                        </button>
+                        <button type="button" (click)="$event.stopPropagation(); hardDeletePost(post)" [disabled]="hardDeletingPostId === post.id" class="bo-danger-button">
+                          {{ hardDeletingPostId === post.id ? 'Deleting...' : 'Hard delete' }}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+
+                <div *ngIf="!filteredPosts.length" class="bo-empty-state bo-empty-state-compact">
+                  <div class="bo-empty-icon bo-empty-icon-muted">
+                    <i class="fas fa-file-circle-xmark"></i>
+                  </div>
+                  <h3>No posts in this view</h3>
+                  <p>Change the search or filters, or create a new post for this community.</p>
+                </div>
+              </div>
+
+              <aside class="bo-surface bo-post-inspector">
+                <div class="bo-surface-head">
+                  <div>
+                    <p class="bo-section-kicker">Inspector</p>
+                    <h3>Post details</h3>
+                    <p>Deep view for content, author, reach, and attached media.</p>
+                  </div>
+                  <span *ngIf="selectedPost" class="bo-section-chip" [ngClass]="isSoftDeleted(selectedPost) ? 'bo-section-chip-muted' : 'bo-section-chip-success'">
+                    {{ isSoftDeleted(selectedPost) ? 'Soft deleted' : 'Active' }}
+                  </span>
+                </div>
+
+                <div *ngIf="postDetailLoading" class="bo-inline-loading mt-5">
+                  <i class="fas fa-spinner fa-spin"></i>
+                  Loading post details...
+                </div>
+
+                <div *ngIf="!postDetailLoading && selectedPost; else noPostSelected" class="space-y-5 mt-5">
+                  <div>
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="bo-tone-pill bo-tone-pill-warm">{{ postTypeLabel(selectedPost.type) }}</span>
+                      <span *ngIf="selectedPost.flairName" class="bo-tone-pill bo-tone-pill-neutral">{{ selectedPost.flairName }}</span>
+                    </div>
+                    <h4 class="mt-3 text-lg font-black leading-7 text-slate-950">{{ selectedPost.title }}</h4>
+                  </div>
+
+                  <div class="bo-mini-stats">
+                    <div class="bo-mini-stat">
+                      <span>Created</span>
+                      <strong>{{ selectedPost.createdAt | date:'mediumDate' }}</strong>
+                    </div>
+                    <div class="bo-mini-stat">
+                      <span>Author</span>
+                      <strong>{{ getAuthorName(selectedPost.userId) }}</strong>
+                    </div>
+                    <div class="bo-mini-stat">
+                      <span>Engagement</span>
+                      <strong>{{ selectedPost.voteScore }} / {{ selectedPost.commentCount || 0 }}</strong>
+                    </div>
+                    <div class="bo-mini-stat">
+                      <span>Reach</span>
+                      <strong>{{ selectedPost.viewCount }} views</strong>
+                    </div>
+                  </div>
+
+                  <div *ngIf="selectedPost.imageUrl; else noPostImage" class="space-y-2">
+                    <p class="bo-field-label">Attached image</p>
+                    <img [src]="selectedPost.imageUrl" alt="Post media" class="bo-post-image">
+                  </div>
+
+                  <ng-template #noPostImage>
+                    <div class="bo-readonly-card">No media attached to this post.</div>
+                  </ng-template>
+
+                  <div>
+                    <p class="bo-field-label">Content</p>
+                    <div class="bo-content-panel">{{ selectedPost.content }}</div>
+                  </div>
+
+                  <button type="button" (click)="openAuthorInUsers(selectedPost.userId)" class="detail-secondary-button w-full justify-start">
+                    <i class="fas fa-user"></i>
+                    Open author in user management
+                  </button>
+                </div>
+
+                <ng-template #noPostSelected>
+                  <div class="bo-empty-state bo-empty-state-compact mt-5">
+                    <div class="bo-empty-icon bo-empty-icon-muted">
+                      <i class="fas fa-eye"></i>
+                    </div>
+                    <h3>No post selected</h3>
+                    <p>Choose a post from the list to inspect its details.</p>
+                  </div>
+                </ng-template>
+              </aside>
+            </div>
+          </section>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+
+
+
+
+</section>

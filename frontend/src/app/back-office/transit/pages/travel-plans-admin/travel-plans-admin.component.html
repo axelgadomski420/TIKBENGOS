@@ -1,0 +1,217 @@
+<section class="travel-plans-admin-page">
+  <app-transit-toast-container></app-transit-toast-container>
+  <app-transit-confirmation-dialog></app-transit-confirmation-dialog>
+
+  <header class="page-header">
+    <div class="header-left">
+      <p class="section-label">Transit Admin</p>
+      <h1>
+        <mat-icon>card_travel</mat-icon>
+        <span>Travel Plans</span>
+      </h1>
+      <p class="subtitle">Review and manage client travel requests.</p>
+    </div>
+
+    <div class="header-right">
+      <span class="stat-chip stat-chip-muted">
+        <mat-icon>assignment</mat-icon>
+        Total {{ totalPlans }}
+      </span>
+      <span class="stat-chip stat-chip-submitted">
+        <mat-icon>priority_high</mat-icon>
+        Submitted {{ submittedCount }}
+      </span>
+      <span class="stat-chip stat-chip-approved">
+        <mat-icon>check_circle</mat-icon>
+        Approved {{ approvedCount }}
+      </span>
+    </div>
+  </header>
+
+  <section class="mt-3 grid grid-cols-[minmax(0,1fr)_auto_auto_auto] items-center gap-2" aria-label="Travel plans action bar">
+    <div class="relative">
+      <i class="fas fa-search pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400"></i>
+      <input
+        id="travelPlanSearch"
+        type="search"
+        [value]="searchTerm"
+        (input)="onSearchChange($event)"
+        placeholder="Search by client, destination, country, origin, status, or pet"
+        class="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm text-slate-700 shadow-inner focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/20"
+      />
+    </div>
+
+    <button
+      type="button"
+      class="detail-secondary-button"
+      (click)="toggleFilters()"
+      [attr.aria-expanded]="showFilters"
+      aria-label="Toggle filters"
+    >
+      <i class="fas fa-filter"></i>
+      Filter
+    </button>
+
+    <button type="button" class="detail-secondary-button" (click)="exportFilteredPlansPdf()" [disabled]="loading || exportingPdf">
+      <i class="fas fa-file-pdf"></i>
+      {{ exportingPdf ? 'Generating PDF...' : 'Export PDF' }}
+    </button>
+
+    <button type="button" class="detail-secondary-button" (click)="exportFilteredPlansExcel()" [disabled]="loading || exportingExcel">
+      <i class="fas fa-file-excel"></i>
+      {{ exportingExcel ? 'Generating Excel...' : 'Export Excel' }}
+    </button>
+  </section>
+
+  <section *ngIf="showFilters" class="filters-row" aria-label="Travel plan status filters">
+    <select
+      (change)="setFilter($any($event.target).value)"
+      aria-label="Status filter"
+      class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/20"
+    >
+      <option *ngFor="let filter of filters" [value]="filter" [selected]="isFilterActive(filter)">
+        {{ filter === 'ALL' ? 'All states' : filterLabel(filter) }}
+      </option>
+    </select>
+
+    <label class="date-field" for="travelStartDateFilter">
+      <span>Start Date</span>
+      <input
+        id="travelStartDateFilter"
+        type="date"
+        [value]="startDateFilter"
+        (input)="onStartDateFilterChange($event)"
+      />
+    </label>
+
+    <label class="date-field" for="travelEndDateFilter">
+      <span>End Date</span>
+      <input
+        id="travelEndDateFilter"
+        type="date"
+        [value]="endDateFilter"
+        (input)="onEndDateFilterChange($event)"
+      />
+    </label>
+
+    <button type="button" class="detail-secondary-button" *ngIf="hasQuickFilters" (click)="clearQuickFilters()">
+      <i class="fas fa-rotate-left"></i>
+      Clear
+    </button>
+  </section>
+
+  <section class="plans-list" *ngIf="loading">
+    <article class="plan-row skeleton-row" *ngFor="let row of skeletonRows">
+      <div class="skeleton skeleton-avatar"></div>
+      <div class="skeleton-lines">
+        <div class="skeleton skeleton-line-lg"></div>
+        <div class="skeleton skeleton-line"></div>
+      </div>
+      <div class="skeleton skeleton-pill"></div>
+    </article>
+  </section>
+
+  <section class="state-card error" *ngIf="!loading && errorMessage">
+    <mat-icon>error_outline</mat-icon>
+    <h2>Unable to load travel plans</h2>
+    <p>{{ errorMessage }}</p>
+    <button type="button" class="btn btn-secondary" (click)="retry()">
+      <mat-icon>refresh</mat-icon>
+      <span>Retry</span>
+    </button>
+  </section>
+
+  <section class="state-card empty" *ngIf="!loading && !errorMessage && filteredPlans.length === 0">
+    <mat-icon>assignment</mat-icon>
+    <h2>No travel plans found</h2>
+    <p>{{ emptySubtitle() }}</p>
+  </section>
+
+  <section class="plans-list" *ngIf="!loading && !errorMessage && filteredPlans.length > 0">
+    <div class="plans-table-header">
+      <span class="col-client">Client</span>
+      <span class="col-destination">Destination</span>
+      <span class="col-date">Travel Date</span>
+      <span class="col-score">Readiness</span>
+      <span class="col-status">Status</span>
+      <span class="col-actions">Actions</span>
+    </div>
+
+    <article
+      class="plan-card-row"
+      *ngFor="let plan of paginatedPlans; trackBy: trackByPlan"
+      [ngClass]="'status-' + plan.status"
+    >
+      <div class="col-client client-cell">
+          <span class="avatar-circle">{{ initials(plan.ownerName) }}</span>
+          <div class="client-copy">
+          <p class="client-name">{{ plan.ownerName }}</p>
+            <span class="pet-name-chip">
+              <mat-icon>pets</mat-icon>
+              {{ plan.petName || ('Pet #' + (plan.petId || 'N/A')) }}
+            </span>
+        </div>
+      </div>
+
+      <div class="col-destination destination-cell">
+        <p class="destination-title">{{ plan.destinationTitle }}</p>
+        <p class="destination-meta">{{ plan.destinationCountry || 'Country not set' }}</p>
+        <p class="destination-meta">{{ plan.origin || 'Origin not set' }}</p>
+      </div>
+
+      <div class="col-date date-cell">
+        <mat-icon>calendar_today</mat-icon>
+        <span>{{ formatDate(plan.travelDate) }}</span>
+      </div>
+
+      <div class="col-score score-cell">
+        <div class="readiness-pill" [ngClass]="readinessClass(plan.readinessScore)">
+          <strong>{{ plan.readinessScore | number: '1.0-0' }}%</strong>
+          <div class="mini-progress-track">
+            <span class="mini-progress-fill" [style.width.%]="plan.readinessScore"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-status status-cell">
+        <span class="status-badge" [ngClass]="statusClass(plan.status)">
+          {{ statusLabel(plan.status) }}
+        </span>
+      </div>
+
+      <div class="col-actions">
+        <button type="button" class="btn-secondary" (click)="openDetails(plan.id)">
+          <mat-icon>visibility</mat-icon>
+          View Details
+        </button>
+
+        <button
+          type="button"
+          class="btn-danger"
+          [disabled]="!canDeletePlan(plan) || isRemoving(plan.id)"
+          [class.btn-disabled]="!canDeletePlan(plan)"
+          (click)="canDeletePlan(plan) ? removeFromAdmin(plan) : null"
+          [matTooltip]="getAdminDeleteTooltip(plan)"
+          [matTooltipDisabled]="canDeletePlan(plan)"
+          matTooltipPosition="above"
+        >
+          <mat-icon>delete</mat-icon>
+          {{ isRemoving(plan.id) ? 'Deleting...' : 'Delete' }}
+        </button>
+      </div>
+    </article>
+  </section>
+
+  <div class="admin-pagination" *ngIf="!loading && !errorMessage && filteredPlans.length > 0">
+    <app-pagination
+      [totalItems]="totalItems"
+      [itemsPerPage]="itemsPerPage"
+      [currentPage]="currentPage"
+      [variant]="'admin'"
+      (pageChange)="onPageChange($event)"
+    ></app-pagination>
+  </div>
+</section>
+
+
+

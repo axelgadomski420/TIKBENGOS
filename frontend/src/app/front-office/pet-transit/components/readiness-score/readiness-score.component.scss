@@ -1,0 +1,96 @@
+:host {
+  display: block;
+}
+
+.readiness-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.78rem;
+}
+
+.score-ring {
+  --score-value: 0;
+  width: 78px;
+  height: 78px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(var(--tone-color) calc(var(--score-value) * 1%), rgba(148, 163, 184, 0.2) 0%);
+  position: relative;
+}
+
+.score-ring::before {
+  content: '';
+  position: absolute;
+  width: 59px;
+  height: 59px;
+  border-radius: 999px;
+  background: #fff;
+}
+
+.score-ring span {
+  position: relative;
+  z-index: 1;
+  font-size: 0.88rem;
+  font-weight: 900;
+  color: var(--tone-color);
+}
+
+.score-meta {
+  display: grid;
+  gap: 0.16rem;
+}
+
+.score-meta .label {
+  margin: 0;
+  font-size: 0.72rem;
+  color: #6b7280;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.score-meta .value {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #111827;
+  font-weight: 800;
+}
+
+.readiness-wrap--compact .score-ring {
+  width: 60px;
+  height: 60px;
+}
+
+.readiness-wrap--compact .score-ring::before {
+  width: 44px;
+  height: 44px;
+}
+
+.readiness-wrap--compact .score-ring span {
+  font-size: 0.72rem;
+}
+
+.readiness-wrap--compact .score-meta .label {
+  font-size: 0.64rem;
+}
+
+.readiness-wrap--compact .score-meta .value {
+  font-size: 0.77rem;
+}
+
+.tone-excellent {
+  --tone-color: #15803d;
+}
+
+.tone-strong {
+  --tone-color: #2563eb;
+}
+
+.tone-improving {
+  --tone-color: #b45309;
+}
+
+.tone-critical {
+  --tone-color: #b91c1c;
+}

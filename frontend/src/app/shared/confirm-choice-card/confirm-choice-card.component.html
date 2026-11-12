@@ -1,0 +1,20 @@
+<div *ngIf="dialogState$ | async as dialog" class="choice-backdrop" (click)="onBackdropClick($event)">
+  <article class="choice-card" role="dialog" aria-modal="true">
+    <header class="choice-header">
+      <div class="choice-icon" [class.choice-icon-danger]="dialog.tone === 'danger'">
+        <i class="fa-solid" [ngClass]="dialog.tone === 'danger' ? 'fa-triangle-exclamation' : 'fa-circle-question'"></i>
+      </div>
+      <div>
+        <h3>{{ dialog.title }}</h3>
+        <p>{{ dialog.message }}</p>
+      </div>
+    </header>
+
+    <footer class="choice-actions">
+      <button type="button" class="btn btn-cancel" (click)="close()">{{ dialog.cancelText }}</button>
+      <button type="button" class="btn btn-confirm" [class.btn-confirm-danger]="dialog.tone === 'danger'" (click)="confirm()">
+        {{ dialog.confirmText }}
+      </button>
+    </footer>
+  </article>
+</div>

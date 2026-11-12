@@ -1,0 +1,89 @@
+<div class="community-page product-shell min-h-screen py-10 px-4 md:px-8">
+  <div class="max-w-6xl mx-auto">
+    <header class="community-hero mb-8">
+      <div class="community-hero-grid">
+        <div class="community-hero-copy">
+          <p class="text-xs font-bold uppercase tracking-[0.24em] text-brand-teal">Marketplace / Favorites</p>
+          <h1 class="mt-4 text-4xl font-black leading-[1.02] text-slate-950 md:text-5xl">Your favorite products.</h1>
+          <p class="mt-4 max-w-2xl text-sm leading-7 text-slate-600 md:text-base">
+            Save products you love, quickly revisit them, and add them to your cart anytime.
+          </p>
+
+          <div class="mt-6 flex flex-wrap gap-3">
+            <button type="button" (click)="goToProducts()" class="community-hero-action community-hero-action-secondary">
+              <i class="fas fa-arrow-left mr-2"></i>Back to Products
+            </button>
+            <a routerLink="/app/marketplace/cart" class="community-hero-action community-hero-action-primary">
+              <i class="fas fa-cart-shopping mr-2"></i>Open Cart
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div *ngIf="!isLoggedIn" class="community-surface text-center py-10 rounded-2xl bg-white border border-gray-200">
+      <p class="text-gray-700 text-lg font-semibold">Login required</p>
+      <p class="text-gray-500 mt-2">Please sign in to view your favorite products.</p>
+      <a routerLink="/auth/login" class="mt-4 inline-flex community-hero-action community-hero-action-primary">
+        <i class="fas fa-right-to-bracket mr-2"></i>Go to Login
+      </a>
+    </div>
+
+    <div *ngIf="isLoggedIn && loading" class="community-surface text-center py-10 rounded-2xl bg-white border border-gray-200">
+      <p class="text-gray-500">Loading favorite products...</p>
+    </div>
+
+    <div *ngIf="isLoggedIn && !loading && favorites.length === 0" class="community-surface text-center py-12 rounded-2xl bg-white border border-gray-200">
+      <p class="text-gray-700 text-lg font-semibold">No favorites yet</p>
+      <p class="text-gray-500 mt-2">Tap the heart icon on products to add your favorites.</p>
+      <button type="button" (click)="goToProducts()" class="mt-4 community-hero-action community-hero-action-primary">
+        Browse Products
+      </button>
+    </div>
+
+    <div *ngIf="isLoggedIn && !loading && favorites.length > 0" class="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
+      <article *ngFor="let product of favorites" class="community-card favorite-card cursor-pointer" (click)="openProduct(product.id)">
+        <img
+          [src]="product.imageUrl || 'images/stock/golden-retriever.jpg'"
+          [alt]="product.name"
+          class="w-full h-44 object-cover"
+        />
+
+        <div class="p-4">
+          <div class="flex items-start justify-between gap-3">
+            <p class="text-[11px] uppercase tracking-[0.14em] text-slate-500 font-semibold">{{ product.category }}</p>
+            <button
+              type="button"
+              class="favorite-remove-btn"
+              [disabled]="actionLoadingIds.has(product.id)"
+              (click)="removeFavorite(product.id, $event)"
+              aria-label="Remove from favorites"
+            >
+              <i class="fas fa-heart-crack mr-1"></i>Remove
+            </button>
+          </div>
+
+          <h3 class="mt-2 font-bold text-gray-900 leading-snug line-clamp-2">{{ product.name }}</h3>
+          <p class="text-sm text-gray-600 mt-2 line-clamp-2">{{ product.description }}</p>
+
+          <div class="mt-3 flex items-center justify-between">
+            <span class="font-bold text-brand-teal">${{ product.price | number: '1.2-2' }}</span>
+            <span class="text-[11px] px-2 py-1 rounded-full"
+              [ngClass]="product.stock > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'">
+              {{ product.stock > 0 ? product.stock + ' left' : 'Out of stock' }}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            (click)="addToCart(product, $event)"
+            [disabled]="product.stock <= 0"
+            class="w-full mt-4 community-hero-action community-hero-action-primary disabled:bg-gray-300 disabled:cursor-not-allowed"
+          >
+            {{ product.stock > 0 ? 'Add to Cart' : 'Out of Stock' }}
+          </button>
+        </div>
+      </article>
+    </div>
+  </div>
+</div>

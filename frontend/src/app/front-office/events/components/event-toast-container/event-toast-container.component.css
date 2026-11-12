@@ -1,0 +1,138 @@
+:host {
+  pointer-events: none;
+}
+
+.evtf-toast-stack {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1400;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.evtf-toast {
+  width: min(380px, calc(100vw - 32px));
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px;
+  align-items: start;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.16);
+  backdrop-filter: blur(18px);
+  pointer-events: auto;
+  animation: evtf-toast-in 220ms ease-out;
+}
+
+.evtf-toast__icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: rgba(15, 23, 42, 0.04);
+}
+
+.evtf-toast__icon mat-icon {
+  font-size: 22px;
+  width: 22px;
+  height: 22px;
+}
+
+.evtf-toast__copy h4 {
+  margin: 0 0 4px;
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.evtf-toast__copy p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #475569;
+}
+
+.evtf-toast__dismiss {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.evtf-toast__dismiss:hover {
+  background: rgba(148, 163, 184, 0.12);
+  color: #0f172a;
+}
+
+.evtf-toast--success {
+  border-color: rgba(34, 197, 94, 0.2);
+}
+
+.evtf-toast--success .evtf-toast__icon {
+  background: rgba(34, 197, 94, 0.14);
+  color: #15803d;
+}
+
+.evtf-toast--error {
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.evtf-toast--error .evtf-toast__icon {
+  background: rgba(239, 68, 68, 0.14);
+  color: #dc2626;
+}
+
+.evtf-toast--warning {
+  border-color: rgba(245, 158, 11, 0.24);
+}
+
+.evtf-toast--warning .evtf-toast__icon {
+  background: rgba(245, 158, 11, 0.16);
+  color: #d97706;
+}
+
+.evtf-toast--info {
+  border-color: rgba(37, 99, 235, 0.2);
+}
+
+.evtf-toast--info .evtf-toast__icon {
+  background: rgba(37, 99, 235, 0.14);
+  color: #2563eb;
+}
+
+@keyframes evtf-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 640px) {
+  .evtf-toast-stack {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    align-items: stretch;
+  }
+
+  .evtf-toast {
+    width: 100%;
+  }
+}

@@ -1,0 +1,180 @@
+<section class="community-page min-h-screen py-10 px-4 md:px-8">
+  <div class="max-w-6xl mx-auto">
+    <header class="community-hero mb-8">
+      <div class="community-hero-grid">
+        <div class="community-hero-copy">
+          <p class="text-xs font-bold uppercase tracking-[0.24em] text-brand-teal">Back Office / Marketplace</p>
+          <h1 class="mt-4 text-4xl font-black leading-[1.02] text-slate-950 md:text-5xl">Reclamations treatment</h1>
+          <p class="mt-4 max-w-2xl text-sm leading-7 text-slate-600 md:text-base">
+            Review customer marketplace reclamations, provide response malek, and move tickets through support status.
+          </p>
+
+          <div class="mt-6 flex flex-wrap gap-3">
+            <a routerLink="/admin/marketplace" class="community-hero-action community-hero-action-secondary">
+              <i class="fas fa-arrow-left mr-2"></i>Back to Marketplace
+            </a>
+            <button type="button" (click)="loadReclamations()" class="community-hero-action community-hero-action-primary" [disabled]="loading">
+              <i class="fas fa-rotate-right mr-2"></i>Refresh
+            </button>
+          </div>
+        </div>
+
+        <div class="community-hero-stats">
+          <div class="community-hero-stat-card">
+            <span class="community-hero-stat-label">Total tickets</span>
+            <strong class="community-hero-stat-value">{{ reclamations.length }}</strong>
+            <p class="community-hero-stat-copy">All marketplace support requests.</p>
+          </div>
+          <div class="community-hero-stat-card">
+            <span class="community-hero-stat-label">Visible tickets</span>
+            <strong class="community-hero-stat-value">{{ filteredReclamations.length }}</strong>
+            <p class="community-hero-stat-copy">Records shown after filters.</p>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <section class="community-surface rounded-2xl p-6">
+      <div class="reclamation-filter-shell mb-5">
+        <div class="grid md:grid-cols-2 xl:grid-cols-4 gap-3">
+          <div class="xl:col-span-2">
+            <label class="reclamation-filter-label">Search</label>
+            <input
+              type="text"
+              [(ngModel)]="searchTerm"
+              placeholder="Ticket ID, user ID, order ID, title, or description"
+              class="reclamation-filter-input"
+            />
+          </div>
+
+          <div>
+            <label class="reclamation-filter-label">Status</label>
+            <select [(ngModel)]="statusFilter" class="reclamation-filter-input">
+              <option value="ALL">All statuses</option>
+              <option *ngFor="let status of statusOptions" [ngValue]="status">{{ status }}</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="reclamation-filter-label">Type</label>
+            <select [(ngModel)]="typeFilter" class="reclamation-filter-input">
+              <option value="ALL">All types</option>
+              <option value="DAMAGED_ITEM">Damaged Item</option>
+              <option value="WRONG_ITEM">Wrong Item</option>
+              <option value="DELIVERY_DELAY">Delivery Delay</option>
+              <option value="MISSING_ITEM">Missing Item</option>
+              <option value="REFUND_REQUEST">Refund Request</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="mt-3 flex items-center justify-between gap-3 flex-wrap">
+          <p class="reclamation-filter-meta">Showing {{ filteredReclamations.length }} of {{ reclamations.length }} tickets</p>
+          <button
+            type="button"
+            class="reclamation-clear-btn"
+            [disabled]="!hasActiveFilters"
+            (click)="clearFilters()"
+          >
+            Clear Filters
+          </button>
+        </div>
+      </div>
+
+      <div class="reclamation-kpi-grid mb-5">
+        <article class="reclamation-kpi-card">
+          <p class="reclamation-kpi-label">Open</p>
+          <p class="reclamation-kpi-value">{{ filteredOpenCount }}</p>
+        </article>
+        <article class="reclamation-kpi-card">
+          <p class="reclamation-kpi-label">In Review</p>
+          <p class="reclamation-kpi-value">{{ filteredInReviewCount }}</p>
+        </article>
+        <article class="reclamation-kpi-card">
+          <p class="reclamation-kpi-label">Resolved</p>
+          <p class="reclamation-kpi-value">{{ filteredResolvedCount }}</p>
+        </article>
+        <article class="reclamation-kpi-card">
+          <p class="reclamation-kpi-label">Filtered</p>
+          <p class="reclamation-kpi-value">{{ filteredReclamations.length }}</p>
+        </article>
+      </div>
+
+      <div *ngIf="loading" class="py-10 text-center text-slate-500">Loading reclamations...</div>
+
+      <div *ngIf="!loading && filteredReclamations.length === 0" class="py-10 text-center text-slate-500">
+        <p *ngIf="reclamations.length === 0">No reclamations found.</p>
+        <p *ngIf="reclamations.length > 0">No reclamations match the current filters.</p>
+      </div>
+
+      <div *ngIf="!loading && filteredReclamations.length > 0" class="space-y-4">
+        <article *ngFor="let reclamation of filteredReclamations" class="rounded-2xl border border-slate-200 bg-white p-5">
+          <div class="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                Ticket #{{ reclamation.id }} • User #{{ reclamation.userId }} • Order #{{ reclamation.orderId }}
+              </p>
+              <h3 class="mt-1 text-lg font-black text-slate-900">{{ reclamation.title }}</h3>
+              <p class="text-sm text-slate-500 mt-1">{{ reclamation.type }} • Created {{ formatDate(reclamation.createdAt) }}</p>
+            </div>
+            <span class="reclamation-status-pill" [ngClass]="statusClass(reclamation.status)">
+              {{ reclamation.status }}
+            </span>
+          </div>
+
+          <div class="mt-4 grid gap-4 lg:grid-cols-[11rem,1fr]">
+            <ng-container *ngIf="reclamation.image; else noAdminImage">
+              <img
+                [src]="getReclamationImageUrl(reclamation)"
+                [alt]="reclamation.title"
+                class="h-40 w-full rounded-2xl border border-slate-200 object-cover bg-slate-100"
+              />
+            </ng-container>
+
+            <ng-template #noAdminImage>
+              <div class="flex h-40 w-full items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-slate-400">
+                <span class="text-center text-xs font-semibold uppercase tracking-[0.12em]">No image</span>
+              </div>
+            </ng-template>
+
+            <div>
+              <p class="text-sm text-slate-700 leading-6">{{ reclamation.description }}</p>
+
+              <div class="mt-4 grid md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-semibold text-slate-700 mb-2">Status</label>
+                  <select class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" [(ngModel)]="statusDrafts[reclamation.id]">
+                    <option *ngFor="let status of statusOptions" [ngValue]="status">{{ status }}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-semibold text-slate-700 mb-2">Response Malek</label>
+                  <textarea
+                    rows="3"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
+                    [(ngModel)]="responseDrafts[reclamation.id]"
+                    placeholder="Write support response..."
+                  ></textarea>
+                </div>
+              </div>
+
+              <div class="mt-4 flex items-center justify-between gap-3 flex-wrap">
+                <p class="text-xs text-slate-500">Resolved at: {{ formatDate(reclamation.resolvedAt) }}</p>
+                <button
+                  type="button"
+                  class="community-hero-action community-hero-action-primary"
+                  [disabled]="updatingId === reclamation.id"
+                  (click)="saveTreatment(reclamation)"
+                >
+                  <i class="fas fa-floppy-disk mr-2"></i>{{ updatingId === reclamation.id ? 'Saving...' : 'Save Update' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+  </div>
+</section>

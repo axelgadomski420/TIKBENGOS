@@ -1,0 +1,14 @@
+<div class="readiness-wrap" [class.readiness-wrap--compact]="compact" [ngClass]="toneClass">
+  <div
+    class="score-ring"
+    [style.--score-value]="normalizedScore"
+    [attr.aria-label]="'Readiness score ' + normalizedScore"
+  >
+    <span>{{ normalizedScore }}%</span>
+  </div>
+
+  <div class="score-meta">
+    <p class="label">Readiness Score</p>
+    <p class="value">{{ scoreLabel }}</p>
+  </div>
+</div>

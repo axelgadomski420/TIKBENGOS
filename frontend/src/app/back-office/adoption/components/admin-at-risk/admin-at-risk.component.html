@@ -1,0 +1,184 @@
+<div class="atrisk-admin">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <div>
+        <h1>🤖 AI — At-Risk Animals</h1>
+        <p>Platform-wide detection of animals needing urgent attention</p>
+      </div>
+      <button class="btn-refresh" (click)="load()">
+        <i class="fas fa-sync-alt"></i> Re-run Analysis
+      </button>
+    </div>
+  </div>
+
+  <div class="page-body">
+
+    <!-- Global stats -->
+    <div class="stats-row" *ngIf="stats && !loading">
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#fff5f5;color:#e53e3e">🔴</div>
+        <div class="stat-info">
+          <div class="stat-n">{{ stats.critical }}</div>
+          <div class="stat-l">Critical</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#fffaf0;color:#ed8936">🟠</div>
+        <div class="stat-info">
+          <div class="stat-n">{{ stats.atRisk }}</div>
+          <div class="stat-l">At Risk</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#fffff0;color:#d69e2e">🟡</div>
+        <div class="stat-info">
+          <div class="stat-n">{{ stats.watch }}</div>
+          <div class="stat-l">Watch</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#f4f6f8;color:#718096">📭</div>
+        <div class="stat-info">
+          <div class="stat-n">{{ stats.petsWithNoRequests }}</div>
+          <div class="stat-l">No Requests</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#f0fff4;color:rgb(58,146,130)">📅</div>
+        <div class="stat-info">
+          <div class="stat-n">{{ stats.avgDaysInShelter | number:'1.0-0' }}</div>
+          <div class="stat-l">Avg Days</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-bar" *ngIf="!loading">
+      <div class="search-wrap">
+        <i class="fas fa-search search-ico"></i>
+        <input class="f-input" placeholder="Search pet, shelter, type..."
+               [(ngModel)]="searchTerm">
+      </div>
+      <select class="f-select" [(ngModel)]="selectedLevel">
+        <option value="">All Levels</option>
+        <option value="CRITICAL">🔴 Critical</option>
+        <option value="AT_RISK">🟠 At Risk</option>
+        <option value="WATCH">🟡 Watch</option>
+      </select>
+      <select class="f-select" [(ngModel)]="selectedShelter">
+        <option value="">All Shelters</option>
+        <option *ngFor="let s of shelters" [value]="s">{{ s }}</option>
+      </select>
+      <button class="btn-clear" (click)="clearFilters()">
+        <i class="fas fa-times"></i> Clear
+      </button>
+      <span class="results-count"><strong>{{ filtered.length }}</strong> results</span>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="state-center">
+      <div class="spinner"></div>
+      <p>Running AI analysis across all shelters...</p>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="error" class="error-box">{{ error }}</div>
+
+    <!-- Table -->
+    <div *ngIf="!loading && filtered.length > 0" class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Animal</th>
+            <th>Shelter</th>
+            <th>Type</th>
+            <th>Days</th>
+            <th>Requests</th>
+            <th>Risk Score</th>
+            <th>Level</th>
+            <th>Top Factors</th>
+            <th>Recommendations</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let pet of filtered" [style.border-left]="'4px solid ' + pet.riskColor">
+            <td>
+              <div class="td-pet">
+                <div class="td-thumb">
+                  <img *ngIf="getFirstPhoto(pet.petPhotos)"
+                       [src]="'http://localhost:8087/elif' + getFirstPhoto(pet.petPhotos)"
+                       [alt]="pet.petName">
+                  <i *ngIf="!getFirstPhoto(pet.petPhotos)" class="fas fa-paw no-img"></i>
+                </div>
+                <div>
+                  <strong>{{ pet.petName }}</strong>
+                  <small class="td-sub">{{ pet.petBreed || '—' }}</small>
+                </div>
+              </div>
+            </td>
+            <td>
+              <strong>{{ pet.shelterName }}</strong>
+            </td>
+            <td>{{ pet.petType }}</td>
+            <td>
+              <span [style.color]="pet.daysInShelter > 60 ? '#e53e3e' : '#4a5568'"
+                    style="font-weight:600">
+                {{ pet.daysInShelter }}d
+              </span>
+            </td>
+            <td>
+              <span [style.color]="pet.requestCount === 0 ? '#e53e3e' : '#38a169'"
+                    style="font-weight:600">
+                {{ pet.requestCount }}
+              </span>
+            </td>
+            <td>
+              <!-- Score bar -->
+              <div class="score-bar-wrap">
+                <div class="score-bar-track">
+                  <div class="score-bar-fill"
+                       [style.width]="pet.riskScore + '%'"
+                       [style.background]="pet.riskColor"></div>
+                </div>
+                <span class="score-val" [style.color]="pet.riskColor">{{ pet.riskScore }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="level-badge" [ngClass]="getLevelClass(pet.riskLevel)">
+                {{ getLevelLabel(pet.riskLevel) }}
+              </span>
+            </td>
+            <td>
+              <div class="factors-mini">
+                <div *ngFor="let f of pet.riskFactors | slice:0:2" class="factor-mini">
+                  {{ f }}
+                </div>
+              </div>
+            </td>
+            <td>
+              <button class="btn-expand" (click)="toggleExpand(pet.petId)">
+                <i class="fas fa-lightbulb"></i>
+                {{ pet.recommendations.length }} tips
+                <i class="fas" [ngClass]="expandedPetId === pet.petId ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+              </button>
+              <div *ngIf="expandedPetId === pet.petId" class="recs-popup">
+                <div *ngFor="let r of pet.recommendations" class="rec-mini">
+                  {{ r }}
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Empty -->
+    <div *ngIf="!loading && filtered.length === 0 && !error" class="empty-box">
+      <div style="font-size:3rem;opacity:.4;margin-bottom:.75rem">🟢</div>
+      <p>No animals match the selected filters.</p>
+    </div>
+
+  </div>
+</div>

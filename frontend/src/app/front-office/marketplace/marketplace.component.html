@@ -1,0 +1,55 @@
+<section class="community-page min-h-screen py-10 px-4 md:px-8">
+  <div class="max-w-6xl mx-auto">
+    <header class="community-hero mb-8">
+      <div class="community-hero-grid">
+        <div class="community-hero-copy">
+          <p class="text-xs font-bold uppercase tracking-[0.24em] text-brand-teal">Marketplace</p>
+          <h1 class="mt-4 text-4xl font-black leading-[1.02] text-slate-950 md:text-5xl">Feeds, supplies, accessories, and pet merchandise.</h1>
+          <p class="mt-4 max-w-2xl text-sm leading-7 text-slate-600 md:text-base">Browse products, open your cart, and complete checkout with the same community visual style.</p>
+
+          <div class="mt-6 flex flex-wrap gap-3">
+            <a routerLink="/app/marketplace/products" class="community-hero-action community-hero-action-primary">
+              <i class="fas fa-store mr-2"></i>Browse Products
+            </a>
+            <a routerLink="/app/marketplace/cart" class="community-hero-action community-hero-action-secondary">
+              <i class="fas fa-cart-shopping mr-2"></i>Open Cart
+            </a>
+            <a *ngIf="isLoggedIn" routerLink="/app/marketplace/favorites" class="community-hero-action community-hero-action-secondary">
+              <i class="fas fa-heart mr-2"></i>Favorite Products
+            </a>
+            <a *ngIf="isLoggedIn" routerLink="/app/marketplace/reclamations" class="community-hero-action community-hero-action-secondary">
+              <i class="fas fa-triangle-exclamation mr-2"></i>My Reclamations
+            </a>
+            <a *ngIf="!isLoggedIn" routerLink="/auth/login" class="community-hero-action community-hero-action-primary">
+              <i class="fas fa-right-to-bracket mr-2"></i>Log in for checkout
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="grid md:grid-cols-2 xl:grid-cols-4 gap-5">
+      <div class="community-surface rounded-2xl p-5">
+        <h2 class="font-bold text-gray-900">Food & Feed</h2>
+        <p class="text-sm text-gray-600 mt-2">Dry food, wet food, and specialty diets.</p>
+      </div>
+      <div class="community-surface rounded-2xl p-5">
+        <h2 class="font-bold text-gray-900">Health Essentials</h2>
+        <p class="text-sm text-gray-600 mt-2">Daily care, hygiene, and wellness products.</p>
+      </div>
+      <div class="community-surface rounded-2xl p-5">
+        <h2 class="font-bold text-gray-900">Accessories</h2>
+        <p class="text-sm text-gray-600 mt-2">Collars, leashes, bowls, carriers, and toys.</p>
+      </div>
+      <div class="community-surface rounded-2xl p-5">
+        <h2 class="font-bold text-gray-900">Merchandise</h2>
+        <p class="text-sm text-gray-600 mt-2">Branded products, gifts, and pet-family extras.</p>
+      </div>
+    </div>
+
+    <div class="mt-8 community-surface rounded-2xl p-6">
+      <h2 class="text-xl font-black text-gray-900 mb-3">Access Model</h2>
+      <p class="text-sm text-gray-600">Visitors can browse products and categories. Signed-in users can later save carts, place orders, and review products.</p>
+    </div>
+  </div>
+</section>

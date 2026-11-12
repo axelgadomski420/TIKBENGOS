@@ -1,0 +1,290 @@
+<div class="detail-page">
+  <button class="back-btn" (click)="goBack()">
+    <mat-icon>arrow_back</mat-icon>
+    <span>Destinations</span>
+  </button>
+
+  <section class="loading-state" *ngIf="loading">
+    <div class="hero-skeleton skeleton"></div>
+    <div class="content-skeleton">
+      <div class="skeleton skeleton-line lg"></div>
+      <div class="skeleton skeleton-line md"></div>
+      <div class="skeleton skeleton-line"></div>
+      <div class="skeleton skeleton-grid"></div>
+    </div>
+  </section>
+
+  <section class="error-state" *ngIf="!loading && errorMessage">
+    <mat-icon class="material-icons-round">{{ uiIcons.alert }}</mat-icon>
+    <h2>Unable to load destination</h2>
+    <p>{{ errorMessage }}</p>
+    <div class="error-actions">
+      <button type="button" class="retry-button" (click)="retry()">Retry</button>
+      <button type="button" class="back-link" (click)="goBack()">Go Back</button>
+    </div>
+  </section>
+
+  <ng-container *ngIf="!loading && !errorMessage && destination as destination">
+    <section class="media-hero">
+      <ng-container *ngIf="heroImages.length > 0; else placeholderHero">
+        <div class="bo-detail-carousel-wrapper">
+          <div class="bo-detail-carousel-track" [style.transform]="'translateX(-' + currentImageIndex * 100 + '%)'">
+            <div class="bo-detail-carousel-slide" *ngFor="let imageUrl of heroImages; index as imageIndex; trackBy: trackByImage">
+              <img
+                class="hero-image"
+                [src]="imageUrl"
+                [alt]="destination.title + ' image ' + (imageIndex + 1)"
+                loading="lazy"
+                (error)="onHeroImageError($event)"
+              />
+            </div>
+          </div>
+
+          <div class="hero-overlay"></div>
+
+          <button
+            type="button"
+            class="hero-nav hero-nav--left"
+            *ngIf="hasMultipleImages"
+            (click)="showPreviousImage()"
+            aria-label="Show previous image"
+          >
+            <mat-icon class="material-icons-round">{{ uiIcons.left }}</mat-icon>
+          </button>
+
+          <button
+            type="button"
+            class="hero-nav hero-nav--right"
+            *ngIf="hasMultipleImages"
+            (click)="showNextImage()"
+            aria-label="Show next image"
+          >
+            <mat-icon class="material-icons-round">{{ uiIcons.right }}</mat-icon>
+          </button>
+
+          <div class="hero-content">
+            <h1>{{ destination.title }}</h1>
+
+            <p class="hero-location">
+              <mat-icon class="material-icons-round">{{ uiIcons.location }}</mat-icon>
+              <span>{{ destination.country }} - {{ destination.region || 'Region not specified' }}</span>
+            </p>
+
+            <div class="hero-badges">
+              <span
+                class="hero-chip"
+                [style.background]="destinationTypeConfig[destination.destinationType].bgColor"
+                [style.color]="destinationTypeConfig[destination.destinationType].color"
+              >
+                <mat-icon class="material-icons-round">{{ typeIconClass() }}</mat-icon>
+                <span>{{ destinationTypeConfig[destination.destinationType].label }}</span>
+              </span>
+
+              <span class="hero-chip hero-chip--transport">
+                <mat-icon class="material-icons-round">{{ transportIconClass() }}</mat-icon>
+                <span>{{ transportConfig[destination.recommendedTransportType].label }}</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <ng-template #placeholderHero>
+        <div class="hero-placeholder">
+          <mat-icon class="material-icons-round">{{ uiIcons.placeholder }}</mat-icon>
+        </div>
+      </ng-template>
+    </section>
+
+    <section class="hero-thumbnails" *ngIf="hasMultipleImages">
+      <div class="thumbnail-strip">
+        <button
+          type="button"
+          class="thumbnail-item"
+          *ngFor="let imageUrl of heroImages; index as imageIndex; trackBy: trackByImage"
+          [class.active]="imageIndex === currentImageIndex"
+          (click)="selectImage(imageIndex)"
+          [attr.aria-label]="'Preview image ' + (imageIndex + 1)"
+        >
+          <img
+            [src]="imageUrl"
+            [alt]="destination.title + ' image ' + (imageIndex + 1)"
+            loading="lazy"
+            (error)="onHeroImageError($event)"
+          />
+        </button>
+      </div>
+    </section>
+
+    <section class="info-card">
+      <div class="info-head">
+        <div class="title-block">
+          <p class="eyebrow">Destination Overview</p>
+          <h2>{{ destination.title }}</h2>
+          <p class="location-line">
+            <mat-icon class="material-icons-round">{{ uiIcons.location }}</mat-icon>
+            <span>{{ destination.country }} - {{ destination.region || 'Region not specified' }}</span>
+          </p>
+        </div>
+
+        <div class="rating-card" aria-label="Pet friendly rating">
+          <app-pet-friendly-stars [level]="destination.petFriendlyLevel"></app-pet-friendly-stars>
+          <p>{{ destination.petFriendlyLevel }}/5 Pet-Friendly Score</p>
+        </div>
+      </div>
+
+      <div class="info-pills">
+        <span
+          class="info-pill"
+          [style.background]="destinationTypeConfig[destination.destinationType].bgColor"
+          [style.color]="destinationTypeConfig[destination.destinationType].color"
+        >
+          <mat-icon class="material-icons-round">{{ typeIconClass() }}</mat-icon>
+          <span>{{ destinationTypeConfig[destination.destinationType].label }}</span>
+        </span>
+
+        <span class="info-pill info-pill--muted">
+          <mat-icon class="material-icons-round">{{ transportIconClass() }}</mat-icon>
+          <span>{{ transportConfig[destination.recommendedTransportType].label }}</span>
+        </span>
+
+        <span class="info-pill info-pill--muted" *ngIf="destination.publishedAt">
+          <mat-icon class="material-icons-round">{{ uiIcons.calendar }}</mat-icon>
+          <span>Published: {{ destination.publishedAt | date: 'MM/dd/yyyy' }}</span>
+        </span>
+      </div>
+    </section>
+
+    <section class="description-section" *ngIf="destination.description">
+      <h3>About This Destination</h3>
+      <p>{{ destination.description }}</p>
+    </section>
+
+    <section class="documents-section">
+      <div class="documents-header">
+        <div class="documents-title-wrap">
+          <h3>
+            <mat-icon class="material-icons-round">{{ uiIcons.documents }}</mat-icon>
+            <span>Required Documents</span>
+          </h3>
+          <p class="section-subtitle">
+            Checklist reviewed during destination verification and transport preparation.
+          </p>
+        </div>
+
+        <span class="documents-count" *ngIf="documentItems.length > 0">
+          {{ documentItems.length }} {{ documentItems.length === 1 ? 'document' : 'documents' }}
+        </span>
+      </div>
+
+      <div class="documents-grid" *ngIf="documentItems.length > 0; else noDocuments">
+        <article class="document-item" *ngFor="let document of documentItems; trackBy: trackByDocument">
+          <div class="document-item__head">
+            <span class="document-icon">
+              <mat-icon class="material-icons-round">{{ document.icon }}</mat-icon>
+            </span>
+            <span class="document-required">Required</span>
+          </div>
+
+          <h4>{{ document.label }}</h4>
+
+          <p class="document-description" [ngSwitch]="document.key">
+            <ng-container *ngSwitchCase="'PET_PASSPORT'">
+              Official identification and travel record for your pet.
+            </ng-container>
+            <ng-container *ngSwitchCase="'RABIES_VACCINE'">
+              Valid rabies vaccination proof required for safe travel.
+            </ng-container>
+            <ng-container *ngSwitchCase="'HEALTH_CERTIFICATE'">
+              Recent veterinary certificate confirming your pet is fit to travel.
+            </ng-container>
+            <ng-container *ngSwitchCase="'TRANSPORT_AUTHORIZATION'">
+              Carrier or transport approval required for this trip.
+            </ng-container>
+            <ng-container *ngSwitchDefault>
+              Required documentation that may be requested during compliance checks.
+            </ng-container>
+          </p>
+        </article>
+      </div>
+
+      <div class="documents-helper" *ngIf="documentItems.length > 0">
+        <mat-icon class="material-icons-round">info</mat-icon>
+        <p>
+          These documents are required to verify travel compliance and may be requested before approval or during
+          transport checks.
+        </p>
+      </div>
+
+      <ng-template #noDocuments>
+        <p class="empty-documents">No specific documents are required for this destination.</p>
+      </ng-template>
+    </section>
+
+    <section class="safety-section" *ngIf="destination.safetyTips">
+      <div class="safety-header">
+        <mat-icon class="material-icons-round">{{ uiIcons.tips }}</mat-icon>
+        <h3>Travel Tips</h3>
+      </div>
+      <p>{{ destination.safetyTips }}</p>
+    </section>
+
+    <section class="destination-map-section" *ngIf="destination?.latitude && destination?.longitude">
+      <div class="section-title-row map-section-heading">
+        <div class="map-section-heading__title">
+          <span class="material-icons">map</span>
+          <h3>Destination on Map</h3>
+        </div>
+        <p>Pinned destination coordinates for travel planning and route confirmation.</p>
+      </div>
+
+      <div class="destination-map-shell" [class.destination-map-shell--fullscreen]="mapFullscreen">
+        <button
+          type="button"
+          class="map-fullscreen-toggle"
+          [attr.title]="mapFullscreen ? 'Close fullscreen' : 'Open fullscreen'"
+          [attr.aria-label]="mapFullscreen ? 'Close fullscreen map' : 'Open fullscreen map'"
+          (click)="toggleMapFullscreen()"
+        >
+          <mat-icon class="material-icons-round">{{ mapFullscreen ? 'close' : 'fullscreen' }}</mat-icon>
+        </button>
+
+        <app-map-picker
+          #destinationReadonlyMap
+          [latitude]="destination.latitude ?? null"
+          [longitude]="destination.longitude ?? null"
+          [readonly]="true"
+          [height]="mapFullscreen ? '100%' : '360px'"
+          [markerLabel]="destination.title"
+        >
+        </app-map-picker>
+      </div>
+
+      <div class="map-coordinates-row">
+        <span class="map-coordinate-chip">
+          <mat-icon class="material-icons-round">north</mat-icon>
+          Latitude: {{ destination.latitude | number: '1.4-4' }}
+        </span>
+        <span class="map-coordinate-chip">
+          <mat-icon class="material-icons-round">east</mat-icon>
+          Longitude: {{ destination.longitude | number: '1.4-4' }}
+        </span>
+      </div>
+    </section>
+
+    <div class="map-fullscreen-backdrop" *ngIf="mapFullscreen" (click)="closeMapFullscreen()"></div>
+
+    <section class="plan-cta">
+      <div class="cta-card">
+        <mat-icon class="material-icons-round">{{ uiIcons.cta }}</mat-icon>
+        <h3>Ready to visit {{ destination.title }}?</h3>
+        <p>Create your travel plan, upload documents, and check off your safety list.</p>
+
+        <button type="button" (click)="planTrip()">
+          <span>Plan This Trip</span>
+          <mat-icon class="material-icons-round">{{ uiIcons.forward }}</mat-icon>
+        </button>
+      </div>
+    </section>
+  </ng-container>
+</div>

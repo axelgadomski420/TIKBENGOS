@@ -1,0 +1,292 @@
+<div class="travel-plans-page">
+  <section class="plans-content">
+    <header class="page-header">
+      <div>
+        <h1>
+          <mat-icon class="material-icons-round">luggage</mat-icon>
+          <span>My Travel Plans</span>
+        </h1>
+        <p>Track and manage all your pet travel adventures.</p>
+      </div>
+
+      <div class="header-actions">
+        <a class="my-feedback-link" (click)="router.navigate(['/app/transit/feedback/my'])" role="button" tabindex="0">
+          <mat-icon class="material-icons-round">reviews</mat-icon>
+          My Reviews &amp; Reports
+        </a>
+        <button type="button" class="pill-btn primary" (click)="openCreate()">
+          <mat-icon class="material-icons-round">add</mat-icon>
+          <span>Plan New Trip</span>
+        </button>
+      </div>
+    </header>
+
+    <section class="filters-row" *ngIf="!loading && !errorMessage && plans.length > 0">
+      <div class="action-bar mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2" aria-label="Travel plans action bar">
+        <div class="relative">
+          <i class="fas fa-search pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400"></i>
+          <input
+            id="planSearch"
+            type="search"
+            placeholder="Search by destination or pet"
+            [value]="searchTerm"
+            (input)="onSearchTermChange($event)"
+            class="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm text-slate-700 shadow-inner focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/20"
+          />
+        </div>
+
+        <button
+          type="button"
+          class="detail-secondary-button"
+          (click)="toggleFilters()"
+          [attr.aria-expanded]="showFilters"
+          aria-label="Toggle filters"
+        >
+          <i class="fas fa-filter"></i>
+          Filter
+        </button>
+      </div>
+
+      <div class="filters-panel" *ngIf="showFilters" aria-label="Travel plans filters">
+        <label class="filter-field" for="statusFilter">
+          <span>Status</span>
+          <select
+            id="statusFilter"
+            [value]="activeFilter"
+            (change)="setFilter($any($event.target).value)"
+          >
+            <option *ngFor="let filter of filters" [value]="filter.value">{{ filter.label }}</option>
+          </select>
+        </label>
+
+        <label class="filter-field" for="travelPlansStartDateFilter">
+          <span>Start Date</span>
+          <input
+            id="travelPlansStartDateFilter"
+            type="date"
+            [value]="startDateFilter"
+            (input)="onStartDateFilterChange($event)"
+          />
+        </label>
+
+        <label class="filter-field" for="travelPlansEndDateFilter">
+          <span>End Date</span>
+          <input
+            id="travelPlansEndDateFilter"
+            type="date"
+            [value]="endDateFilter"
+            (input)="onEndDateFilterChange($event)"
+          />
+        </label>
+
+        <button type="button" class="detail-secondary-button" *ngIf="hasQuickFilters" (click)="clearQuickFilters()">
+          <i class="fas fa-rotate-left"></i>
+          Reset
+        </button>
+      </div>
+
+      <p class="results-note">
+        Showing {{ filteredPlans.length }} {{ filteredPlans.length === 1 ? 'plan' : 'plans' }}
+      </p>
+    </section>
+
+    <section class="loading-grid" *ngIf="loading">
+      <article class="skeleton-card" *ngFor="let card of [1, 2, 3, 4]">
+        <div class="skeleton skeleton-line-lg"></div>
+        <div class="skeleton skeleton-line"></div>
+        <div class="skeleton skeleton-line"></div>
+        <div class="skeleton skeleton-bar"></div>
+      </article>
+    </section>
+
+    <section class="error-state" *ngIf="!loading && errorMessage">
+      <mat-icon class="material-icons-round">error_outline</mat-icon>
+      <h2>Unable to load travel plans</h2>
+      <p>{{ errorMessage }}</p>
+      <button type="button" class="pill-btn primary" (click)="retryLoad()">
+        <mat-icon class="material-icons-round">refresh</mat-icon>
+        <span>Retry</span>
+      </button>
+    </section>
+
+    <section class="empty-state" *ngIf="!loading && !errorMessage && filteredPlans.length === 0">
+      <mat-icon class="material-icons-round">travel_explore</mat-icon>
+      <h2>No travel plans yet</h2>
+      <p>Start by exploring our destinations</p>
+      <button type="button" class="pill-btn primary" (click)="openDestinations()">
+        <mat-icon class="material-icons-round">explore</mat-icon>
+        <span>Explore Destinations</span>
+      </button>
+    </section>
+
+    <section class="plans-grid" *ngIf="!loading && !errorMessage && filteredPlans.length > 0">
+      <article class="plan-card" *ngFor="let plan of paginatedPlans; trackBy: trackByPlan">
+        <div class="card-top-row">
+          <div>
+            <h3>{{ plan.destinationTitle }}</h3>
+            <p>{{ plan.destinationCountry }}</p>
+          </div>
+          <span class="status-pill" [ngClass]="statusClass(plan.status)">{{ statusLabel(plan.status) }}</span>
+        </div>
+
+        <div class="card-middle-row">
+          <div class="data-item">
+            <mat-icon class="material-icons-round">event</mat-icon>
+            <span>{{ plan.travelDate ? (plan.travelDate | date: 'mediumDate') : 'Date not set' }}</span>
+          </div>
+
+          <div class="data-item data-item--chip" *ngIf="transportChip(plan.transportType) as transport; else missingTransport">
+            <span class="transport-chip">
+              <mat-icon class="material-icons-round">{{ transport.icon }}</mat-icon>
+              <span>{{ transport.label }}</span>
+            </span>
+          </div>
+
+          <ng-template #missingTransport>
+            <div class="data-item data-item--chip">
+              <span class="transport-empty">Not set</span>
+            </div>
+          </ng-template>
+
+        </div>
+
+        <div class="pet-profile-widget">
+          <div class="pet-avatar-wrap">
+            <div class="pet-avatar-ring" *ngIf="petImageUrl(plan) as imageUrl; else petAvatarFallback">
+              <img
+                class="pet-avatar-img"
+                [src]="imageUrl"
+                [alt]="petDisplayName(plan)"
+                loading="lazy"
+                (error)="onPetImgError($event)"
+              />
+            </div>
+
+            <ng-template #petAvatarFallback>
+              <div class="pet-avatar-ring">
+                <mat-icon class="material-icons-round">pets</mat-icon>
+              </div>
+            </ng-template>
+
+            <span class="pet-paw-badge">
+              <mat-icon class="material-icons-round">pets</mat-icon>
+            </span>
+          </div>
+
+          <div class="pet-info-text">
+            <span class="pet-name">{{ petDisplayName(plan) }}</span>
+            <span class="pet-breed" *ngIf="petBreed(plan) as breed">{{ breed }}</span>
+          </div>
+        </div>
+
+        <div class="readiness-block">
+          <div class="readiness-row">
+            <span>Trip Readiness</span>
+            <strong>{{ plan.readinessScore }}%</strong>
+          </div>
+          <div class="readiness-track">
+            <span
+              class="readiness-fill"
+              [ngClass]="readinessClass(plan.readinessScore)"
+              [style.width.%]="plan.readinessScore"
+            ></span>
+          </div>
+        </div>
+
+        <footer class="card-actions">
+          <button type="button" class="pill-btn" (click)="openDetails(plan.id)">
+            <mat-icon class="material-icons-round">visibility</mat-icon>
+            <span>View Details</span>
+          </button>
+
+          <button type="button" class="pill-btn" (click)="openDocuments(plan.id)">
+            <mat-icon class="material-icons-round">folder_open</mat-icon>
+            <span>View Documents</span>
+          </button>
+
+          <button
+            type="button"
+            *ngIf="canCancel(plan)"
+            class="pill-btn warning-outline"
+            (click)="openCancelDialog(plan)"
+          >
+            <mat-icon class="material-icons-round">cancel</mat-icon>
+            <span>Cancel Plan</span>
+          </button>
+
+          <button type="button" class="icon-btn icon-btn--edit" *ngIf="canEdit(plan)" (click)="openEdit(plan.id)" aria-label="Edit plan">
+            <mat-icon class="material-icons-round">edit</mat-icon>
+          </button>
+
+          <div
+            class="action-wrapper"
+            [matTooltip]="getDeleteTooltip(plan)"
+            [matTooltipDisabled]="canDelete(plan)"
+            matTooltipPosition="above"
+          >
+            <button
+              type="button"
+              class="icon-btn"
+              [disabled]="!canDelete(plan) || deleting"
+              [class.btn-disabled]="!canDelete(plan)"
+              (click)="canDelete(plan) ? openDeleteDialog(plan) : null"
+              aria-label="Delete plan"
+            >
+              <mat-icon class="material-icons-round">delete</mat-icon>
+            </button>
+          </div>
+        </footer>
+
+        <div class="feedback-action" *ngIf="plan.status === 'COMPLETED'">
+          <div class="feedback-divider"></div>
+          <button class="btn-leave-feedback" type="button" (click)="goToFeedback(plan.id)">
+            <mat-icon class="material-icons-round">rate_review</mat-icon>
+            Share Your Experience
+            <mat-icon class="material-icons-round arrow">arrow_forward</mat-icon>
+          </button>
+        </div>
+      </article>
+    </section>
+
+    <app-pagination
+      *ngIf="!loading && !errorMessage && filteredPlans.length > 0"
+      [totalItems]="totalItems"
+      [itemsPerPage]="itemsPerPage"
+      [currentPage]="currentPage"
+      (pageChange)="onPageChange($event)"
+    ></app-pagination>
+  </section>
+
+  <section class="dialog-backdrop" *ngIf="pendingDeletePlan as plan">
+    <article class="dialog-card">
+      <h3>Are you sure you want to delete this plan?</h3>
+      <p>
+        This will remove your travel plan to <strong>{{ plan.destinationTitle }}</strong>.
+      </p>
+      <div class="dialog-actions">
+        <button type="button" class="pill-btn" (click)="closeDeleteDialog()" [disabled]="deleting">Cancel</button>
+        <button type="button" class="pill-btn danger" (click)="confirmDelete()" [disabled]="deleting">
+          <mat-icon class="material-icons-round">delete</mat-icon>
+          <span>{{ deleting ? 'Deleting...' : 'Delete Plan' }}</span>
+        </button>
+      </div>
+    </article>
+  </section>
+
+  <section class="dialog-backdrop" *ngIf="showCancelDialog && planToCancel as plan">
+    <article class="dialog-card dialog-card--warning">
+      <h3>Cancel Travel Plan</h3>
+      <p>
+        Are you sure you want to cancel this travel plan? This action cannot be undone.
+        Your submitted documents will be preserved.
+      </p>
+      <div class="dialog-actions">
+        <button type="button" class="pill-btn muted" (click)="closeCancelDialog()">Keep Plan</button>
+        <button type="button" class="pill-btn warning" (click)="cancelPlan()">
+          <mat-icon class="material-icons-round">cancel</mat-icon>
+          <span>Yes, Cancel</span>
+        </button>
+      </div>
+    </article>
+  </section>
+</div>

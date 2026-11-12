@@ -1,0 +1,238 @@
+<section class="community-create-page min-h-screen px-4 py-10 md:px-8">
+  <div class="mx-auto max-w-6xl">
+    <header class="create-hero">
+      <div class="relative z-10">
+        <p class="text-xs font-bold uppercase tracking-[0.22em] text-brand-teal">Community Setup Wizard</p>
+        <h1 class="mt-4 text-4xl font-black leading-[1.04] text-slate-950 md:text-5xl">Build your community in stages.</h1>
+        <p class="mt-4 max-w-3xl text-sm leading-7 text-slate-600 md:text-base">Create the community first, then optionally configure rules and flairs before launch. You can skip optional steps and manage everything later too.</p>
+      </div>
+    </header>
+
+    <div class="mt-6 grid items-start gap-6 lg:grid-cols-3">
+      <div class="create-surface lg:col-span-2 space-y-6">
+        <div class="flex flex-wrap gap-2">
+          <span class="create-chip" [ngClass]="stage === 1 ? 'ring-2 ring-brand-teal/50' : ''">1. Basics</span>
+          <span class="create-chip" [ngClass]="stage === 2 ? 'ring-2 ring-brand-teal/50' : ''">2. Rules</span>
+          <span class="create-chip" [ngClass]="stage === 3 ? 'ring-2 ring-brand-teal/50' : ''">3. Flairs</span>
+          <span class="create-chip" [ngClass]="stage === 4 ? 'ring-2 ring-brand-teal/50' : ''">4. Launch</span>
+        </div>
+
+        <div *ngIf="stage === 1" [formGroup]="form" class="space-y-6">
+          <section class="create-section">
+            <div class="create-section-header">
+              <div>
+                <p class="text-xs font-bold uppercase tracking-[0.16em] text-brand-teal">Step 1</p>
+                <h2 class="mt-2 text-2xl font-black text-slate-950">Basics</h2>
+              </div>
+              <span class="create-section-kicker">Required</span>
+            </div>
+
+            <div>
+              <label class="mb-2 block text-sm font-semibold text-slate-700">Community name</label>
+              <input formControlName="name" maxlength="80" class="w-full rounded-2xl border border-slate-300 px-4 py-3 bg-white focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 outline-none" [class.border-red-400]="form.get('name')!.invalid && form.get('name')!.touched" placeholder="e.g. Golden Retriever Owners">
+              <div class="mt-2 flex items-center justify-between text-xs text-slate-400">
+                <p>Keep it short and specific.</p>
+                <span>{{ nameLength }}/80</span>
+              </div>
+              <div class="create-slug-preview mt-3">
+                <span class="create-slug-label">Preview handle</span>
+                <strong class="create-slug-value">c/{{ slugPreview }}</strong>
+              </div>
+              <p *ngIf="form.get('name')?.touched && form.get('name')?.hasError('required')" class="mt-1 text-xs text-red-600">
+                Community name is required.
+              </p>
+              <p *ngIf="form.get('name')?.touched && form.get('name')?.hasError('minlength')" class="mt-1 text-xs text-red-600">
+                Community name must be at least 3 characters.
+              </p>
+            </div>
+
+            <div>
+              <label class="mb-2 block text-sm font-semibold text-slate-700">Description</label>
+              <textarea formControlName="description" rows="5" maxlength="1000" class="w-full rounded-2xl border border-slate-300 px-4 py-3 bg-white focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 outline-none" [class.border-red-400]="form.get('description')!.invalid && form.get('description')!.touched" placeholder="What is this community for?"></textarea>
+              <div class="mt-2 flex items-center justify-between text-xs text-slate-400">
+                <p>Describe scope and tone.</p>
+                <span>{{ descriptionLength }}/1000</span>
+              </div>
+              <p *ngIf="form.get('description')?.touched && form.get('description')?.hasError('required')" class="mt-1 text-xs text-red-600">
+                Community description is required.
+              </p>
+              <p *ngIf="form.get('description')?.touched && form.get('description')?.hasError('minlength')" class="mt-1 text-xs text-red-600">
+                Description must be at least 20 characters.
+              </p>
+            </div>
+
+            <div class="grid gap-3 sm:grid-cols-2">
+              <button type="button" (click)="form.patchValue({ type: 'PUBLIC' })" class="create-choice-card" [ngClass]="form.get('type')?.value === 'PUBLIC' ? 'create-choice-card-active' : 'create-choice-card-idle'">
+                <p class="text-base font-bold text-slate-950">Public</p>
+                <p class="mt-2 text-sm leading-6 text-slate-500">Visible in discovery.</p>
+              </button>
+              <button type="button" (click)="form.patchValue({ type: 'PRIVATE' })" class="create-choice-card" [ngClass]="form.get('type')?.value === 'PRIVATE' ? 'create-choice-card-active' : 'create-choice-card-idle'">
+                <p class="text-base font-bold text-slate-950">Private</p>
+                <p class="mt-2 text-sm leading-6 text-slate-500">Moderated membership.</p>
+              </button>
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-2">
+              <div class="create-upload-card">
+                <label class="mb-2 block text-sm font-semibold text-slate-700">Community icon</label>
+                <input [id]="iconInputId" type="file" accept="image/*" (change)="onImagePicked($event, 'iconUrl')" class="hidden">
+                <div class="flex flex-wrap items-center gap-2">
+                  <label [for]="iconInputId" class="create-upload-button">Attach icon</label>
+                  <button *ngIf="iconPreview || form.get('iconUrl')?.value" type="button" (click)="clearPickedImage('iconUrl')" class="create-remove-button">Remove</button>
+                </div>
+                <input formControlName="iconUrl" placeholder="or paste icon URL / data URL" class="mt-3 w-full rounded-2xl border border-slate-300 px-4 py-3 bg-white focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 outline-none">
+              </div>
+
+              <div class="create-upload-card">
+                <label class="mb-2 block text-sm font-semibold text-slate-700">Banner image</label>
+                <input [id]="bannerInputId" type="file" accept="image/*" (change)="onImagePicked($event, 'bannerUrl')" class="hidden">
+                <div class="flex flex-wrap items-center gap-2">
+                  <label [for]="bannerInputId" class="create-upload-button">Attach banner</label>
+                  <button *ngIf="bannerPreview || form.get('bannerUrl')?.value" type="button" (click)="clearPickedImage('bannerUrl')" class="create-remove-button">Remove</button>
+                </div>
+                <input formControlName="bannerUrl" placeholder="or paste image URL / data URL" class="mt-3 w-full rounded-2xl border border-slate-300 px-4 py-3 bg-white focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 outline-none">
+              </div>
+            </div>
+          </section>
+
+          <div class="flex flex-wrap items-center gap-3">
+            <button type="button" [disabled]="saving" (click)="createCommunityAndContinue()" class="create-submit-button">
+              {{ saving ? 'Creating...' : 'Create community and continue' }}
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="stage === 2" class="space-y-5">
+          <section class="create-section">
+            <div class="create-section-header">
+              <div>
+                <p class="text-xs font-bold uppercase tracking-[0.16em] text-brand-orange">Step 2</p>
+                <h2 class="mt-2 text-2xl font-black text-slate-950">Rules (Optional)</h2>
+                <p class="mt-2 text-sm leading-6 text-slate-500">Add rules now or skip and add them later in community management.</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-3">
+              <input [(ngModel)]="newRuleTitle" maxlength="200" placeholder="Rule title" class="w-full rounded-2xl border border-slate-300 px-4 py-3 bg-white text-sm focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 outline-none">
+              <textarea [(ngModel)]="newRuleDescription" rows="3" maxlength="1000" placeholder="Rule details (optional)" class="w-full rounded-2xl border border-slate-300 px-4 py-3 bg-white text-sm focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 outline-none"></textarea>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-3">
+              <button type="button" (click)="addRuleAndStay()" [disabled]="creatingRule" class="detail-primary-button">{{ creatingRule ? 'Adding...' : 'Add rule' }}</button>
+              <span *ngIf="ruleError" class="text-sm text-red-600">{{ ruleError }}</span>
+            </div>
+
+            <div class="mt-4 space-y-2" *ngIf="createdRules.length > 0">
+              <div *ngFor="let rule of createdRules" class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                <p class="text-sm font-semibold text-slate-900">{{ rule.ruleOrder }}. {{ rule.title }}</p>
+                <p *ngIf="rule.description" class="mt-1 text-xs text-slate-500">{{ rule.description }}</p>
+              </div>
+            </div>
+          </section>
+
+          <div class="flex flex-wrap items-center gap-3">
+            <button type="button" (click)="previousStage()" class="detail-secondary-button">Back</button>
+            <button type="button" (click)="nextStage()" class="create-submit-button">Next (skip if done)</button>
+          </div>
+        </div>
+
+        <div *ngIf="stage === 3" class="space-y-5">
+          <section class="create-section">
+            <div class="create-section-header">
+              <div>
+                <p class="text-xs font-bold uppercase tracking-[0.16em] text-brand-orange">Step 3</p>
+                <h2 class="mt-2 text-2xl font-black text-slate-950">Flairs (Optional)</h2>
+                <p class="mt-2 text-sm leading-6 text-slate-500">Add flairs now or skip and create them later.</p>
+              </div>
+            </div>
+
+            <div class="mt-4 grid grid-cols-1 gap-2 md:grid-cols-4">
+              <div class="md:col-span-2">
+                <input [(ngModel)]="newFlairName" maxlength="30" placeholder="Flair name" class="w-full rounded-2xl border border-slate-300 px-3 py-3 bg-white text-sm focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 outline-none">
+                <div class="mt-2 flex items-center justify-between text-xs text-slate-400">
+                  <p>Short and scannable.</p>
+                  <span>{{ flairNameLength }}/30</span>
+                </div>
+              </div>
+              <label class="rounded-2xl border border-slate-300 bg-white p-3 text-xs font-semibold text-slate-600">
+                Background
+                <input [(ngModel)]="newFlairColor" type="color" class="mt-2 h-10 w-full rounded-xl border border-slate-300 bg-white p-1">
+              </label>
+              <label class="rounded-2xl border border-slate-300 bg-white p-3 text-xs font-semibold text-slate-600">
+                Text
+                <input [(ngModel)]="newFlairTextColor" type="color" class="mt-2 h-10 w-full rounded-xl border border-slate-300 bg-white p-1">
+              </label>
+            </div>
+
+            <div class="mt-3 flex flex-wrap gap-3">
+              <button type="button" (click)="addFlairAndStay()" [disabled]="creatingFlair" class="detail-primary-button">{{ creatingFlair ? 'Adding...' : 'Add flair' }}</button>
+              <span *ngIf="flairError" class="text-sm text-red-600">{{ flairError }}</span>
+            </div>
+
+            <div class="mt-4 flex flex-wrap gap-2" *ngIf="createdFlairs.length > 0">
+              <span *ngFor="let flair of createdFlairs" class="rounded-full px-2.5 py-1 text-xs font-semibold" [style.backgroundColor]="flair.color" [style.color]="flair.textColor">{{ flair.name }}</span>
+            </div>
+          </section>
+
+          <div class="flex flex-wrap items-center gap-3">
+            <button type="button" (click)="previousStage()" class="detail-secondary-button">Back</button>
+            <button type="button" (click)="nextStage()" class="create-submit-button">Next (skip if done)</button>
+          </div>
+        </div>
+
+        <div *ngIf="stage === 4" class="space-y-5">
+          <section class="create-section">
+            <div class="create-section-header">
+              <div>
+                <p class="text-xs font-bold uppercase tracking-[0.16em] text-brand-teal">Step 4</p>
+                <h2 class="mt-2 text-2xl font-black text-slate-950">Launch</h2>
+                <p class="mt-2 text-sm leading-6 text-slate-500">Your community is created. Launch now and continue moderation setup from the detail page.</p>
+              </div>
+            </div>
+
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <p class="text-sm text-slate-700">Rules added: <strong>{{ createdRules.length }}</strong></p>
+              <p class="text-sm text-slate-700">Flairs added: <strong>{{ createdFlairs.length }}</strong></p>
+            </div>
+          </section>
+
+          <div class="flex flex-wrap items-center gap-3">
+            <button type="button" (click)="previousStage()" class="detail-secondary-button">Back</button>
+            <button type="button" (click)="finishSetup()" class="create-submit-button">Go to community</button>
+          </div>
+        </div>
+
+        <div *ngIf="error" class="rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-red-700">{{ error }}</div>
+      </div>
+
+      <aside class="create-side-column space-y-4">
+        <div class="create-surface create-preview-panel lg:sticky lg:top-6">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-[0.16em] text-brand-teal">Preview</p>
+              <h2 class="mt-2 text-xl font-black text-slate-950">{{ stageTitle }}</h2>
+            </div>
+            <span class="rounded-full bg-slate-100 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">{{ typeLabel }}</span>
+          </div>
+
+          <div class="create-preview-card mt-5">
+            <div class="create-preview-banner">
+              <ng-container *ngIf="bannerPreview || form.get('bannerUrl')?.value; else previewColorBanner">
+                <img [src]="bannerPreview || form.get('bannerUrl')?.value" alt="Community banner preview" class="h-full w-full object-cover">
+              </ng-container>
+              <ng-template #previewColorBanner>
+                <div class="h-full w-full" [style.backgroundColor]="previewBannerColor()"></div>
+              </ng-template>
+              <div class="create-preview-banner-overlay"></div>
+            </div>
+
+            <div class="create-preview-body">
+              <h3 class="truncate text-lg font-black text-slate-950">{{ form.get('name')?.value || 'Community name' }}</h3>
+              <p class="mt-1 text-xs text-slate-500">c/{{ slugPreview }}</p>
+              <p class="mt-3 text-sm leading-6 text-slate-600">{{ form.get('description')?.value || 'Your community description preview appears here.' }}</p>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>

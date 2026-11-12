@@ -1,0 +1,82 @@
+<section class="detail-feed" *ngIf="host.community as c">
+  <section class="detail-toolbar detail-toolbar-compact">
+    <div class="detail-toolbar-grid">
+      <div class="detail-toolbar-copy">
+        <p class="text-xs font-bold uppercase tracking-[0.16em] text-brand-teal">Feed</p>
+        <h2 class="mt-1 text-2xl font-black text-slate-950">Community posts</h2>
+        <p class="mt-1 text-sm leading-5 text-slate-500">Sort by activity, recency, score, or debate.</p>
+      </div>
+
+      <div class="detail-sort-panel">
+        <div class="detail-sort-group">
+          <span class="detail-sort-group-label">Sort</span>
+          <div class="detail-sort-chip-list">
+            <button type="button" (click)="host.onSortChange('HOT')" class="detail-sort-button" [ngClass]="host.sort === 'HOT' ? 'detail-sort-button-active' : 'detail-sort-button-idle'"><i class="fas fa-fire mr-1.5"></i>Hot</button>
+            <button type="button" (click)="host.onSortChange('NEW')" class="detail-sort-button" [ngClass]="host.sort === 'NEW' ? 'detail-sort-button-active' : 'detail-sort-button-idle'"><i class="fas fa-clock mr-1.5"></i>New</button>
+            <button type="button" (click)="host.onSortChange('TOP')" class="detail-sort-button" [ngClass]="host.sort === 'TOP' ? 'detail-sort-button-active' : 'detail-sort-button-idle'"><i class="fas fa-trophy mr-1.5"></i>Top</button>
+            <button type="button" (click)="host.onSortChange('CONTROVERSIAL')" class="detail-sort-button" [ngClass]="host.sort === 'CONTROVERSIAL' ? 'detail-sort-button-active' : 'detail-sort-button-idle'"><i class="fas fa-bolt mr-1.5"></i>Debate</button>
+          </div>
+        </div>
+
+        <div class="detail-sort-group">
+          <span class="detail-sort-group-label">Range</span>
+          <div class="detail-sort-window-list">
+            <button
+              *ngFor="let option of host.feedWindows"
+              type="button"
+              (click)="host.onSortWindowChange(option.value)"
+              class="detail-sort-window-button"
+              [ngClass]="host.sortWindow === option.value ? 'detail-sort-window-button-active' : 'detail-sort-window-button-idle'">
+              {{ option.label }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-toolbar-meta md:flex-row md:items-center md:justify-between">
+      <div class="flex flex-wrap items-center gap-2 text-sm text-slate-500">
+        <span>Showing {{ host.posts.length }} posts</span>
+        <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Sorted by {{ host.sort.toLowerCase() }} · {{ host.sortWindow === 'ALL' ? 'all time' : host.sortWindow.toLowerCase() }}</span>
+        <span *ngIf="host.selectedFlairId !== undefined" class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Flair filter active</span>
+      </div>
+      <a *ngIf="host.canCreatePost" [routerLink]="['/app/community/c', c.slug, 'post', 'new']" [queryParams]="{ communityId: c.id }" class="detail-inline-button">
+        <i class="fas fa-pen mr-2"></i>Start a thread
+      </a>
+    </div>
+  </section>
+
+  <div *ngIf="host.error" class="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-red-700">{{ host.error }}</div>
+
+  <div class="detail-posts-surface mt-1" *ngIf="!host.loading && !host.error">
+    <div *ngIf="host.posts.length > 0" class="detail-posts-list">
+      <div *ngFor="let p of host.posts; trackBy: host.trackByPostId">
+        <app-post-card
+          [post]="p"
+          [currentUserId]="host.userId"
+          [canPinPost]="host.canManagePost(p)"
+          (voted)="host.onPostVote(p, $event.value)">
+        </app-post-card>
+      </div>
+    </div>
+
+    <div *ngIf="host.posts.length === 0" class="detail-empty-state">
+      <p class="text-lg font-semibold text-slate-900">No posts for this filter yet.</p>
+      <p class="mt-2 text-sm text-slate-500">Start a thread and help this community establish its rhythm.</p>
+      <a
+        *ngIf="host.canCreatePost"
+        [routerLink]="['/app/community/c', c.slug, 'post', 'new']"
+        [queryParams]="{ communityId: c.id }"
+        class="detail-inline-button mt-4"
+      >
+        <i class="fas fa-pen mr-2"></i>Create post
+      </a>
+      <button *ngIf="host.isLoggedIn && !host.isMember" type="button" (click)="host.join()" [disabled]="host.joining" class="detail-inline-button mt-4">
+        <i class="fas fa-user-plus mr-2"></i>{{ host.joining ? 'Joining...' : 'Join to post' }}
+      </button>
+      <a *ngIf="!host.isLoggedIn" routerLink="/auth/login" class="detail-inline-button mt-4">
+        <i class="fas fa-right-to-bracket mr-2"></i>Log in to post
+      </a>
+    </div>
+  </div>
+</section>

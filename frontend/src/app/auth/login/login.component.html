@@ -1,0 +1,90 @@
+<div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
+  <!-- Decorative background elements -->
+  <div class="absolute -top-24 -left-24 w-96 h-96 bg-brand-teal/10 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
+  <div class="absolute top-1/2 -right-24 w-96 h-96 bg-brand-orange/10 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob [animation-delay:2s]"></div>
+  <div class="absolute -bottom-24 left-1/4 w-96 h-96 bg-brand-teal/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob [animation-delay:4s]"></div>
+
+  <div class="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+    <div class="flex justify-center mb-6 relative">
+      <a routerLink="/app">
+        <img class="mx-auto h-20 w-auto object-contain transform hover:scale-105 transition-transform duration-300 drop-shadow-sm" src="images/logo/logo-cropped-transparent.png" alt="PURRE PETS">
+      </a>
+      <img src="images/animals/cat.png" alt="" aria-hidden="true" class="absolute -top-4 -right-12 h-16 opacity-80 animate-bounce-slow hidden sm:block">
+    </div>
+    <h2 class="mt-2 text-center text-3xl font-extrabold text-gray-900 leading-tight">
+      Welcome back
+    </h2>
+    <p class="mt-2 text-center text-sm text-gray-600">
+      Or
+      <a routerLink="/auth/register" class="font-medium text-brand-teal hover:text-brand-orange transition-colors">
+        create a new account
+      </a>
+    </p>
+  </div>
+
+  <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+    <div class="bg-white/95 backdrop-blur-md py-8 px-4 shadow sm:rounded-2xl sm:px-10 border border-gray-100 animate-fade-in-up">
+      <form class="space-y-6" [formGroup]="form" (ngSubmit)="submit()">
+        <div>
+          <label for="email" class="block text-sm font-medium text-gray-700">
+            Email address
+          </label>
+          <div class="mt-1 relative rounded-md shadow-sm">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-envelope text-gray-400"></i>
+            </div>
+            <input formControlName="email" id="email" type="email" autocomplete="email" [class.border-red-400]="form.get('email')!.invalid && form.get('email')!.touched" class="focus:ring-brand-teal focus:border-brand-teal block w-full pl-10 sm:text-sm border-gray-300 rounded-lg py-3 px-4 bg-gray-50/50 border hover:bg-white focus:bg-white transition-all outline-none" placeholder="you@example.com">
+          </div>
+          <p *ngIf="form.get('email')!.touched && form.get('email')!.invalid" class="mt-1 text-sm text-red-600">Enter a valid email.</p>
+        </div>
+
+        <div>
+          <label for="password" class="block text-sm font-medium text-gray-700">
+            Password
+          </label>
+          <div class="mt-1 relative rounded-md shadow-sm">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-lock text-gray-400"></i>
+            </div>
+            <input formControlName="password" id="password" type="password" autocomplete="current-password" [class.border-red-400]="form.get('password')!.invalid && form.get('password')!.touched" class="focus:ring-brand-teal focus:border-brand-teal block w-full pl-10 sm:text-sm border-gray-300 rounded-lg py-3 px-4 bg-gray-50/50 border hover:bg-white focus:bg-white transition-all outline-none" placeholder="••••••••">
+          </div>
+          <p *ngIf="form.get('password')!.touched && form.get('password')!.hasError('required')" class="mt-1 text-sm text-red-600">Password is required.</p>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <div></div>
+          <div class="text-sm">
+            <a routerLink="/auth/forgot-password" class="font-medium text-brand-orange hover:text-brand-teal transition-colors">
+              Forgot your password?
+            </a>
+          </div>
+        </div>
+
+        <div *ngIf="error" class="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">{{ error }}</div>
+
+        <div>
+          <button type="submit" [disabled]="loading" class="w-full flex justify-center items-center gap-2 py-3 px-4 border border-transparent rounded-full shadow-md text-sm font-medium text-white bg-brand-teal hover:bg-brand-teal/90 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-teal transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-60">
+            <i class="fas fa-sign-in-alt"></i> {{ loading ? 'Signing in...' : 'Sign in' }}
+          </button>
+        </div>
+      </form>
+
+      <div class="mt-6">
+        <div class="relative">
+          <div class="absolute inset-0 flex items-center">
+            <div class="w-full border-t border-gray-200"></div>
+          </div>
+          <div class="relative flex justify-center text-sm">
+            <span class="px-2 bg-white text-gray-500">
+              Or sign in with
+            </span>
+          </div>
+        </div>
+
+        <div class="mt-6 grid grid-cols-1 gap-3">
+          <app-google-signin-button (idToken)="onGoogleCredential($event)"></app-google-signin-button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

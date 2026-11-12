@@ -1,0 +1,61 @@
+<article class="plan-card" (click)="onDetailsClick()" [ngClass]="bannerToneClass()">
+  <header class="plan-banner">
+    <p class="country-chip">
+      <mat-icon class="material-icons-round">public</mat-icon>
+      <span>{{ plan.destinationCountry }}</span>
+    </p>
+
+    <app-status-badge [status]="plan.status" [compact]="true"></app-status-badge>
+  </header>
+
+  <div class="plan-content">
+    <h3>{{ plan.destinationTitle }}</h3>
+
+    <p class="travel-date">
+      <mat-icon class="material-icons-round">event</mat-icon>
+      <span>{{ travelDateLabel() }}</span>
+    </p>
+
+    <div class="signal-row">
+      <app-status-badge [safetyStatus]="plan.safetyStatus" [compact]="true"></app-status-badge>
+      <p class="created-label">Created {{ createdLabel() }}</p>
+    </div>
+
+    <div class="readiness-block">
+      <app-readiness-score [score]="plan.readinessScore" [compact]="true"></app-readiness-score>
+    </div>
+
+    <p class="review-pill" *ngIf="isAwaitingReview()">
+      <mat-icon class="material-icons-round">hourglass_empty</mat-icon>
+      <span>Awaiting admin review</span>
+    </p>
+  </div>
+
+  <footer class="plan-actions">
+    <button type="button" class="action-btn action-btn--primary" (click)="$event.stopPropagation(); onDetailsClick()">
+      <span>View Details</span>
+      <mat-icon class="material-icons-round">arrow_forward</mat-icon>
+    </button>
+
+    <button
+      type="button"
+      class="action-btn"
+      *ngIf="canEdit()"
+      (click)="onEditClick($event)"
+    >
+      <mat-icon class="material-icons-round">edit</mat-icon>
+      <span>Edit</span>
+    </button>
+
+    <button
+      type="button"
+      class="action-btn action-btn--danger"
+      *ngIf="canDelete()"
+      (click)="onDeleteClick($event)"
+    >
+      <mat-icon class="material-icons-round">delete</mat-icon>
+      <span>Delete</span>
+    </button>
+  </footer>
+</article>
+

@@ -1,0 +1,142 @@
+:host {
+  display: block;
+}
+
+.details-shell {
+  background:
+    radial-gradient(circle at 12% 12%, rgba(58, 146, 130, 0.16), transparent 32%),
+    radial-gradient(circle at 90% 84%, rgba(248, 154, 63, 0.14), transparent 30%),
+    linear-gradient(180deg, #f8fafc 0%, #f3f7fb 100%);
+}
+
+@keyframes pulse-animation {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-pulse {
+  animation: pulse-animation 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.image-panel img {
+  transition: transform 0.35s ease;
+}
+
+.image-panel:hover img {
+  transform: scale(1.04);
+}
+
+.qty-btn {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 0.65rem;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  color: #111827;
+  font-weight: 800;
+}
+
+.qty-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+button {
+  transition: all 0.3s ease;
+}
+
+textarea,
+select {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.18);
+}
+
+.review-stars-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.85rem;
+  background: #fff;
+}
+
+.review-star-btn {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.45;
+  filter: grayscale(1);
+  transition: transform 0.18s ease, opacity 0.2s ease, filter 0.2s ease;
+}
+
+.review-star-btn:hover,
+.review-star-btn:focus-visible {
+  transform: translateY(-1px) scale(1.15);
+}
+
+.review-star-filled {
+  opacity: 1;
+  filter: grayscale(0);
+}
+
+.review-face {
+  display: inline-block;
+  transform-origin: center;
+}
+
+.review-star-filled .review-face {
+  animation: face-bounce 0.22s ease;
+}
+
+.review-face-static {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+@keyframes face-bounce {
+  0% {
+    transform: scale(0.86);
+  }
+  55% {
+    transform: scale(1.16);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.review-rating-label {
+  margin-left: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.favorite-toggle-btn {
+  border: 1px solid #fecdd3;
+  background: #fff1f2;
+  color: #be123c;
+  border-radius: 9999px;
+  padding: 0.72rem 1rem;
+  font-weight: 700;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.favorite-toggle-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: #ffe4e6;
+}

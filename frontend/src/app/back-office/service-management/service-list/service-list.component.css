@@ -1,0 +1,59 @@
+/* ============================================================
+   SERVICE LIST — Espace Prestataire (Provider View)
+   ============================================================ */
+
+/* === Page background === */
+.sl-page {
+  background: linear-gradient(135deg, #f8faff 0%, #fdf4ff 100%);
+  min-height: 100vh;
+  padding: 3rem 2rem;
+  font-family: 'Inter', sans-serif;
+}
+
+/* === Status Badges for Cards === */
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  backdrop-blur: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.status-badge-active {
+  background: rgba(34, 197, 94, 0.9);
+  color: white;
+}
+
+.status-badge-inactive {
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+}
+
+/* === Hover and card enhancements === */
+.group:hover .status-badge {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+/* Tooltip or additional card info font sizes */
+small {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+/* Smooth transitions */
+.transition-all {
+  transition-duration: 300ms;
+}
+
+/* Typography refinements */
+h1, h2, h3 {
+  letter-spacing: -0.025em;
+}
+
+/* Note: Most styling is handled via Tailwind (grid, padding, radius).
+   This CSS file now only contains specific micro-interactions and
+   global layout adjustments for the module. */

@@ -1,0 +1,107 @@
+:host {
+  display: block;
+}
+
+.backoffice-shell {
+  background: #f3f6f9;
+}
+
+.shell-header {
+  border-bottom: 1px solid #d7e1ea;
+  background: #ffffff;
+  padding: 0.75rem 1rem;
+}
+
+.shell-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.hamburger-btn {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.6rem;
+  border: 1px solid #d4dee7;
+  background: #ffffff;
+  color: #355066;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.hamburger-btn:hover {
+  background: #eef4f8;
+  border-color: #b8cad8;
+}
+
+.header-copy {
+  line-height: 1;
+}
+
+.header-eyebrow {
+  margin: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #688096;
+  font-weight: 800;
+}
+
+.header-title {
+  margin: 0.2rem 0 0;
+  font-size: 1.04rem;
+  font-weight: 800;
+  color: #1b3145;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.date-pill {
+  border: 1px solid #d4dee7;
+  border-radius: 999px;
+  background: #f8fbfd;
+  color: #5e7386;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.3rem 0.68rem;
+}
+
+.avatar-badge {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.74rem;
+  color: #ffffff;
+  background: #0f766e;
+}
+
+.shell-main {
+  background: #f3f6f9;
+}
+
+@media (min-width: 768px) {
+  .shell-header {
+    padding: 0.8rem 1.25rem;
+  }
+
+  .header-title {
+    font-size: 1.1rem;
+  }
+}

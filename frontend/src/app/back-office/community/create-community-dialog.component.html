@@ -1,0 +1,142 @@
+<form [formGroup]="form" (ngSubmit)="submit()" class="bo-dialog-shell">
+  <div class="bo-dialog-head" mat-dialog-title>
+    <div>
+      <p class="bo-eyebrow">Community Admin</p>
+      <h2>Create community</h2>
+      <p class="bo-dialog-copy">Set the basics, choose the visibility, and upload the identity assets before launch.</p>
+    </div>
+    <button type="button" (click)="close()" class="bo-icon-button" aria-label="Close create community dialog">
+      <i class="fas fa-xmark"></i>
+    </button>
+  </div>
+
+  <div class="bo-dialog-body" mat-dialog-content>
+    <section class="bo-dialog-surface bo-form-stack">
+      <div class="bo-field">
+        <label class="bo-field-label" for="community-dialog-name">Community name</label>
+        <input
+          id="community-dialog-name"
+          type="text"
+          formControlName="name"
+          maxlength="80"
+          placeholder="Example: Pet Rescue North"
+          class="bo-input"
+          [class.bo-input-invalid]="nameControl?.touched && nameControl?.invalid"
+        >
+        <p class="bo-field-help">This is the main name used across the admin and front-office views.</p>
+        <p *ngIf="nameControl?.touched && nameControl?.hasError('required')" class="bo-field-error">Community name is required.</p>
+        <p *ngIf="nameControl?.touched && nameControl?.hasError('minlength')" class="bo-field-error">Community name must be at least 3 characters.</p>
+        <p *ngIf="nameControl?.touched && nameControl?.hasError('maxlength')" class="bo-field-error">Community name must stay under 80 characters.</p>
+      </div>
+
+      <div class="bo-field">
+        <div class="bo-field-head">
+          <label class="bo-field-label" for="community-dialog-description">Description</label>
+          <span class="bo-field-counter">{{ (descriptionControl?.value || '').length }}/1000</span>
+        </div>
+        <textarea
+          id="community-dialog-description"
+          formControlName="description"
+          maxlength="1000"
+          rows="5"
+          placeholder="Describe the purpose, tone, and what members should expect here."
+          class="bo-input bo-textarea"
+          [class.bo-input-invalid]="descriptionControl?.touched && descriptionControl?.invalid"
+        ></textarea>
+        <p class="bo-field-help">A clear summary helps moderators and members understand the space immediately.</p>
+        <p *ngIf="descriptionControl?.touched && descriptionControl?.hasError('required')" class="bo-field-error">Community description is required.</p>
+        <p *ngIf="descriptionControl?.touched && descriptionControl?.hasError('minlength')" class="bo-field-error">Community description must be at least 20 characters.</p>
+        <p *ngIf="descriptionControl?.touched && descriptionControl?.hasError('maxlength')" class="bo-field-error">Community description must stay under 1000 characters.</p>
+      </div>
+    </section>
+
+    <section class="bo-dialog-surface">
+      <div class="bo-section-head">
+        <div>
+          <p class="bo-section-kicker">Visibility</p>
+          <h3>Choose the community type</h3>
+        </div>
+        <span class="bo-section-chip">{{ typeControl?.value === 'PRIVATE' ? 'Curated' : 'Discovery-first' }}</span>
+      </div>
+
+      <div class="bo-choice-grid">
+        <button type="button" (click)="chooseType('PUBLIC')" class="create-choice-card" [ngClass]="typeControl?.value === 'PUBLIC' ? 'create-choice-card-active' : 'create-choice-card-idle'">
+          <div class="bo-choice-top">
+            <span class="bo-choice-icon bo-choice-icon-cool"><i class="fas fa-earth-africa"></i></span>
+            <span class="bo-mini-chip">Open</span>
+          </div>
+          <p class="bo-choice-title">Public</p>
+          <p class="bo-choice-copy">Best for discoverable communities that welcome broader participation.</p>
+        </button>
+
+        <button type="button" (click)="chooseType('PRIVATE')" class="create-choice-card" [ngClass]="typeControl?.value === 'PRIVATE' ? 'create-choice-card-active' : 'create-choice-card-idle'">
+          <div class="bo-choice-top">
+            <span class="bo-choice-icon bo-choice-icon-warm"><i class="fas fa-lock"></i></span>
+            <span class="bo-mini-chip">Curated</span>
+          </div>
+          <p class="bo-choice-title">Private</p>
+          <p class="bo-choice-copy">Best for invite-only groups and tighter moderation control.</p>
+        </button>
+      </div>
+    </section>
+
+    <section class="bo-dialog-surface bo-media-grid">
+      <div class="create-upload-card">
+        <div class="bo-section-head bo-section-head-tight">
+          <div>
+            <p class="bo-section-kicker">Branding</p>
+            <h3>Banner image</h3>
+          </div>
+        </div>
+
+        <input [id]="bannerInputId" type="file" accept="image/*" (change)="onImagePicked($event, 'bannerUrl')" class="bo-hidden-input">
+        <div class="bo-upload-row">
+          <label [for]="bannerInputId" class="create-upload-button"><i class="fas fa-upload"></i>Upload banner</label>
+          <button *ngIf="bannerUrl" type="button" (click)="clearImage('bannerUrl')" class="create-remove-button">Remove</button>
+        </div>
+        <p class="bo-field-help">Use a wide image that feels strong in the workspace header.</p>
+        <div class="bo-media-preview bo-media-preview-banner">
+          <img *ngIf="bannerUrl; else bannerFallback" [src]="bannerUrl" alt="Community banner preview" class="bo-banner-preview">
+          <ng-template #bannerFallback>
+            <div class="bo-banner-preview bo-banner-preview-fallback">
+              <span>Upload a banner to preview the hero treatment</span>
+            </div>
+          </ng-template>
+        </div>
+      </div>
+
+      <div class="create-upload-card">
+        <div class="bo-section-head bo-section-head-tight">
+          <div>
+            <p class="bo-section-kicker">Identity</p>
+            <h3>Icon image</h3>
+          </div>
+        </div>
+
+        <input [id]="iconInputId" type="file" accept="image/*" (change)="onImagePicked($event, 'iconUrl')" class="bo-hidden-input">
+        <div class="bo-upload-row">
+          <label [for]="iconInputId" class="create-upload-button"><i class="fas fa-upload"></i>Upload icon</label>
+          <button *ngIf="iconUrl" type="button" (click)="clearImage('iconUrl')" class="create-remove-button">Remove</button>
+        </div>
+        <p class="bo-field-help">Use a square image that stays legible at small sizes.</p>
+        <div class="bo-icon-preview-card">
+          <ng-container *ngIf="iconUrl; else iconFallback">
+            <img [src]="iconUrl" alt="Community icon preview" class="bo-icon-preview">
+          </ng-container>
+          <ng-template #iconFallback>
+            <div class="bo-icon-preview bo-icon-preview-fallback">{{ communityInitial }}</div>
+          </ng-template>
+          <div>
+            <p class="bo-preview-title">Identity preview</p>
+            <p class="bo-preview-copy">This image appears in list rows, detail headers, and moderation context.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="bo-dialog-actions" mat-dialog-actions align="end">
+    <button type="button" (click)="close()" class="detail-secondary-button">Cancel</button>
+    <button type="submit" class="detail-primary-button">Create community</button>
+  </div>
+</form>
