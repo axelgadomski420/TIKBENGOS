@@ -25,3 +25,12 @@ curl -fsSL https://raw.githubusercontent.com/axelgadomski420/TIKBENGOS/main/depl
 ```
 
 Usługi: `purre-pets.service`, `purre-ai.service`
+
+## Aktualizacja 2026-11-13
+
+- Dodano dolne menu mobilne PURRE AURA (Discover | Explore | + | Messenger | Arcade | Profil)
+- Utworzono moduł PURRE Arcade (stub z grami: 2048, Memory, Quiz, Hex)
+- Zaktualizowano domenę na bengos.pl w skryptach deploy
+- Zachowano stack Angular + Spring Boot + MySQL + WebSocket
+
+Następne kroki: pełna integracja PURRE Coins + Stripe, HoloFeed z video, Smart Match z paw-match, AI Assistant.

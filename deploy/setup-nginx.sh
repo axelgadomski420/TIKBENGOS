@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-DOMAIN="${DOMAIN:-purrepets.pl}"
+DOMAIN="${DOMAIN:-bengos.pl}"
 PUBLIC_IP="${PUBLIC_IP:-92.5.154.243}"
 APP_DIR="${APP_DIR:-/opt/purre-pets}"
 BACKEND_PORT=8087

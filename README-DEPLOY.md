@@ -17,7 +17,7 @@ A     www    92.5.154.243
 
 Po DNS:
 ```bash
-sudo certbot --nginx -d purrepets.pl -d www.purrepets.pl --redirect
+sudo certbot --nginx -d bengos.pl -d www.bengos.pl --redirect
 ```
 
 ## Usługi

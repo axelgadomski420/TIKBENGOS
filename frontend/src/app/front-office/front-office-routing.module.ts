@@ -16,7 +16,8 @@ const routes: Routes = [
       { path: 'adoption', loadChildren: () => import('./adoption/adoption.module').then(m => m.AdoptionModule) },
       { path: 'events', loadChildren: () => import('./events/events.module').then(m => m.EventsModule) },
       { path: 'marketplace', loadChildren: () => import('./marketplace/marketplace.module').then(m => m.MarketplaceModule) },
-      { path: 'community', loadChildren: () => import('./community/community.module').then(m => m.CommunityModule) }
+      { path: 'community', loadChildren: () => import('./community/community.module').then(m => m.CommunityModule) },
+      { path: 'arcade', loadComponent: () => import('./arcade/arcade.component').then(m => m.ArcadeComponent) },
     ]
   }
 ];
